@@ -86,7 +86,7 @@ export default async function GuildPage() {
             </header>
 
             {/* Main Content - Split Layout */}
-            <main className="container mx-auto px-4 py-6 h-[calc(100vh-73px)] max-w-[1600px]">
+            <main className="container mx-auto px-4 py-6 min-h-[calc(100dvh-73px)] lg:h-[calc(100vh-73px)] max-w-[1600px]">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
 
                     {/* Left: Quest Board (30-40%) */}
@@ -103,7 +103,7 @@ export default async function GuildPage() {
                     </div>
 
                     {/* Right: Guild Chat (60-70%) */}
-                    <div className="lg:col-span-8 h-full flex flex-col">
+                    <div className="lg:col-span-8 h-[70vh] lg:h-full flex flex-col">
                         <ChatBox
                             initialMessages={messages}
                             currentUser={session.username}
