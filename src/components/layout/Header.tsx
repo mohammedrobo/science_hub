@@ -55,12 +55,8 @@ export async function Header() {
 
                     {/* Admin Button */}
                     {isAdmin && (
-                        <Link
-                            href="/admin"
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-accent text-accent-foreground border border-border hover:bg-accent/80 transition-all text-xs font-semibold"
-                        >
-                            <Crown className="w-3 h-3" />
-                            <span>Admin</span>
+                        <Link href="/admin" className="hover:text-primary transition-colors">
+                            Admin
                         </Link>
                     )}
                 </nav>

@@ -215,6 +215,12 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
                                                                 </Button>
                                                             </form>
                                                         )}
+                                                        {/* Admin Toggle */}
+                                                        <form action={async () => { 'use server'; await updateUserRole(user.username, user.access_role === 'admin' ? 'student' : 'admin'); }}>
+                                                            <Button size="sm" variant="ghost" className={`h-8 w-8 p-0 ${user.access_role === 'admin' ? 'text-red-500 hover:text-zinc-500' : 'text-zinc-500 hover:text-red-500'}`} title={user.access_role === 'admin' ? "Demote to Student" : "Promote to Admin"}>
+                                                                <Crown className="w-4 h-4" />
+                                                            </Button>
+                                                        </form>
                                                         <form action={async () => { 'use server'; await removeProfilePicture(user.username); }}>
                                                             <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-zinc-500 hover:text-yellow-500" title="Remove Picture">
                                                                 <ImageOff className="w-4 h-4" />
@@ -293,6 +299,12 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
                                                                         </Button>
                                                                     </form>
                                                                 )}
+                                                                {/* Admin Toggle */}
+                                                                <form action={async () => { 'use server'; await updateUserRole(user.username, user.access_role === 'admin' ? 'student' : 'admin'); }}>
+                                                                    <Button size="icon" variant="ghost" className={`h-8 w-8 ${user.access_role === 'admin' ? 'text-red-500 hover:text-zinc-500' : 'text-zinc-500 hover:text-red-500'}`} title={user.access_role === 'admin' ? "Demote to Student" : "Promote to Admin"}>
+                                                                        <Crown className="w-4 h-4" />
+                                                                    </Button>
+                                                                </form>
                                                                 <form action={async () => { 'use server'; await removeProfilePicture(user.username); }}>
                                                                     <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-500 hover:text-yellow-500" title="Remove Picture">
                                                                         <ImageOff className="w-4 h-4" />
