@@ -42,7 +42,12 @@ export function SemesterToggle() {
                             <m.div
                                 layoutId="active-pill"
                                 className="absolute inset-0 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full shadow-lg shadow-violet-500/25 -z-10"
-                                transition={{ duration: 0.3, ease: "easeOut" }}
+                                transition={{ 
+                                    type: "spring", 
+                                    stiffness: 350, 
+                                    damping: 30,
+                                    mass: 1
+                                }}
                             />
                         )}
                         {tab.label}
