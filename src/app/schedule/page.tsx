@@ -26,12 +26,17 @@ export default async function ScheduleIndexPage() {
     const isAdmin = session.role === 'admin';
     const userSection = getUserSection(session.username);
 
-    // If student (not admin), redirect directly to their section
-    if (!isAdmin && userSection) {
-        redirect(`/schedule/${userSection.toLowerCase()}`);
+    // Non-admins: redirect directly to their section (no grid view)
+    if (!isAdmin) {
+        if (userSection) {
+            redirect(`/schedule/${userSection.toLowerCase()}`);
+        } else {
+            // User doesn't have a section in username - redirect home
+            redirect('/');
+        }
     }
 
-    // Admins see all sections
+    // Only admins reach here - show all sections
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white p-4 md:p-8">
             <div className="max-w-4xl mx-auto">

@@ -1,5 +1,8 @@
 
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const targetNames = [
     'محمد توفيق جمال عبدالحكيم',
@@ -8,7 +11,7 @@ const targetNames = [
 
 async function promoteAdmins() {
     console.log("Initializing Admin Promotion...");
-    const supabase = await createServiceRoleClient();
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     for (const name of targetNames) {
         console.log(`Searching for: ${name}`);
@@ -30,7 +33,7 @@ async function promoteAdmins() {
         }
 
         if (users.length > 1) {
-            console.warn(`Multiple users found for ${name}. Skipping safe update. Found: ${users.map(u => u.username).join(', ')}`);
+            console.warn(`Multiple users found for ${name}. Skipping safe update. Found: ${users.map((u: { username: string }) => u.username).join(', ')}`);
             continue;
         }
 
