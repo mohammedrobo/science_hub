@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
 const SESSION_COOKIE = 'sciencehub_session';
 
@@ -9,7 +10,7 @@ interface SessionPayload {
     hasOnboarded?: boolean;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
     // Public routes that don't need auth
@@ -36,7 +37,6 @@ export async function middleware(request: NextRequest) {
         // Verify user status against DB to catch resets/bans immediately
         // We use a fresh client for middleware to avoid cookie caching issues
         try {
-            const { createClient } = await import('@supabase/supabase-js');
             const supabase = createClient(
                 process.env.NEXT_PUBLIC_SUPABASE_URL!,
                 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!

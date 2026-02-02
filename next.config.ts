@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
     },
   },
 
+  // Fix for workspace root warning
+  turbopack: {
+     root: process.cwd(),
+  },
+
   // Image optimization
   images: {
     formats: ['image/avif', 'image/webp'],

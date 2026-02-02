@@ -1,128 +1,112 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import * as crypto from 'crypto';
 
-// Types
-interface User {
-    id: string;
-    serial: string;
-    name: string;
-    username: string;
-    tempPassword: string; // Plain text for distribution
-    tempPasswordHash?: string;
-    group: string;
-    section: string;
-    mustChangePassword: boolean;
+// 1. تحديد مسار الملفات
+const INPUT_FILE = path.join(process.cwd(), 'src', 'data', 'students_raw.txt');
+const OUTPUT_DIR = path.join(process.cwd(), 'secure_data');
+const SEED_JSON_FILE = path.join(OUTPUT_DIR, 'seed.json');
+const SEED_SQL_FILE = path.join(OUTPUT_DIR, 'seed.sql');
+
+// دالة لتوليد حروف عشوائية (3 حروف)
+function generateRandomSuffix(length: number = 3): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // استبعدنا الحروف المتشابهة مثل I, 1, O, 0
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
 }
 
-// Using process.cwd() to be ESM safe and run from project root
-const RAW_FILE = path.join(process.cwd(), 'src', 'data', 'students_raw.txt');
-const SECURE_DIR = path.join(process.cwd(), 'secure_data');
-const SEED_FILE = path.join(process.cwd(), 'secure_data', 'seed.json');
-
-// Map Arabic numerals to English if needed
-function toEnglishDigits(str: string): string {
-    return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
-}
-
-function generateRandomPassword(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-function generateUsername(name: string, serial: string, group: string): string {
-    // "A1-123" (Group A, Section 1, Serial 123)
-    return `${group}-${serial}`.toUpperCase();
+// دالة لتوليد باسورد أرقام (6 أرقام)
+function generateNumericPassword(length: number = 6): string {
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += Math.floor(Math.random() * 10).toString();
+  }
+  return result;
 }
 
 async function main() {
-    console.log(`📂 Reading data from: ${RAW_FILE}`);
+  console.log("🦅 STARTING PROTOCOL: GENERATING USERS...");
 
-    if (!fs.existsSync(RAW_FILE)) {
-        console.error('❌ Data file not found:', RAW_FILE);
-        console.log('   Make sure you are running this script from the project root.');
-        return;
+  // التأكد من وجود الملف
+  if (!fs.existsSync(INPUT_FILE)) {
+    console.error(`❌ Error: Input file not found at: ${INPUT_FILE}`);
+    process.exit(1);
+  }
+
+  // قراءة الملف
+  const rawData = fs.readFileSync(INPUT_FILE, 'utf-8');
+  const lines = rawData.split('\n').filter(line => line.trim() !== '');
+
+  const users = [];
+  const sqlStatements: string[] = [];
+
+  console.log(`📊 Found ${lines.length} students. Processing...`);
+
+  // إنشاء فولدر المخرجات
+  if (!fs.existsSync(OUTPUT_DIR)) {
+    fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+  }
+
+  for (const line of lines) {
+    // تنظيف السطر وتقسيمه
+    // المتوقع: "1 اسم الطالب A 1"
+    const parts = line.trim().split(/\s+/); // التقسيم بالمسافات
+
+    if (parts.length < 4) {
+      console.warn(`⚠️ Skipping invalid line: ${line}`);
+      continue;
     }
 
-    const rawText = fs.readFileSync(RAW_FILE, 'utf-8');
-    const lines = rawText.split('\n');
-    const users: User[] = [];
+    // استخراج البيانات
+    const serial = parts[0]; // الرقم المسلسل (أول كلمة)
+    const section = parts[parts.length - 1]; // السكشن (آخر كلمة)
+    const group = parts[parts.length - 2];   // المجموعة (قبل الأخيرة)
 
-    // State tracking
-    let currentGroup = 'A'; // Default to A to ensure we capture initial rows
-    let currentSection = '1';
+    // الاسم هو كل ما بين الرقم والجروب
+    const nameParts = parts.slice(1, parts.length - 2);
+    const fullName = nameParts.join(' ');
 
-    for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed) continue;
+    // توليد اليوزرنيم: Group+Section + Serial + Random
+    // مثال: A1-43-XYZ
+    const randomSuffix = generateRandomSuffix();
+    const username = `${group}${section}-${serial}-${randomSuffix}`;
 
-        // Detect Group (A-D)
-        const groupMatch = trimmed.match(/[A-D]/i);
-        if (groupMatch && (trimmed.includes('Group') || trimmed.includes('المجموعة') || trimmed.length < 10)) {
-            currentGroup = groupMatch[0].toUpperCase();
-        }
+    // توليد الباسورد
+    const tempPassword = generateNumericPassword();
 
-        // Detect Section
-        const secMatch = trimmed.match(/(?:Section|السكشن)\s*(\d+)/i);
-        if (secMatch) {
-            currentSection = secMatch[1];
-        }
+    // تجهيز كائن الطالب
+    const userObj = {
+      id: crypto.randomUUID(), // يحتاج Node.js v19+ أو يمكن استبداله برقم عشوائي
+      serial,
+      name: fullName,
+      username,
+      tempPassword,
+      group,
+      section,
+      mustChangePassword: true
+    };
 
-        // Detect Student Row
-        // Lenient: Any line with a number that isn't a date (2025)
-        // and has some text (Name)
-        const digitMatch = trimmed.match(/(\d+)/);
-        if (!digitMatch) continue;
+    users.push(userObj);
 
-        const serial = digitMatch[0];
-        if (serial.length > 4) continue;
-        if (trimmed.includes('2025')) continue;
+    // تجهيز أمر SQL
+    // ملاحظة: تأكد أن اسم الجدول في Supabase هو 'allowed_users'
+    const sql = `INSERT INTO allowed_users (username, full_name, group_name, section, temp_password_hash, is_first_login) VALUES ('${username}', '${fullName}', '${group}', '${section}', '${tempPassword}', true);`;
+    sqlStatements.push(sql);
+  }
 
-        // Extract Name: Remove digits and special chars
-        const namePart = trimmed.replace(/\d+/g, '').replace(/[^\u0600-\u06FFa-zA-Z\s]/g, '').trim();
-        if (namePart.length < 3) continue;
+  // حفظ ملف JSON (للاستخدام المحلي)
+  fs.writeFileSync(SEED_JSON_FILE, JSON.stringify(users, null, 2));
+  console.log(`✅ JSON Data saved to: ${SEED_JSON_FILE}`);
 
-        const userId = crypto.randomUUID();
-        // Username: {Group}{Section}-{Serial}-{Random}
-        // User asked for: "Section A1... make username and passwords randomly"
-        // Let's do: A1-{Serial}-{RandomSuffix}
-        const suffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-        const username = `${currentGroup}${currentSection}-${serial}-${suffix}`;
-        const password = Math.floor(100000 + Math.random() * 900000).toString();
+  // حفظ ملف SQL (للحقن في Supabase)
+  fs.writeFileSync(SEED_SQL_FILE, sqlStatements.join('\n'));
+  console.log(`✅ SQL Script saved to: ${SEED_SQL_FILE}`);
 
-        const user: User = {
-            id: userId,
-            serial,
-            name: namePart,
-            username,
-            tempPassword: password,
-            group: currentGroup,
-            section: currentSection,
-            mustChangePassword: true
-        };
-
-        users.push(user);
-    }
-
-    console.log(`✅ Parsed ${users.length} students.`);
-
-    // Output
-    if (!fs.existsSync(SECURE_DIR)) fs.mkdirSync(SECURE_DIR);
-
-    // Create folders for Group/Section e.g. "A1", "C3"
-    for (const user of users) {
-        const folderName = `${user.group}${user.section}`;
-        const dir = path.join(SECURE_DIR, folderName);
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-
-        fs.writeFileSync(
-            path.join(dir, `${user.username}.json`),
-            JSON.stringify(user, null, 2)
-        );
-    }
-
-    // Consolidated Seed
-    fs.writeFileSync(SEED_FILE, JSON.stringify(users, null, 2));
-    console.log(`✅ Seed file created at: ${SEED_FILE}`);
+  console.log("\n🚀 MISSION ACCOMPLISHED.");
+  console.log(`👉 Total Users Generated: ${users.length}`);
+  console.log("👉 Next Step: Copy the content of 'secure_data/seed.sql' and run it in Supabase SQL Editor.");
 }
 
-main();
+main().catch(console.error);
