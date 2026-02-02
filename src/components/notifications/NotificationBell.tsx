@@ -74,8 +74,8 @@ export function NotificationBell() {
                                 </div>
                                 <p className="text-xs text-zinc-400 line-clamp-2">{n.message}</p>
                                 <div className="mt-2 flex items-center justify-between">
-                                    <span className="text-[10px] text-primary/70 px-1.5 py-0.5 rounded-full bg-primary/10">
-                                        {n.sender_username.split('_')[0]} {/* Show "Admin" or Leader Prefix */}
+                                    <span className="text-[10px] text-primary/70 px-1.5 py-0.5 rounded-full bg-primary/10 font-medium">
+                                        {n.sender_role === 'admin' ? 'Admin Team' : `Leader of ${n.sender_section || 'Group'}`}
                                     </span>
                                     {n.target_section && (
                                         <span className="text-[10px] text-zinc-600 border border-zinc-800 px-1.5 py-0.5 rounded">

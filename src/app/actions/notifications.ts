@@ -11,6 +11,9 @@ export interface Notification {
     title: string;
     message: string;
     created_at: string;
+    sender_full_name?: string;
+    sender_role?: string;
+    sender_section?: string | null;
 }
 
 // Send a notification
@@ -84,31 +87,46 @@ export async function getNotifications() {
 
     // Query: Get notifications where target_section IS NULL (Everyone) 
     // OR target_section == userSection
+    // Query: Join with allowed_users to get sender details
+    // Since Supabase join syntax is tricky in simple client, we fetch users separately or use a view.
+    // Ideally: .select('*, allowed_users(full_name, access_role, original_section)')
+    // But foreign key might not be set up on sender_username -> username directly in schema or might be quirky.
+    // Let's rely on the FK we created: CONSTRAINT fk_sender FOREIGN KEY (sender_username) REFERENCES allowed_users(username)
+
     let query = supabase
         .from('notifications')
-        .select('*')
+        .select(`
+            *,
+            allowed_users!fk_sender (
+                full_name, 
+                access_role,
+                original_section
+            )
+        `)
         .order('created_at', { ascending: false })
         .limit(20);
 
     if (userSection) {
         query = query.or(`target_section.is.null,target_section.eq.${userSection}`);
     } else {
-        // If no section (e.g. strict admin or generic user?), just show global
         query = query.is('target_section', null);
     }
 
     const { data, error } = await query;
 
     if (error) {
-        // If table doesn't exist yet, return empty to avoid crashing UI
-        if (error.code === 'PGRST204' || error.message.includes('does not exist')) {
-            return defaultData;
-        }
+        if (error.code === 'PGRST204' || error.message.includes('does not exist')) return defaultData;
         console.error("Fetch Notifications Error:", error);
         return defaultData;
     }
 
-    return data as Notification[];
+    // Map the joined data to flat structure
+    return data.map((n: any) => ({
+        ...n,
+        sender_full_name: n.allowed_users?.full_name || 'Unknown',
+        sender_role: n.allowed_users?.access_role || 'student',
+        sender_section: n.allowed_users?.original_section
+    })) as Notification[];
 }
 
 // Delete a notification

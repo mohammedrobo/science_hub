@@ -94,7 +94,7 @@ export default async function LeaderboardPage() {
                                 <span className="text-2xl font-bold text-slate-300">2</span>
                             </div>
                             <CardTitle className="text-slate-200">{top3[1]?.full_name || 'Empty'}</CardTitle>
-                            <p className="text-sm text-zinc-500">@{top3[1]?.username}</p>
+                            {/* <p className="text-sm text-zinc-500">@{top3[1]?.username}</p> */}
                         </CardHeader>
                         <CardContent className="text-center">
                             <Badge variant="outline" className="mb-2 border-slate-600 text-slate-400">
@@ -117,7 +117,7 @@ export default async function LeaderboardPage() {
                                 <Crown className="w-10 h-10 text-yellow-500" />
                             </div>
                             <CardTitle className="text-yellow-100 text-xl">{top3[0]?.full_name || 'Empty'}</CardTitle>
-                            <p className="text-sm text-yellow-500/70">@{top3[0]?.username}</p>
+                            {/* <p className="text-sm text-yellow-500/70">@{top3[0]?.username}</p> */}
                         </CardHeader>
                         <CardContent className="text-center">
                             <Badge className="mb-2 bg-yellow-500/20 text-yellow-300 border-yellow-500/50 hover:bg-yellow-500/30">
@@ -139,7 +139,7 @@ export default async function LeaderboardPage() {
                                 <span className="text-2xl font-bold text-amber-600">3</span>
                             </div>
                             <CardTitle className="text-amber-100/80">{top3[2]?.full_name || 'Empty'}</CardTitle>
-                            <p className="text-sm text-zinc-500">@{top3[2]?.username}</p>
+                            {/* <p className="text-sm text-zinc-500">@{top3[2]?.username}</p> */}
                         </CardHeader>
                         <CardContent className="text-center">
                             <Badge variant="outline" className="mb-2 border-amber-800 text-amber-700">
@@ -160,7 +160,7 @@ export default async function LeaderboardPage() {
                         <span className="text-zinc-500 font-mono w-8 text-center flex-shrink-0">{user.rank_position}</span>
                         <div className="flex-1 min-w-0">
                             <p className="text-zinc-200 font-medium truncate">{user.full_name}</p>
-                            <p className="text-xs text-zinc-500 truncate">@{user.username}</p>
+                            {/* <p className="text-xs text-zinc-500 truncate">@{user.username}</p> */}
                         </div>
                         <Badge variant="outline" className={`flex-shrink-0 text-xs ${user.current_rank === 'S' || user.current_rank === 'SS' ? 'border-yellow-500/50 text-yellow-500' : 'border-zinc-700 text-zinc-400'}`}>
                             {user.current_rank}
@@ -196,7 +196,7 @@ export default async function LeaderboardPage() {
                                     <TableCell>
                                         <div className="flex flex-col">
                                             <span className="font-medium text-zinc-200">{user.full_name}</span>
-                                            <span className="text-xs text-zinc-500">@{user.username}</span>
+                                            {/* <span className="text-xs text-zinc-500">@{user.username}</span> */}
                                         </div>
                                     </TableCell>
                                     <TableCell>

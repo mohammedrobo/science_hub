@@ -58,13 +58,30 @@ export function SendNotificationForm({ role, userSection }: SendNotificationForm
                             className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white"
                         >
                             <option value="all">Everyone (All Batch)</option>
-                            <optgroup label="Groups">
+                            <optgroup label="Group A">
                                 <option value="A1">Section A1</option>
                                 <option value="A2">Section A2</option>
                                 <option value="A3">Section A3</option>
                                 <option value="A4">Section A4</option>
                             </optgroup>
-                            {/* Can add more, keeping it brief */}
+                            <optgroup label="Group B">
+                                <option value="B1">Section B1</option>
+                                <option value="B2">Section B2</option>
+                                <option value="B3">Section B3</option>
+                                <option value="B4">Section B4</option>
+                            </optgroup>
+                            <optgroup label="Group C">
+                                <option value="C1">Section C1</option>
+                                <option value="C2">Section C2</option>
+                                <option value="C3">Section C3</option>
+                                <option value="C4">Section C4</option>
+                            </optgroup>
+                            <optgroup label="Group D">
+                                <option value="D1">Section D1</option>
+                                <option value="D2">Section D2</option>
+                                <option value="D3">Section D3</option>
+                                <option value="D4">Section D4</option>
+                            </optgroup>
                         </select>
                     </div>
                 )}
