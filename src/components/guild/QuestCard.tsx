@@ -25,7 +25,15 @@ interface GuildUser {
     avatar_url?: string;
 }
 
-export function QuestCard({ quest, currentUser, userRole, users = [] }: { quest: Quest, currentUser: string, userRole?: string, users?: GuildUser[] }) {
+interface QuestCardProps {
+    quest: Quest;
+    currentUser: string;
+    userRole?: string;
+    users?: GuildUser[];
+    onDelete?: (id: string) => void;
+}
+
+export function QuestCard({ quest, currentUser, userRole, users = [], onDelete }: QuestCardProps) {
     const [isLoading, setIsLoading] = useState(false);
 
     const isAssignedToMe = quest.assigned_to === currentUser;
@@ -44,8 +52,6 @@ export function QuestCard({ quest, currentUser, userRole, users = [] }: { quest:
     // Logic: Admin can delete ANY. Creator can delete PENDING.
     const canDelete = isAdmin || (isPending && isCreator);
 
-    // ... (handlers remain)
-
     const handleStatusUpdate = async (newStatus: 'pending' | 'in_progress' | 'completed') => {
         setIsLoading(true);
         await updateQuestStatus(quest.id, newStatus);
@@ -55,7 +61,16 @@ export function QuestCard({ quest, currentUser, userRole, users = [] }: { quest:
     const handleDelete = async () => {
         if (confirm('Are you sure you want to delete this quest?')) {
             setIsLoading(true);
-            await deleteQuest(quest.id);
+            // Optimistically remove from UI via callback
+            if (onDelete) {
+                onDelete(quest.id);
+            }
+            const res = await deleteQuest(quest.id);
+            setIsLoading(false);
+            if (res?.error) {
+                // If error, the realtime subscription will restore it
+                console.error('Delete failed:', res.error);
+            }
         }
     };
 

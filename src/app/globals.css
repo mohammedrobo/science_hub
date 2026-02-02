@@ -296,6 +296,7 @@ video {
   body {
     background-color: #050505;
     min-height: 100dvh;
+    font-family: var(--font-sans);
   }
 
   * {
@@ -307,6 +308,13 @@ video {
     font-family: var(--font-sans);
   }
 
+  button,
+  input,
+  textarea,
+  select {
+    font-family: var(--font-sans);
+  }
+
   h1,
   h2,
   h3,
@@ -314,5 +322,6 @@ video {
   h5,
   h6 {
     @apply tracking-tight text-foreground font-bold;
+    font-family: var(--font-serif);
   }
 }

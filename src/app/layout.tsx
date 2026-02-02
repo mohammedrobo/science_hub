@@ -1,15 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import { Merriweather, Inter } from "next/font/google";
+import { Manrope, Fraunces } from "next/font/google";
 import "./globals.css";
 
-const fontSans = Inter({
+const fontSans = Manrope({
   variable: "--font-sans",
+  weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
 });
 
-const fontSerif = Merriweather({
+const fontSerif = Fraunces({
   variable: "--font-serif",
-  weight: ["400", "700"],
+  weight: ["400", "600", "700"],
   subsets: ["latin"],
 });
 

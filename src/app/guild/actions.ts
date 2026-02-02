@@ -32,7 +32,7 @@ export async function createQuest(data: { title: string; description: string; as
             return { error: 'Failed to create quest' };
         }
 
-        revalidatePath('/admin/guild');
+        revalidatePath('/guild');
         return { success: true };
     } catch (e: any) {
         return { error: e.message || 'Server error' };
@@ -54,7 +54,7 @@ export async function updateQuestStatus(id: string, status: 'pending' | 'in_prog
             return { error: 'Failed to update status' };
         }
 
-        revalidatePath('/admin/guild');
+        revalidatePath('/guild');
         return { success: true };
     } catch (e: any) {
         return { error: e.message || 'Server error' };
@@ -72,7 +72,7 @@ export async function deleteQuest(id: string) {
             .eq('id', id);
 
         if (error) throw error;
-        revalidatePath('/admin/guild');
+        revalidatePath('/guild');
         return { success: true };
     } catch (e: any) {
         return { error: e.message };
@@ -195,7 +195,7 @@ export async function clearCompletedQuests() {
             return { error: 'Failed to clear history' };
         }
 
-        revalidatePath('/admin/guild');
+        revalidatePath('/guild');
         return { success: true };
     } catch (e: any) {
         return { error: e.message || 'Server error' };
@@ -226,7 +226,7 @@ export async function updateUserNickname(username: string, nickname: string) {
             return { error: `Failed to update: ${error.message}` };
         }
 
-        revalidatePath('/admin/guild');
+        revalidatePath('/guild');
         return { success: true };
     } catch (e: any) {
         return { error: e.message || 'Server error' };

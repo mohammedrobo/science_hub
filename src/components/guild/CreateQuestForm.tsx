@@ -63,9 +63,10 @@ export function CreateQuestForm({ users = [] }: { users?: GuildUser[] }) {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button className="bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-900/20">
-                    <PlusCircle className="w-4 h-4 mr-2" />
-                    New Quest
+                <Button className="bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-900/20 h-7 sm:h-9 px-2 sm:px-3 text-[10px] sm:text-sm">
+                    <PlusCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">New Quest</span>
+                    <span className="sm:hidden">New</span>
                 </Button>
             </DialogTrigger>
             <DialogContent className="bg-zinc-900 border-zinc-800 text-zinc-100">

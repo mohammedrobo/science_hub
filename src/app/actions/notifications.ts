@@ -87,14 +87,15 @@ export async function getNotifications() {
     const sectionMatch = username.match(/^[A-D]_([A-D]\d)/i);
     const userSection = sectionMatch ? sectionMatch[1].toUpperCase() : null;
 
-    const supabase = await createClient();
+    try {
+        const supabase = await createClient();
 
-    // Query notifications - fetch separately from users to avoid FK join issues
-    let query = supabase
-        .from('notifications')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50);
+        // Query notifications - fetch separately from users to avoid FK join issues
+        let query = supabase
+            .from('notifications')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(50);
 
     // Admin sees ALL notifications to review them
     // Leader sees their section + global
@@ -138,6 +139,11 @@ export async function getNotifications() {
         sender_role: userMap[n.sender_username]?.access_role || 'student',
         sender_section: userMap[n.sender_username]?.original_section
     })) as Notification[];
+    } catch (err) {
+        // Table doesn't exist or other error - return empty array
+        console.error("getNotifications error:", err);
+        return defaultData;
+    }
 }
 
 // Delete a notification

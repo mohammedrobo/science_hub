@@ -4,22 +4,26 @@ import { useEffect } from 'react';
 
 export function ServiceWorkerRegistration() {
     useEffect(() => {
-        if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+        // Only register service worker in production
+        if (
+            typeof window !== 'undefined' &&
+            'serviceWorker' in navigator &&
+            process.env.NODE_ENV === 'production'
+        ) {
             navigator.serviceWorker
                 .register('/sw.js', { scope: '/' })
                 .then((registration) => {
                     console.log('SW registered:', registration.scope);
-                    
+
                     // Check for updates periodically
                     registration.update();
-                    
+
                     // Handle updates
                     registration.addEventListener('updatefound', () => {
                         const newWorker = registration.installing;
                         if (newWorker) {
                             newWorker.addEventListener('statechange', () => {
                                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    // New content available, refresh to update
                                     console.log('New content available, refresh to update');
                                 }
                             });
@@ -27,7 +31,10 @@ export function ServiceWorkerRegistration() {
                     });
                 })
                 .catch((error) => {
-                    console.log('SW registration failed:', error);
+                    // Silently fail in development
+                    if (process.env.NODE_ENV === 'production') {
+                        console.warn('SW registration failed:', error);
+                    }
                 });
         }
     }, []);

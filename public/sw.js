@@ -1,22 +1,27 @@
-const CACHE_NAME = 'science-hub-v7';
+const CACHE_NAME = 'science-hub-v8';
 const PRECACHE_ASSETS = [
-    '/',
     '/icon.png?v=2',
     '/favicon.ico?v=2',
     '/manifest.json',
-    '/android-chrome-192x192.png?v=2',
-    '/android-chrome-512x512.png?v=2',
-    '/apple-touch-icon.png?v=2'
 ];
 
-// Assets to cache on first visit
-const RUNTIME_CACHE = 'runtime-v6';
+// Runtime cache for dynamic content
+const RUNTIME_CACHE = 'runtime-v7';
 
-// Install - precache critical assets
+// Install - precache critical assets (skip errors for dev)
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
-            .then(cache => cache.addAll(PRECACHE_ASSETS))
+            .then(cache => {
+                // Use addAll with error handling for individual assets
+                return Promise.allSettled(
+                    PRECACHE_ASSETS.map(url =>
+                        cache.add(url).catch(err => {
+                            console.warn(`Failed to cache ${url}:`, err);
+                        })
+                    )
+                );
+            })
             .then(() => self.skipWaiting())
     );
 });
@@ -46,6 +51,11 @@ self.addEventListener('fetch', (event) => {
 
     // Skip API calls and Next.js data routes - always fetch fresh
     if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/_next/data/')) {
+        return;
+    }
+
+    // Skip hot reload and dev server routes
+    if (url.pathname.includes('__webpack') || url.pathname.includes('_next/webpack')) {
         return;
     }
 
@@ -99,11 +109,4 @@ self.addEventListener('fetch', (event) => {
             return cached || fetchPromise;
         })
     );
-});
-
-// Background sync for offline actions
-self.addEventListener('sync', (event) => {
-    if (event.tag === 'sync-data') {
-        // Handle offline data sync
-    }
 });

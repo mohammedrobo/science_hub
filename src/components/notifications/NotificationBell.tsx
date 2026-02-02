@@ -82,9 +82,13 @@ export function NotificationBell({ userRole = 'student' }: NotificationBellProps
                     )}
                 </button>
             </PopoverTrigger>
-            <PopoverContent className="w-80 p-0 bg-zinc-900 border-zinc-800" align="end">
-                <div className="p-3 border-b border-zinc-800 font-medium text-sm flex justify-between items-center bg-zinc-900/50">
-                    <span>Notifications</span>
+            <PopoverContent 
+                className="w-[calc(100vw-24px)] sm:w-80 max-w-[320px] p-0 bg-zinc-900 border-zinc-800 shadow-xl" 
+                align="end"
+                sideOffset={8}
+            >
+                <div className="p-3 border-b border-zinc-800 font-medium text-sm flex justify-between items-center bg-zinc-900/80 backdrop-blur-sm">
+                    <span className="text-zinc-100">Notifications</span>
                     <div className="flex items-center gap-2">
                         {unreadCount > 0 && <span className="text-xs text-primary">{unreadCount} new</span>}
                         {canManage && notifications.length > 0 && (
@@ -101,7 +105,7 @@ export function NotificationBell({ userRole = 'student' }: NotificationBellProps
                         )}
                     </div>
                 </div>
-                <div className="max-h-[350px] overflow-y-auto">
+                <div className="max-h-[60vh] sm:max-h-[350px] overflow-y-auto custom-scrollbar">
                     {notifications.length === 0 ? (
                         <div className="p-8 text-center text-zinc-500 text-sm">
                             <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
