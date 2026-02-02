@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { PlayCircle, FileText, BrainCircuit, ChevronLeft, Lock, Sparkles, MonitorPlay } from 'lucide-react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { LazyMotion, domAnimation, m } from 'framer-motion';
 import { Course, Lesson } from '@/types';
 import { VideoPlayer } from '@/components/courses/VideoPlayer';
 import { useState } from 'react';
@@ -206,7 +206,8 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
     const groupedData = getGroupedLessons();
 
     return (
-        <div className="min-h-screen bg-background">
+        <LazyMotion features={domAnimation}>
+            <div className="min-h-screen bg-background">
             {/* Top Section: The Stage (Master Player) - Sticky on mobile */}
             <div className="w-full bg-zinc-950 border-b border-zinc-800 relative z-30 shadow-2xl sticky top-0 lg:relative">
                 <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-6 max-w-6xl">
@@ -229,7 +230,7 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-zinc-900 to-black p-8 text-center relative overflow-hidden">
                                 <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.05]" />
-                                <motion.div
+                                <m.div
                                     initial={{ scale: 0.9, opacity: 0 }}
                                     animate={{ scale: 1, opacity: 1 }}
                                     transition={{ duration: 0.5 }}
@@ -242,7 +243,7 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                                         <Sparkles className="w-4 h-4" />
                                         Select a lecture below to begin transmission
                                     </div>
-                                </motion.div>
+                                </m.div>
                             </div>
                         )}
                     </div>
@@ -262,7 +263,7 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
 
             {/* Bottom Section: The List (Detail) */}
             <div className="container mx-auto px-3 sm:px-4 py-8 sm:py-12 max-w-4xl">
-                <motion.div
+                <m.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
@@ -339,8 +340,9 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                             </Accordion>
                         )}
                     </div>
-                </motion.div>
+                </m.div>
             </div>
-        </div>
+            </div>
+        </LazyMotion>
     );
 }

@@ -24,7 +24,7 @@ export default async function CoursePage({ params }: { params: Promise<{ id: str
                 code: dbCourse.code,
                 name: dbCourse.name,
                 description: dbCourse.description || "No description available.",
-                image_url: dbCourse.image_url || "/placeholder-course.jpg",
+                image_url: dbCourse.image_url || "/logo.png",
                 semester: 1, // Default or fetch from DB if needed
                 created_at: dbCourse.created_at,
                 icon: dbCourse.icon || null

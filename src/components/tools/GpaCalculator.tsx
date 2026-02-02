@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Calculator, Zap, GraduationCap, RotateCcw, Check, ChevronDown } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
 
 // --- Types & Constants ---
 
@@ -119,7 +119,8 @@ export function GpaCalculator() {
     };
 
     return (
-        <div className="w-full max-w-4xl mx-auto p-2 sm:p-4 space-y-6 sm:space-y-8 font-sans">
+        <LazyMotion features={domAnimation}>
+            <div className="w-full max-w-4xl mx-auto p-2 sm:p-4 space-y-6 sm:space-y-8 font-sans">
 
             {/* Header */}
             <div className="text-center space-y-2 mb-8">
@@ -193,7 +194,7 @@ export function GpaCalculator() {
 
                 <div className="divide-y divide-zinc-900">
                     <AnimatePresence mode='wait'>
-                        <motion.div
+                        <m.div
                             key={activeTab}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -234,7 +235,7 @@ export function GpaCalculator() {
                                     </div>
                                 </div>
                             ))}
-                        </motion.div>
+                        </m.div>
                     </AnimatePresence>
                 </div>
             </div>
@@ -244,6 +245,7 @@ export function GpaCalculator() {
                 <p>Pass/Fail subjects (Societal Issues) are excluded from calculation automatically.</p>
                 <p className="mt-1">"None" assumes the course is not yet graded.</p>
             </div>
-        </div>
+            </div>
+        </LazyMotion>
     );
 }

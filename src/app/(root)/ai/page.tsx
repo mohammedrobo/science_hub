@@ -1,4 +1,13 @@
-import { AIChat } from '@/components/ai/AIChat';
+import dynamic from 'next/dynamic';
+
+const AIChat = dynamic(() => import('@/components/ai/AIChat').then(mod => mod.AIChat), {
+    ssr: false,
+    loading: () => (
+        <div className="w-full rounded-lg border border-border bg-card p-6 text-center text-muted-foreground">
+            Loading AI assistant...
+        </div>
+    ),
+});
 
 export const metadata = {
     title: 'AI Assistant | Science Hub',

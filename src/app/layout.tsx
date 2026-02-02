@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Merriweather, Inter } from "next/font/google";
 import "./globals.css";
-import 'katex/dist/katex.min.css';
 
 const fontSans = Inter({
   variable: "--font-sans",
@@ -10,7 +9,7 @@ const fontSans = Inter({
 
 const fontSerif = Merriweather({
   variable: "--font-serif",
-  weight: ["300", "400", "700", "900"],
+  weight: ["400", "700"],
   subsets: ["latin"],
 });
 

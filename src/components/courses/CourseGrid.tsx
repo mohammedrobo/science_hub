@@ -2,7 +2,7 @@
 
 import { Course } from '@/types';
 import { CourseCard } from './CourseCard';
-import { motion, Variants, useReducedMotion } from 'framer-motion';
+import { LazyMotion, domAnimation, m, Variants, useReducedMotion } from 'framer-motion';
 
 interface CourseGridProps {
     courses: Course[];
@@ -49,23 +49,25 @@ export function CourseGrid({ courses, progress = {} }: CourseGridProps) {
     };
 
     return (
-        <motion.div
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-        >
-            {courses.map((course) => (
-                <motion.div
-                    key={course.id}
-                    variants={cardVariants}
-                >
-                    <CourseCard
-                        course={course}
-                        progress={progress[course.id] || 0}
-                    />
-                </motion.div>
-            ))}
-        </motion.div>
+        <LazyMotion features={domAnimation}>
+            <m.div
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+            >
+                {courses.map((course) => (
+                    <m.div
+                        key={course.id}
+                        variants={cardVariants}
+                    >
+                        <CourseCard
+                            course={course}
+                            progress={progress[course.id] || 0}
+                        />
+                    </m.div>
+                ))}
+            </m.div>
+        </LazyMotion>
     );
 }

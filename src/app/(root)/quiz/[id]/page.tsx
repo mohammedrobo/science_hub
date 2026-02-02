@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { submitQuizResult } from '@/app/actions/progress';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, XCircle, AlertCircle, ChevronRight, Trophy, RotateCcw, ArrowLeft, Loader2, Check, X } from 'lucide-react';
 import { cn, getGrade } from '@/lib/utils';
 import Link from 'next/link';
@@ -166,13 +166,14 @@ export default function QuizPage() {
         const { grade, color, label } = getGrade(percentage);
 
         return (
-            <div className="container max-w-4xl mx-auto py-10 px-4 space-y-8">
-                {/* SUMMARY CARD */}
-                <motion.div
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="border border-zinc-800 bg-zinc-900/50 p-8 rounded-2xl relative overflow-hidden text-center"
-                >
+            <LazyMotion features={domAnimation}>
+                <div className="container max-w-4xl mx-auto py-10 px-4 space-y-8">
+                    {/* SUMMARY CARD */}
+                    <m.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="border border-zinc-800 bg-zinc-900/50 p-8 rounded-2xl relative overflow-hidden text-center"
+                    >
                     <div className="absolute inset-0 bg-primary/5 blur-3xl rounded-full pointer-events-none" />
                     <div className="relative z-10">
                         <Trophy className={`w-16 h-16 mx-auto mb-4 ${percentage >= 80 ? 'text-yellow-400' : 'text-primary'}`} />
@@ -191,7 +192,7 @@ export default function QuizPage() {
                             </Button>
                         </div>
                     </div>
-                </motion.div>
+                    </m.div>
 
                 {/* CORRECTION REPORT */}
                 <div className="space-y-4">
@@ -244,14 +245,16 @@ export default function QuizPage() {
                         )
                     })}
                 </div>
-            </div>
+                </div>
+            </LazyMotion>
         );
     }
 
     // ---------------- RENDER GAMEPLAY ----------------
     return (
-        <div className="container max-w-3xl mx-auto py-6 sm:py-10 px-3 sm:px-4">
-            <div className="mb-8 space-y-4">
+        <LazyMotion features={domAnimation}>
+            <div className="container max-w-3xl mx-auto py-6 sm:py-10 px-3 sm:px-4">
+                <div className="mb-8 space-y-4">
                 <Link href={`/course/${quiz.course_id}`} className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors mb-4">
                     <ArrowLeft className="w-4 h-4 mr-1" />
                     Abort Mission
@@ -269,17 +272,17 @@ export default function QuizPage() {
                 </div>
 
                 <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
-                    <motion.div
+                    <m.div
                         className="h-full bg-primary shadow-[0_0_10px_var(--color-primary)]"
                         initial={{ width: 0 }}
                         animate={{ width: `${progress}%` }}
                         transition={{ duration: 0.5 }}
                     />
                 </div>
-            </div>
+                </div>
 
             <AnimatePresence mode="wait">
-                <motion.div
+                <m.div
                     key={currentQuestion.id}
                     initial={{ x: 20, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
@@ -297,7 +300,7 @@ export default function QuizPage() {
                             {currentQuestion.options.map((option, idx) => {
                                 const isSelected = selectedAnswer === option;
                                 return (
-                                    <motion.button
+                                    <m.button
                                         key={idx}
                                         onClick={() => handleAnswerSelect(option)}
                                         className={cn(
@@ -317,7 +320,7 @@ export default function QuizPage() {
                                             </span>
                                             <span className="font-medium"><MathText text={option} /></span>
                                         </span>
-                                    </motion.button>
+                                    </m.button>
                                 );
                             })}
                         </CardContent>
@@ -333,8 +336,9 @@ export default function QuizPage() {
                             </div>
                         </CardFooter>
                     </Card>
-                </motion.div>
+                </m.div>
             </AnimatePresence>
-        </div>
+            </div>
+        </LazyMotion>
     );
 }

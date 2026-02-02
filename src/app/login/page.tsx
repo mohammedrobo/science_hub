@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Sparkles, ArrowRight, Loader2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { LazyMotion, domAnimation, m } from 'framer-motion';
 
 const initialState = {
     error: '',
@@ -16,12 +16,13 @@ export default function LoginPage() {
     const [state, formAction, isPending] = useActionState(login, initialState);
 
     return (
-        <div className="min-h-screen w-full flex items-center justify-center bg-zinc-950 relative overflow-hidden">
+        <LazyMotion features={domAnimation}>
+            <div className="min-h-screen w-full flex items-center justify-center bg-zinc-950 relative overflow-hidden">
             {/* Background Effects */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(124,58,237,0.1),transparent_50%)] pointer-events-none" />
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-violet-500 to-transparent opacity-50" />
 
-            <motion.div
+            <m.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
@@ -62,13 +63,13 @@ export default function LoginPage() {
                         </div>
 
                         {state?.error && (
-                            <motion.div
+                            <m.div
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
                                 className="text-red-400 text-sm bg-red-400/10 p-3 rounded-lg border border-red-400/20"
                             >
                                 {state.error}
-                            </motion.div>
+                            </m.div>
                         )}
 
                         <Button
@@ -94,7 +95,8 @@ export default function LoginPage() {
                         <p>Protected by Class S Security</p>
                     </div>
                 </div>
-            </motion.div>
+            </m.div>
         </div>
+        </LazyMotion>
     );
 }

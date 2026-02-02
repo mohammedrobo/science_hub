@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, Sparkles, User, Bot } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotion, domAnimation, m } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 interface Message {
@@ -140,7 +140,8 @@ export function AIChat() {
     };
 
     return (
-        <div className="flex flex-col h-[400px] sm:h-[500px] md:h-[600px] w-full max-w-4xl mx-auto border-2 border-indigo-500/30 rounded-xl bg-slate-950 overflow-hidden shadow-[0_0_40px_-5px_rgba(79,70,229,0.3)] relative">
+        <LazyMotion features={domAnimation}>
+            <div className="flex flex-col h-[400px] sm:h-[500px] md:h-[600px] w-full max-w-4xl mx-auto border-2 border-indigo-500/30 rounded-xl bg-slate-950 overflow-hidden shadow-[0_0_40px_-5px_rgba(79,70,229,0.3)] relative">
             {/* Background Effects */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(56,33,252,0.15),transparent_60%)] pointer-events-none" />
 
@@ -166,7 +167,7 @@ export function AIChat() {
             >
                 <div className="space-y-6 pb-4">
                     {messages.map((msg) => (
-                        <motion.div
+                        <m.div
                             key={msg.id}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -197,7 +198,7 @@ export function AIChat() {
                                     <span className="inline-block w-1.5 h-4 ml-1 align-middle bg-indigo-400 animate-pulse" />
                                 )}
                             </div>
-                        </motion.div>
+                        </m.div>
                     ))}
 
                     {isLoading && !messages[messages.length - 1].isStreaming && (
@@ -242,6 +243,7 @@ export function AIChat() {
                     </Button>
                 </form>
             </div>
-        </div>
+            </div>
+        </LazyMotion>
     );
 }

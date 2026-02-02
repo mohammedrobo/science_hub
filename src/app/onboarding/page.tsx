@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { completeOnboarding } from './submit-onboarding';
-import { motion } from 'framer-motion';
+import { LazyMotion, domAnimation, m } from 'framer-motion';
 import { Sparkles, Trophy, GraduationCap } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -41,12 +41,13 @@ export default function OnboardingPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-black p-4 relative overflow-hidden">
+        <LazyMotion features={domAnimation}>
+            <div className="min-h-screen flex items-center justify-center bg-black p-4 relative overflow-hidden">
             {/* Background elements */}
             <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.05]" />
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-violet-500/10 via-transparent to-emerald-500/10" />
 
-            <motion.div
+            <m.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -99,7 +100,8 @@ export default function OnboardingPage() {
                         </Button>
                     </CardFooter>
                 </Card>
-            </motion.div>
+            </m.div>
         </div>
+        </LazyMotion>
     );
 }

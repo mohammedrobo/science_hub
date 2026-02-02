@@ -1,5 +1,6 @@
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import Link from 'next/link';
+import Image from 'next/image';
 import { SendNotificationForm } from '@/components/notifications/SendNotificationForm';
 import { ManageNotifications } from '@/components/notifications/ManageNotifications';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -208,7 +209,13 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
                                                             {stats.current_rank}
                                                         </Badge>
                                                         {stats.profile_picture_url && (
-                                                            <img src={stats.profile_picture_url} className="w-8 h-8 rounded-full object-cover flex-shrink-0" alt="" />
+                                                            <Image
+                                                                src={stats.profile_picture_url}
+                                                                width={32}
+                                                                height={32}
+                                                                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                                                                alt={user.full_name || 'Profile picture'}
+                                                            />
                                                         )}
                                                         <div className="min-w-0">
                                                             <p className="text-white font-medium text-sm truncate">{user.full_name}</p>
@@ -294,7 +301,13 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
                                                         <td className="py-3 px-4">
                                                             <div className="flex items-center gap-2">
                                                                 {stats.profile_picture_url && (
-                                                                    <img src={stats.profile_picture_url} className="w-6 h-6 rounded-full object-cover" alt="" />
+                                                                    <Image
+                                                                        src={stats.profile_picture_url}
+                                                                        width={24}
+                                                                        height={24}
+                                                                        className="w-6 h-6 rounded-full object-cover"
+                                                                        alt={user.full_name || 'Profile picture'}
+                                                                    />
                                                                 )}
                                                                 <span className="text-white font-medium">{user.full_name}</span>
                                                             </div>

@@ -1,7 +1,16 @@
 'use client';
 
 import React from 'react';
-import { InlineMath, BlockMath } from 'react-katex';
+import dynamic from 'next/dynamic';
+import 'katex/dist/katex.min.css';
+
+const InlineMath = dynamic(() => import('react-katex').then(mod => mod.InlineMath), {
+    ssr: false,
+});
+
+const BlockMath = dynamic(() => import('react-katex').then(mod => mod.BlockMath), {
+    ssr: false,
+});
 
 interface MathTextProps {
     text: string;

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { MessageSquare, X, Send, Bot, User } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -101,16 +101,17 @@ export function FloatingDaVinci() {
     };
 
     return (
-        <>
-            {/* Chat Window */}
-            <AnimatePresence>
-                {isOpen && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                        className="fixed bottom-20 sm:bottom-24 right-3 sm:right-6 w-[calc(100%-1.5rem)] sm:w-80 md:w-96 h-[60vh] sm:h-[450px] max-h-[500px] bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden z-50 flex flex-col"
-                    >
+        <LazyMotion features={domAnimation}>
+            <>
+                {/* Chat Window */}
+                <AnimatePresence>
+                    {isOpen && (
+                        <m.div
+                            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                            className="fixed bottom-20 sm:bottom-24 right-3 sm:right-6 w-[calc(100%-1.5rem)] sm:w-80 md:w-96 h-[60vh] sm:h-[450px] max-h-[500px] bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden z-50 flex flex-col"
+                        >
                         {/* Header */}
                         <div className="bg-gradient-to-r from-primary to-secondary p-4 flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -193,19 +194,20 @@ export function FloatingDaVinci() {
                                 </button>
                             </div>
                         </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                        </m.div>
+                    )}
+                </AnimatePresence>
 
-            {/* Floating Button */}
-            <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setIsOpen(!isOpen)}
-                className="fixed bottom-4 sm:bottom-6 right-3 sm:right-6 w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-primary to-secondary rounded-full shadow-lg flex items-center justify-center text-white z-50 hover:shadow-xl transition-shadow border border-white/10"
-            >
-                {isOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6" /> : <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6" />}
-            </motion.button>
-        </>
+                {/* Floating Button */}
+                <m.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setIsOpen(!isOpen)}
+                    className="fixed bottom-4 sm:bottom-6 right-3 sm:right-6 w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-primary to-secondary rounded-full shadow-lg flex items-center justify-center text-white z-50 hover:shadow-xl transition-shadow border border-white/10"
+                >
+                    {isOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6" /> : <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6" />}
+                </m.button>
+            </>
+        </LazyMotion>
     );
 }

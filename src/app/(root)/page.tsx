@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, Variants, useReducedMotion } from 'framer-motion';
+import { LazyMotion, domAnimation, m, AnimatePresence, Variants, useReducedMotion } from 'framer-motion';
 
 import { useSemesterStore } from '@/stores/semester-store';
 import { CourseGrid } from '@/components/courses/CourseGrid';
@@ -83,31 +83,32 @@ export default function Dashboard() {
     if (!hasHydrated) return null;
 
     return (
-        <motion.div
-            className="flex-1 w-full relative"
-            initial="hidden"
-            animate="visible"
-            variants={containerVariants}
-        >
+        <LazyMotion features={domAnimation}>
+            <m.div
+                className="flex-1 w-full relative"
+                initial="hidden"
+                animate="visible"
+                variants={containerVariants}
+            >
             {/* Atmospheric Background Glow */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-violet-900/20 blur-[120px] rounded-full pointer-events-none -z-10" />
 
             {/* Hero Section - Comprehensive Welcome */}
-            <motion.div
+            <m.div
                 className="bg-card/80 border-b border-border mb-8 sm:mb-12"
                 variants={heroVariants}
             >
                 <div className="container mx-auto px-4 py-10 sm:py-14">
-                    <motion.h1
+                    <m.h1
                         className="text-3xl sm:text-5xl font-bold text-zinc-100 mb-4 tracking-tight"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: duration * 0.6, ease: "easeOut" }}
                     >
                         Welcome to <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-indigo-400">Science Hub</span>
-                    </motion.h1>
+                    </m.h1>
 
-                    <motion.p
+                    <m.p
                         className="text-base sm:text-lg text-zinc-400 max-w-3xl leading-relaxed mb-6"
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -115,10 +116,10 @@ export default function Dashboard() {
                     >
                         Your complete learning platform for first-year science studies. Access organized course materials,
                         video lectures, interactive quizzes, and track your academic progress — all in one place.
-                    </motion.p>
+                    </m.p>
 
                     {/* Features Grid */}
-                    <motion.div
+                    <m.div
                         className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6"
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -152,10 +153,10 @@ export default function Dashboard() {
                             <h3 className="text-sm font-semibold text-zinc-200">GPA Calculator</h3>
                             <p className="text-xs text-zinc-500 mt-1">Calculate your academic GPA easily</p>
                         </div>
-                    </motion.div>
+                    </m.div>
 
                     {/* Term Status */}
-                    <motion.div
+                    <m.div
                         className="flex flex-wrap items-center gap-3 text-sm"
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -175,15 +176,15 @@ export default function Dashboard() {
                                 Term 2 courses are active — start learning!
                             </span>
                         )}
-                    </motion.div>
+                    </m.div>
                 </div>
-            </motion.div>
+            </m.div>
 
             <div className="container mx-auto px-4 pb-20">
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                     {/* Main Content: Course Grid */}
                     <div className="lg:col-span-3">
-                        <motion.div
+                        <m.div
                             className="flex items-center justify-between mb-6"
                             variants={itemVariants}
                         >
@@ -192,11 +193,11 @@ export default function Dashboard() {
                                 Current Modules
                             </h2>
                             <span className="text-sm text-zinc-500 italic">Showing {filteredCourses.length} courses</span>
-                        </motion.div>
+                        </m.div>
 
                         {/* Term Switch with AnimatePresence - slide left/right based on direction */}
                         <AnimatePresence mode="wait" custom={direction}>
-                            <motion.div
+                            <m.div
                                 key={semester}
                                 custom={direction}
                                 variants={prefersReducedMotion ? undefined : termSwitchVariants}
@@ -205,16 +206,16 @@ export default function Dashboard() {
                                 exit="exit"
                             >
                                 <CourseGrid courses={filteredCourses} progress={progress} />
-                            </motion.div>
+                            </m.div>
                         </AnimatePresence>
                     </div>
 
                     {/* Sidebar: Academic Tools with entrance animation */}
-                    <motion.div
+                    <m.div
                         className="lg:col-span-1 space-y-6"
                         variants={itemVariants}
                     >
-                        <motion.div
+                        <m.div
                             className="bg-card/95 p-6 rounded-sm border border-border shadow-sm sticky top-24"
                             whileHover={{ scale: 1.01 }}
                             transition={{ duration: 0.2 }}
@@ -224,7 +225,7 @@ export default function Dashboard() {
                             </h3>
                             <ul className="space-y-3">
                                 <li>
-                                    <motion.a
+                                    <m.a
                                         href="/tools/gpa"
                                         className="flex items-center gap-3 text-zinc-400 hover:text-violet-300 transition-colors group"
                                         whileTap={{ scale: 0.98 }}
@@ -233,7 +234,7 @@ export default function Dashboard() {
                                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" /><line x1="8" x2="16" y1="6" y2="6" /><line x1="16" x2="16" y1="14" y2="18" /><path d="M16 10h.01" /><path d="M12 10h.01" /><path d="M8 10h.01" /><path d="M12 14h.01" /><path d="M8 14h.01" /><path d="M12 18h.01" /><path d="M8 18h.01" /></svg>
                                         </div>
                                         <span className="text-sm font-medium">GPA Calculator</span>
-                                    </motion.a>
+                                    </m.a>
                                 </li>
                             </ul>
 
@@ -242,10 +243,11 @@ export default function Dashboard() {
                                     "Knowledge is the premise of freedom."
                                 </p>
                             </div>
-                        </motion.div>
-                    </motion.div>
+                        </m.div>
+                    </m.div>
                 </div>
             </div>
-        </motion.div>
+            </m.div>
+        </LazyMotion>
     );
 }
