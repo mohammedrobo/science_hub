@@ -106,6 +106,24 @@ export async function isLeaderOfSection(sectionId: string): Promise<boolean> {
     return false;
 }
 
+// Check if user can access (view) a section's schedule
+export async function canAccessSection(sectionId: string): Promise<boolean> {
+    const session = await getSession();
+    if (!session?.username) return false;
+
+    const role = session.role;
+
+    // Admins can view any section
+    if (role === 'admin') return true;
+
+    // Extract user's section from username
+    const match = session.username.match(/^[A-D]_([A-D]\d)/i);
+    const userSection = match ? match[1].toUpperCase() : null;
+
+    // Students and leaders can only view their own section
+    return userSection === sectionId.toUpperCase();
+}
+
 // Update schedule entry (leaders only)
 export async function updateScheduleEntry(entry: ScheduleEntry) {
     const session = await getSession();

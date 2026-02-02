@@ -1,5 +1,7 @@
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Calendar, Users } from 'lucide-react';
+import { Calendar, Users, Lock } from 'lucide-react';
+import { getSession } from '@/app/login/actions';
 
 const SECTIONS = [
     { group: 'A', sections: ['A1', 'A2', 'A3', 'A4'], color: 'from-blue-500 to-blue-600' },
@@ -8,7 +10,28 @@ const SECTIONS = [
     { group: 'D', sections: ['D1', 'D2', 'D3', 'D4'], color: 'from-orange-500 to-orange-600' }
 ];
 
-export default function ScheduleIndexPage() {
+// Extract user's section from username (e.g., "C_C2-36-4da3" -> "C2")
+function getUserSection(username: string): string | null {
+    const match = username.match(/^[A-D]_([A-D]\d)/i);
+    return match ? match[1].toUpperCase() : null;
+}
+
+export default async function ScheduleIndexPage() {
+    const session = await getSession();
+
+    if (!session) {
+        redirect('/login');
+    }
+
+    const isAdmin = session.role === 'admin';
+    const userSection = getUserSection(session.username);
+
+    // If student (not admin), redirect directly to their section
+    if (!isAdmin && userSection) {
+        redirect(`/schedule/${userSection.toLowerCase()}`);
+    }
+
+    // Admins see all sections
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white p-4 md:p-8">
             <div className="max-w-4xl mx-auto">
@@ -20,7 +43,7 @@ export default function ScheduleIndexPage() {
                     <h1 className="text-4xl font-bold bg-gradient-to-r from-violet-400 to-purple-500 bg-clip-text text-transparent mb-2">
                         Section Schedules
                     </h1>
-                    <p className="text-gray-400">Select your section to view the weekly schedule</p>
+                    <p className="text-gray-400">Admin View - All Sections</p>
                 </div>
 
                 {/* Section Grid */}

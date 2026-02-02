@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import { getSchedule, isLeaderOfSection, type ScheduleEntry } from '../actions';
-import { BookOpen, Clock, MapPin, Pencil, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useParams, useRouter } from 'next/navigation';
+import { getSchedule, isLeaderOfSection, canAccessSection, type ScheduleEntry } from '../actions';
+import { BookOpen, Clock, MapPin, Pencil, ChevronLeft, Home } from 'lucide-react';
 import Link from 'next/link';
 
 const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday'];
@@ -28,20 +28,31 @@ const SUBJECT_COLORS: Record<string, string> = {
 
 export default function SchedulePage() {
     const params = useParams();
-    const sectionId = params.section as string;
+    const router = useRouter();
+    const sectionId = (params.section as string).toUpperCase();
 
     const [schedule, setSchedule] = useState<Record<string, ScheduleEntry[]>>({});
     const [activeDay, setActiveDay] = useState(() => {
         const today = new Date().getDay();
-        const dayIndex = today === 5 || today === 6 ? 0 : today; // Friday/Saturday -> Sunday
+        const dayIndex = today === 5 || today === 6 ? 0 : today;
         return DAYS[dayIndex] || 'sunday';
     });
     const [canEdit, setCanEdit] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [accessDenied, setAccessDenied] = useState(false);
 
     useEffect(() => {
         async function fetchData() {
             setLoading(true);
+
+            // Check access first
+            const hasAccess = await canAccessSection(sectionId);
+            if (!hasAccess) {
+                setAccessDenied(true);
+                setLoading(false);
+                return;
+            }
+
             const [scheduleData, isLeader] = await Promise.all([
                 getSchedule(sectionId),
                 isLeaderOfSection(sectionId)
@@ -55,23 +66,39 @@ export default function SchedulePage() {
 
     const todaySchedule = schedule[activeDay] || [];
 
+    if (accessDenied) {
+        return (
+            <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white p-4 md:p-8 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="text-6xl mb-4">🔒</div>
+                    <h1 className="text-2xl font-bold text-red-400 mb-2">Access Denied</h1>
+                    <p className="text-gray-400 mb-4">You can only view your own section's schedule.</p>
+                    <Link href="/" className="inline-flex items-center gap-2 text-violet-400 hover:text-violet-300">
+                        <Home size={20} />
+                        Go Home
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white p-4 md:p-8">
             {/* Header */}
             <div className="max-w-4xl mx-auto mb-8">
-                <Link href="/schedule" className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-4">
+                <Link href="/" className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-4">
                     <ChevronLeft size={20} />
-                    <span>All Sections</span>
+                    <span>Home</span>
                 </Link>
 
                 <div className="flex items-center justify-between">
                     <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-400 to-purple-500 bg-clip-text text-transparent">
-                        Schedule - Section {sectionId.toUpperCase()}
+                        Schedule - Section {sectionId}
                     </h1>
 
                     {canEdit && (
                         <Link
-                            href={`/schedule/${sectionId}/edit`}
+                            href={`/schedule/${sectionId.toLowerCase()}/edit`}
                             className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 rounded-lg transition-colors"
                         >
                             <Pencil size={16} />

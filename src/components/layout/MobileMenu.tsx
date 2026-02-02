@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Menu, Sparkles, Calculator, Trophy, Crown, User, LogOut, Shield } from 'lucide-react';
+import { Menu, Sparkles, Calculator, Trophy, Crown, User, LogOut, Shield, Calendar } from 'lucide-react';
 import { LogoutButton } from '@/components/auth/LogoutButton';
 
 interface MobileMenuProps {
@@ -112,7 +112,7 @@ export function MobileMenu({ isAdmin, session, userNameInitial, profilePictureUr
                             onClick={closeMenu}
                             className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground hover:bg-muted transition-colors"
                         >
-                            <Trophy className="h-5 w-5 text-violet-500" />
+                            <Calendar className="h-5 w-5 text-violet-500" />
                             <span className="font-medium">Schedule</span>
                         </Link>
 
