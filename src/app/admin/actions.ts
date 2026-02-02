@@ -372,7 +372,6 @@ export async function createUser(data: { username: string; full_name: string; gr
     const supabase = await createServiceRoleClient();
 
     const password = 'student123'; // Default password
-    console.log(`[CreateUser] Creating user ${data.username} with password: "${password}"`);
 
     const { error } = await supabase
         .from('allowed_users')
@@ -436,7 +435,6 @@ export async function resetFullAccount(username: string) {
             throw new Error('Access keys file not found in secure_data');
         }
 
-        console.log(`[Reset] Loaded keys from: ${loadedPath}`);
         const keys = JSON.parse(keysData);
 
         // Normalize string for robust matching (handle weird hyphens/spaces)
@@ -448,9 +446,7 @@ export async function resetFullAccount(username: string) {
         if (userKey?.password) {
             originalPassword = userKey.password.trim();
             foundInFile = true;
-            console.log(`[Reset] Found original password for ${username}`);
         } else {
-            console.warn(`[Reset] User ${username} NOT found in file. Using default fallback.`);
             originalPassword = 'student123';
             foundInFile = false;
         }
@@ -539,10 +535,7 @@ export async function resetFullAccount(username: string) {
     revalidatePath('/admin');
     revalidatePath('/admin');
 
-    const passwordSource = foundInFile ? `from file (starts with ${originalPassword.substring(0, 2)}...)` : 'FALLBACK';
-    console.log(`[Reset] UPDATE SUCCESS. Password set ${passwordSource}`);
-
-    return { success: true, message: `Account ${username} reset. Password restored ${passwordSource}.` };
+    return { success: true, message: `Account ${username} has been reset.` };
 }
 
 

@@ -108,7 +108,7 @@ export async function POST(req: Request) {
 
                 // If it's the last attempt, we let the loop finish and return generic error
                 if (i === maxKeyRetries - 1) {
-                    console.error('[Da Vinci] All attempts exhaustd.');
+                    console.error('[Da Vinci] All attempts exhausted.');
                 }
             }
         }

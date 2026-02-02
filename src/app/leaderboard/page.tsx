@@ -101,7 +101,7 @@ export default async function LeaderboardPage() {
                                 {top3[1]?.current_rank || '-'} Rank
                             </Badge>
                             <p className="text-2xl font-mono text-blue-400">
-                                {top3[1]?.total_xp.toLocaleString() || 0} XP
+                                {(top3[1]?.total_xp ?? 0).toLocaleString()} XP
                             </p>
                         </CardContent>
                     </Card>
@@ -124,7 +124,7 @@ export default async function LeaderboardPage() {
                                 {top3[0]?.current_rank || '-'} Rank
                             </Badge>
                             <p className="text-3xl font-mono text-blue-300 font-bold">
-                                {top3[0]?.total_xp.toLocaleString() || 0} XP
+                                {(top3[0]?.total_xp ?? 0).toLocaleString()} XP
                             </p>
                         </CardContent>
                     </Card>
@@ -146,7 +146,7 @@ export default async function LeaderboardPage() {
                                 {top3[2]?.current_rank || '-'} Rank
                             </Badge>
                             <p className="text-2xl font-mono text-blue-400">
-                                {top3[2]?.total_xp.toLocaleString() || 0} XP
+                                {(top3[2]?.total_xp ?? 0).toLocaleString()} XP
                             </p>
                         </CardContent>
                     </Card>
@@ -165,7 +165,7 @@ export default async function LeaderboardPage() {
                         <Badge variant="outline" className={`flex-shrink-0 text-xs ${user.current_rank === 'S' || user.current_rank === 'SS' ? 'border-yellow-500/50 text-yellow-500' : 'border-zinc-700 text-zinc-400'}`}>
                             {user.current_rank}
                         </Badge>
-                        <span className="font-mono text-blue-400 text-sm flex-shrink-0">{user.total_xp.toLocaleString()}</span>
+                        <span className="font-mono text-blue-400 text-sm flex-shrink-0">{(user.total_xp ?? 0).toLocaleString()}</span>
                     </div>
                 ))}
                 {rest.length === 0 && (
@@ -207,7 +207,7 @@ export default async function LeaderboardPage() {
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-right font-mono text-blue-400">
-                                        {user.total_xp.toLocaleString()}
+                                        {(user.total_xp ?? 0).toLocaleString()}
                                     </TableCell>
                                 </TableRow>
                             ))}

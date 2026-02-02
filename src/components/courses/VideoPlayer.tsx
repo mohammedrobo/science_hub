@@ -36,7 +36,12 @@ export function VideoPlayer({ url, title, parts }: VideoPlayerProps) {
     const embedUrl = getEmbedUrl(url || '');
     const [activeUrl, setActiveUrl] = useState<string | null>(embedUrl);
     const hasParts = parts && parts.length > 0;
-    const [sidebarOpen, setSidebarOpen] = useState(typeof window !== 'undefined' ? window.innerWidth >= 768 : true);
+    const [sidebarOpen, setSidebarOpen] = useState(true);
+
+    // Handle responsive sidebar after hydration
+    useEffect(() => {
+        setSidebarOpen(window.innerWidth >= 768);
+    }, []);
 
     useEffect(() => {
         if (url) {

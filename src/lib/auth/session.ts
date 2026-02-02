@@ -69,7 +69,6 @@ export async function getSession(): Promise<SessionData | null> {
         // Single Session Enforcement:
         // If the DB has a token, it MUST match the session's token.
         if (user.session_token && user.session_token !== session.sessionToken) {
-            console.log(`[Session] Token mismatch for ${session.username}. Force logout.`);
             await destroySession();
             return null;
         }
@@ -117,18 +116,11 @@ export async function hashPassword(password: string): Promise<string> {
  * Verify password against hash
  */
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-    console.log(`[VerifyPassword] Input: "${password}" (len ${password.length})`);
-    console.log(`[VerifyPassword] Stored: "${hash}" (len ${hash.length})`);
-
     // Backwards compatibility: if hash doesn't start with $2, it's plaintext
     if (!hash.startsWith('$2')) {
-        const isMatch = password === hash;
-        console.log(`[VerifyPassword] Plaintext comparison: ${isMatch}`);
-        return isMatch;
+        return password === hash;
     }
-    const bcryptResult = await bcrypt.compare(password, hash);
-    console.log(`[VerifyPassword] bcrypt comparison: ${bcryptResult}`);
-    return bcryptResult;
+    return bcrypt.compare(password, hash);
 }
 
 /**

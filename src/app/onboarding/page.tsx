@@ -23,13 +23,10 @@ export default function OnboardingPage() {
             const result = await completeOnboarding();
 
             if (result.error) {
-                console.error("Onboarding Error:", result.error);
-                alert(`Error: ${result.error}`); // Force visibility
                 toast.error(result.error);
                 setLoading(false);
             } else {
                 toast.success("Welcome to Science Hub!");
-                console.log("Redirecting to dashboard...");
                 // Force hard reload to ensure session cookie is picked up by middleware
                 window.location.href = '/';
             }

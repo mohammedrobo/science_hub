@@ -80,8 +80,6 @@ export async function getCourseProgress(courseCode: string): Promise<Record<stri
         .eq('username', session.username)
         .eq('content_type', 'quiz');
 
-    console.log(`[Server] Progress for ${session.username}:`, progress?.length, "records found");
-
     if (!progress) return {};
 
     // Map content_id (Quiz ID) to its progress

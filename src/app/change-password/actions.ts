@@ -3,6 +3,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { hashPassword } from '@/lib/auth/password';
 
 const SESSION_COOKIE = 'sciencehub_session'; // FIXED: Match login action cookie name
 
@@ -55,11 +56,14 @@ export async function changePassword(
 
     // 3. Direct Database Update
     const supabase = await createClient();
+    
+    // Hash the password before storing
+    const hashedPassword = await hashPassword(password);
 
     const { error: updateError } = await supabase
         .from('allowed_users')
         .update({
-            password: password,
+            password: hashedPassword,
             is_first_login: false
         })
         .eq('username', sessionUsername);

@@ -39,8 +39,6 @@ export async function updateProfilePicture(formData: FormData) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    console.log('Uploading file:', filePath, 'Size:', buffer.length, 'Type:', file.type);
-
     const { error: uploadError } = await supabase.storage
         .from('profile-pictures')
         .upload(filePath, buffer, {

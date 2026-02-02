@@ -41,7 +41,6 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     }
 
     // 1. Check credentials against allowed_users table
-    console.log(`[Login] Attempting login for: ${username}`);
     const { data: user, error: userError } = await supabase
         .from('allowed_users')
         .select('*')
@@ -49,17 +48,14 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
         .single();
 
     if (userError || !user) {
-        console.log(`[Login] User not found or DB error for: ${username}`, userError);
         recordFailedAttempt(rateLimitKey);
         return { error: 'Invalid username or password' };
     }
 
     // 2. Verify password (supports both hashed and legacy plaintext)
     const isValid = await verifyPassword(password, user.password);
-    console.log(`[Login] Password valid: ${isValid} for user ${username}. Stored (start): ${user.password.substring(0, 5)}...`);
 
     if (!isValid) {
-        console.log(`[Login] Password mismatch for: ${username}`);
         recordFailedAttempt(rateLimitKey);
         return { error: 'Invalid username or password' };
     }
@@ -71,7 +67,6 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
             .from('allowed_users')
             .update({ password: hashedPassword })
             .eq('username', user.username);
-        console.log(`[Security] Migrated password for user: ${user.username}`);
     }
 
     // 4. Clear rate limit on success

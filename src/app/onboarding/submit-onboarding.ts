@@ -28,8 +28,6 @@ export async function completeOnboarding() {
        This avoids "column not found" errors if the API schema cache is stale.
     */
 
-    console.log(`[Onboarding] Success! Updating session and redirecting...`);
-
     // Update session cookie to reflect new state
     // Explicitly set isFirstLogin to false just in case it wasn't
     await updateSession({

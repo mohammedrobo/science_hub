@@ -137,6 +137,18 @@ export async function updateScheduleEntry(entry: ScheduleEntry) {
 
     const supabase = await createServiceRoleClient();
 
+    // First check if the table exists by trying a simple query
+    const { error: tableCheckError } = await supabase
+        .from('schedule_entries')
+        .select('id')
+        .limit(1);
+
+    if (tableCheckError?.message?.includes('schema cache') || tableCheckError?.message?.includes('does not exist')) {
+        return { 
+            error: 'Schedule database not configured. Please run the schedule_system migration in Supabase SQL Editor. See: supabase/migrations/20260202_schedule_system.sql' 
+        };
+    }
+
     if (entry.id) {
         // Update existing
         const { error } = await supabase

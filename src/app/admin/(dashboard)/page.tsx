@@ -233,7 +233,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center justify-between mt-3 pt-2 border-t border-zinc-700/50">
-                                                    <span className="text-blue-400 font-mono text-sm">{stats.total_xp.toLocaleString()} XP</span>
+                                                    <span className="text-blue-400 font-mono text-sm">{(stats.total_xp ?? 0).toLocaleString()} XP</span>
                                                     <div className="flex gap-1">
                                                         {user.access_role !== 'admin' && (
                                                             <form action={async () => { 'use server'; await updateUserRole(user.username, user.access_role === 'leader' ? 'student' : 'leader'); }}>
@@ -313,7 +313,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
                                                             </div>
                                                         </td>
                                                         <td className="py-3 px-4 text-zinc-400">@{user.username}</td>
-                                                        <td className="py-3 px-4 font-mono text-blue-400">{stats.total_xp.toLocaleString()}</td>
+                                                        <td className="py-3 px-4 font-mono text-blue-400">{(stats.total_xp ?? 0).toLocaleString()}</td>
                                                         <td className="py-3 px-4">
                                                             {user.access_role === 'admin' ? (
                                                                 <Badge className="bg-red-500/20 text-red-400 hover:bg-red-500/30 border-red-500/50">Admin</Badge>
