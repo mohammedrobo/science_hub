@@ -20,7 +20,8 @@ export const metadata: Metadata = {
   title: "Science Hub",
   description,
   icons: {
-    icon: "/favicon.ico",
+    icon: "/icon.png",
+    apple: "/icon.png",
   },
 };
 
