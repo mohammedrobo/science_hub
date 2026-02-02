@@ -17,7 +17,10 @@ export async function proxy(request: NextRequest) {
     const publicRoutes = ['/login', '/api'];
     const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
 
-    if (isPublicRoute) {
+    // Static files that should always be accessible (PWA, icons, etc.)
+    const isStaticFile = pathname.match(/\.(json|js|png|ico|svg|webp|jpg|jpeg|gif|woff2?|css|txt|xml)$/i);
+
+    if (isPublicRoute || isStaticFile) {
         return NextResponse.next();
     }
 
@@ -121,6 +124,14 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
     matcher: [
-        '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+        /*
+         * Match all request paths except for the ones starting with:
+         * - api (API routes)
+         * - _next/static (static files)
+         * - _next/image (image optimization files)
+         * - favicon.ico, manifest.json, sw.js, robots.txt (metadata/PWA files)
+         * - Static file extensions (images, fonts, etc.)
+         */
+        '/((?!api|_next/static|_next/image|favicon\\.ico|manifest\\.json|sw\\.js|robots\\.txt|sitemap\\.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?|js|json|css|txt|xml)$).*)',
     ],
 };

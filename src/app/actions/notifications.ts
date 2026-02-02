@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { getSession } from '@/app/login/actions';
 import { revalidatePath } from 'next/cache';
 
@@ -94,9 +94,14 @@ export async function getNotifications() {
         .from('notifications')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(20);
+        .limit(50);
 
-    if (userSection) {
+    // Admin sees ALL notifications to review them
+    // Leader sees their section + global
+    // Student sees their section + global
+    if (role === 'admin') {
+        // No filter - admin sees everything
+    } else if (userSection) {
         query = query.or(`target_section.is.null,target_section.eq.${userSection}`);
     } else {
         query = query.is('target_section', null);
@@ -222,4 +227,55 @@ export async function updateNotification(id: string, title: string, message: str
     revalidatePath('/');
     revalidatePath('/schedule');
     return { success: true };
+}
+
+// Clear notifications (Admin clears all, Leader clears their section's notifications)
+export async function clearAllNotifications() {
+    const session = await getSession();
+    if (!session) return { error: "Unauthorized" };
+
+    const { username, role } = session;
+
+    if (role !== 'admin' && role !== 'leader') {
+        return { error: "Only admins and leaders can clear notifications." };
+    }
+
+    // Use service role client to bypass RLS for delete operations
+    const supabase = await createServiceRoleClient();
+    
+    if (role === 'admin') {
+        // Admin clears ALL notifications
+        const { error } = await supabase
+            .from('notifications')
+            .delete()
+            .gte('created_at', '1970-01-01');
+        
+        if (error) {
+            console.error("Clear notifications error:", error);
+            return { error: "Failed to clear notifications." };
+        }
+    } else {
+        // Leader clears all notifications for their section
+        const sectionMatch = username.match(/^[A-D]_([A-D]\d)/i);
+        const userSection = sectionMatch ? sectionMatch[1].toUpperCase() : null;
+        
+        if (!userSection) {
+            return { error: "Could not determine your section." };
+        }
+        
+        // Delete notifications targeting this leader's section
+        const { error } = await supabase
+            .from('notifications')
+            .delete()
+            .eq('target_section', userSection);
+        
+        if (error) {
+            console.error("Clear notifications error:", error);
+            return { error: "Failed to clear notifications." };
+        }
+    }
+
+    revalidatePath('/');
+    revalidatePath('/schedule');
+    return { success: true, message: role === 'admin' ? 'All notifications cleared' : 'Section notifications cleared' };
 }

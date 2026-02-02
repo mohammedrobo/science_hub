@@ -1,4 +1,4 @@
-const CACHE_NAME = 'science-hub-v4';
+const CACHE_NAME = 'science-hub-v5';
 const PRECACHE_ASSETS = [
     '/',
     '/icon.png',
@@ -10,7 +10,7 @@ const PRECACHE_ASSETS = [
 ];
 
 // Assets to cache on first visit
-const RUNTIME_CACHE = 'runtime-v3';
+const RUNTIME_CACHE = 'runtime-v4';
 
 // Install - precache critical assets
 self.addEventListener('install', (event) => {

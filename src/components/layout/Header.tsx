@@ -70,7 +70,7 @@ export async function Header() {
                         <SemesterToggle />
                     </div>
                     <div className="shrink-0">
-                        <NotificationBell />
+                        <NotificationBell userRole={session?.role as 'admin' | 'leader' | 'student'} />
                     </div>
                     <div className="shrink-0 hidden md:block">
                         <UserNav />

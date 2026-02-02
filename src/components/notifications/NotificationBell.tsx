@@ -1,15 +1,23 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bell, Check } from 'lucide-react';
+import { Bell, Trash2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { getNotifications, type Notification } from '@/app/actions/notifications';
+import { getNotifications, clearAllNotifications, type Notification } from '@/app/actions/notifications';
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
-export function NotificationBell() {
+interface NotificationBellProps {
+    userRole?: 'admin' | 'leader' | 'student';
+}
+
+export function NotificationBell({ userRole = 'student' }: NotificationBellProps) {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [isOpen, setIsOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
+    const [isClearing, setIsClearing] = useState(false);
+    const canManage = userRole === 'admin' || userRole === 'leader';
 
     // Initial fetch
     useEffect(() => {
@@ -42,6 +50,28 @@ export function NotificationBell() {
         }
     };
 
+    const handleClearAll = async () => {
+        const confirmMsg = userRole === 'admin' 
+            ? 'Clear ALL notifications from all users? This cannot be undone.'
+            : 'Clear all notifications for your section? This cannot be undone.';
+        
+        if (!confirm(confirmMsg)) return;
+        
+        setIsClearing(true);
+        const result = await clearAllNotifications();
+        setIsClearing(false);
+
+        if (result.error) {
+            toast.error(result.error);
+        } else {
+            toast.success(result.message || 'Notifications cleared');
+            // Refresh notifications
+            const data = await getNotifications();
+            setNotifications(data);
+            setUnreadCount(0);
+        }
+    };
+
     return (
         <Popover open={isOpen} onOpenChange={handleOpenChange}>
             <PopoverTrigger asChild>
@@ -55,9 +85,23 @@ export function NotificationBell() {
             <PopoverContent className="w-80 p-0 bg-zinc-900 border-zinc-800" align="end">
                 <div className="p-3 border-b border-zinc-800 font-medium text-sm flex justify-between items-center bg-zinc-900/50">
                     <span>Notifications</span>
-                    {unreadCount > 0 && <span className="text-xs text-primary">{unreadCount} new</span>}
+                    <div className="flex items-center gap-2">
+                        {unreadCount > 0 && <span className="text-xs text-primary">{unreadCount} new</span>}
+                        {canManage && notifications.length > 0 && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleClearAll}
+                                disabled={isClearing}
+                                className="h-6 px-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                            >
+                                <Trash2 className="w-3 h-3 mr-1" />
+                                Clear
+                            </Button>
+                        )}
+                    </div>
                 </div>
-                <div className="max-h-[300px] overflow-y-auto">
+                <div className="max-h-[350px] overflow-y-auto">
                     {notifications.length === 0 ? (
                         <div className="p-8 text-center text-zinc-500 text-sm">
                             <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
@@ -73,15 +117,21 @@ export function NotificationBell() {
                                     </span>
                                 </div>
                                 <p className="text-xs text-zinc-400 line-clamp-2">{n.message}</p>
-                                <div className="mt-2 flex items-center justify-between">
+                                <div className="mt-2 flex items-center justify-between flex-wrap gap-1">
                                     <span className="text-[10px] text-primary/70 px-1.5 py-0.5 rounded-full bg-primary/10 font-medium">
-                                        {n.sender_role === 'admin' ? 'Admin Team' : `Leader of ${n.sender_section || 'Group'}`}
+                                        {n.sender_role === 'admin' ? 'Admin' : n.sender_full_name || 'Leader'}
                                     </span>
-                                    {n.target_section && (
-                                        <span className="text-[10px] text-zinc-600 border border-zinc-800 px-1.5 py-0.5 rounded">
-                                            {n.target_section}
-                                        </span>
-                                    )}
+                                    <div className="flex items-center gap-1">
+                                        {n.target_section ? (
+                                            <span className="text-[10px] text-amber-500 border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                                                → {n.target_section}
+                                            </span>
+                                        ) : (
+                                            <span className="text-[10px] text-emerald-500 border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                                                → All
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         ))
