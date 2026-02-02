@@ -49,7 +49,9 @@ export function QuestBoard({ initialQuests, currentUser, userRole, users: initia
                     }
                 }
             )
-            .subscribe();
+            .subscribe((status, err) => {
+                if (err) console.warn('Quest board subscription error:', err);
+            });
 
         const userChannel = supabase
             .channel('guild_users_board')
@@ -59,7 +61,9 @@ export function QuestBoard({ initialQuests, currentUser, userRole, users: initia
                     setUsers(prev => prev.map(u => u.username === updatedUser.username ? { ...u, ...updatedUser } : u));
                 }
             )
-            .subscribe();
+            .subscribe((status, err) => {
+                if (err) console.warn('Quest users subscription error:', err);
+            });
 
         return () => {
             supabase.removeChannel(questChannel);
