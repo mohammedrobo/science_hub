@@ -78,7 +78,9 @@ export function ChatBox({ initialMessages, currentUser, userRole, userMap: initi
                         setMessages(prev => prev.map(m => m.id === payload.new.id ? payload.new as Message : m));
                     }
                 }
-            ).subscribe();
+            ).subscribe((status, err) => {
+                if (err) console.warn('Guild chat subscription error:', err);
+            });
 
         // Subscribe to User Profile Changes (Nicknames, Avatars)
         const userChannel = supabase
@@ -94,7 +96,9 @@ export function ChatBox({ initialMessages, currentUser, userRole, userMap: initi
                         }
                     }));
                 }
-            ).subscribe();
+            ).subscribe((status, err) => {
+                if (err) console.warn('Guild users subscription error:', err);
+            });
 
         return () => {
             supabase.removeChannel(messageChannel);
@@ -152,15 +156,15 @@ export function ChatBox({ initialMessages, currentUser, userRole, userMap: initi
     return (
         <div className="h-full flex flex-col bg-zinc-950/40 rounded-xl border border-zinc-800 overflow-hidden backdrop-blur-sm shadow-2xl">
             {/* Header */}
-            <div className="p-4 bg-zinc-950/80 border-b border-zinc-800 flex items-center justify-between backdrop-blur-md">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-violet-500/10 flex items-center justify-center border border-violet-500/20">
-                        <span className="text-xl">💬</span>
+            <div className="p-3 sm:p-4 bg-zinc-950/80 border-b border-zinc-800 flex items-center justify-between backdrop-blur-md">
+                <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-violet-500/10 flex items-center justify-center border border-violet-500/20">
+                        <span className="text-lg sm:text-xl">💬</span>
                     </div>
                     <div>
-                        <h2 className="font-bold text-zinc-100">Guild Chat</h2>
-                        <p className="text-xs text-zinc-500 flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <h2 className="font-bold text-zinc-100 text-sm sm:text-base">Guild Chat</h2>
+                        <p className="text-[10px] sm:text-xs text-zinc-500 flex items-center gap-1 sm:gap-2">
+                            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse" />
                             Encrypted Channel
                         </p>
                     </div>
@@ -300,27 +304,27 @@ export function ChatBox({ initialMessages, currentUser, userRole, userMap: initi
             </div>
 
             {/* Input Area */}
-            <div className="p-4 bg-zinc-950 border-t border-zinc-800/50 relative">
-                <form onSubmit={handleSendMessage} className="flex gap-3 items-end">
+            <div className="p-3 sm:p-4 bg-zinc-950 border-t border-zinc-800/50 relative">
+                <form onSubmit={handleSendMessage} className="flex gap-2 sm:gap-3 items-end">
                     <div className="flex-1 bg-zinc-900/50 rounded-xl border border-zinc-800 focus-within:ring-2 focus-within:ring-violet-500/50 focus-within:border-violet-500 transition-all">
                         <Input
                             placeholder="Type a message..."
                             value={newMessage}
                             onChange={(e) => setNewMessage(e.target.value)}
-                            className="bg-transparent border-none text-zinc-100 placeholder:text-zinc-500 h-11 focus-visible:ring-0"
+                            className="bg-transparent border-none text-zinc-100 placeholder:text-zinc-500 h-10 sm:h-11 text-sm sm:text-base focus-visible:ring-0"
                         />
                     </div>
                     <Button
                         type="submit"
                         disabled={isLoading || !newMessage.trim()}
                         className={cn(
-                            "h-11 w-11 rounded-xl shadow-lg shadow-violet-500/20 transition-all",
+                            "h-10 w-10 sm:h-11 sm:w-11 rounded-xl shadow-lg shadow-violet-500/20 transition-all shrink-0",
                             newMessage.trim()
                                 ? "bg-violet-600 hover:bg-violet-500 text-white hover:scale-105 hover:shadow-violet-500/40"
                                 : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
                         )}
                     >
-                        <Send className="w-5 h-5 ml-0.5" />
+                        <Send className="w-4 h-4 sm:w-5 sm:h-5 ml-0.5" />
                     </Button>
                 </form>
             </div>

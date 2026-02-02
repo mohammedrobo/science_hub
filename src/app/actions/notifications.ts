@@ -61,6 +61,10 @@ export async function sendNotification(
 
     if (error) {
         console.error("Send Notification Error:", error);
+        // Check if table doesn't exist
+        if (error.message?.includes('schema cache') || error.code === '42P01') {
+            return { error: "Notifications table not set up. Run database/schema_notifications.sql" };
+        }
         return { error: "Failed to send notification." };
     }
 
@@ -85,24 +89,10 @@ export async function getNotifications() {
 
     const supabase = await createClient();
 
-    // Query: Get notifications where target_section IS NULL (Everyone) 
-    // OR target_section == userSection
-    // Query: Join with allowed_users to get sender details
-    // Since Supabase join syntax is tricky in simple client, we fetch users separately or use a view.
-    // Ideally: .select('*, allowed_users(full_name, access_role, original_section)')
-    // But foreign key might not be set up on sender_username -> username directly in schema or might be quirky.
-    // Let's rely on the FK we created: CONSTRAINT fk_sender FOREIGN KEY (sender_username) REFERENCES allowed_users(username)
-
+    // Query notifications - fetch separately from users to avoid FK join issues
     let query = supabase
         .from('notifications')
-        .select(`
-            *,
-            allowed_users!fk_sender (
-                full_name, 
-                access_role,
-                original_section
-            )
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(20);
 
@@ -115,17 +105,33 @@ export async function getNotifications() {
     const { data, error } = await query;
 
     if (error) {
-        if (error.code === 'PGRST204' || error.message.includes('does not exist')) return defaultData;
+        if (error.code === 'PGRST204' || error.message.includes('does not exist') || error.message.includes('schema cache')) {
+            return defaultData;
+        }
         console.error("Fetch Notifications Error:", error);
         return defaultData;
     }
 
-    // Map the joined data to flat structure
+    if (!data || data.length === 0) return defaultData;
+
+    // Fetch sender details separately
+    const senderUsernames = [...new Set(data.map((n: any) => n.sender_username))];
+    const { data: users } = await supabase
+        .from('allowed_users')
+        .select('username, full_name, access_role, original_section')
+        .in('username', senderUsernames);
+
+    const userMap = (users || []).reduce((acc: any, user: any) => {
+        acc[user.username] = user;
+        return acc;
+    }, {});
+
+    // Map the data to include sender details
     return data.map((n: any) => ({
         ...n,
-        sender_full_name: n.allowed_users?.full_name || 'Unknown',
-        sender_role: n.allowed_users?.access_role || 'student',
-        sender_section: n.allowed_users?.original_section
+        sender_full_name: userMap[n.sender_username]?.full_name || 'Unknown',
+        sender_role: userMap[n.sender_username]?.access_role || 'student',
+        sender_section: userMap[n.sender_username]?.original_section
     })) as Notification[];
 }
 

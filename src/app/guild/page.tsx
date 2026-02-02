@@ -60,23 +60,23 @@ export default async function GuildPage() {
     return (
         <div className="min-h-screen bg-zinc-950 font-sans text-zinc-100 selection:bg-violet-900/30">
             {/* Header */}
-            <header className="h-[73px] border-b border-zinc-800 bg-zinc-950/50 backdrop-blur-xl sticky top-0 z-50">
-                <div className="container mx-auto px-4 h-full flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <Link href="/leader" className="p-2 hover:bg-zinc-800 rounded-lg transition-colors" title="Back to Command">
-                            <LayoutDashboard className="w-5 h-5 text-zinc-400" />
+            <header className="h-[60px] sm:h-[73px] border-b border-zinc-800 bg-zinc-950/50 backdrop-blur-xl sticky top-0 z-50">
+                <div className="container mx-auto px-3 sm:px-4 h-full flex items-center justify-between">
+                    <div className="flex items-center gap-1 sm:gap-2">
+                        <Link href="/leader" className="p-1.5 sm:p-2 hover:bg-zinc-800 rounded-lg transition-colors" title="Back to Command">
+                            <LayoutDashboard className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-400" />
                         </Link>
-                        <Link href="/" className="p-2 hover:bg-zinc-800 rounded-lg transition-colors" title="Go Home">
-                            <Home className="w-5 h-5 text-zinc-400" />
+                        <Link href="/" className="p-1.5 sm:p-2 hover:bg-zinc-800 rounded-lg transition-colors" title="Go Home">
+                            <Home className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-400" />
                         </Link>
-                        <div className="h-6 w-px bg-zinc-800 mx-2" />
-                        <h1 className="text-xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
+                        <div className="h-5 sm:h-6 w-px bg-zinc-800 mx-1 sm:mx-2" />
+                        <h1 className="text-base sm:text-xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
                             Guild Hall
                         </h1>
                     </div>
 
                     {/* User Actions */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 sm:gap-2">
                         <EditNicknameDialog
                             currentUser={session.username}
                             currentNickname={userMap[session.username]?.nickname}
@@ -86,11 +86,11 @@ export default async function GuildPage() {
             </header>
 
             {/* Main Content - Split Layout */}
-            <main className="container mx-auto px-4 py-6 min-h-[calc(100dvh-73px)] lg:h-[calc(100vh-73px)] max-w-[1600px]">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
+            <main className="container mx-auto px-3 sm:px-4 py-3 sm:py-6 min-h-[calc(100dvh-60px)] sm:min-h-[calc(100dvh-73px)] lg:h-[calc(100vh-73px)] max-w-[1600px]">
+                <div className="flex flex-col lg:grid lg:grid-cols-12 gap-3 sm:gap-6 h-full">
 
-                    {/* Left: Quest Board (30-40%) */}
-                    <div className="lg:col-span-4 h-[500px] lg:h-full lg:overflow-hidden bg-zinc-900/30 rounded-xl border border-zinc-800 p-4 flex flex-col">
+                    {/* Left: Quest Board (30-40%) - Collapsible on mobile */}
+                    <div className="lg:col-span-4 h-[280px] sm:h-[400px] lg:h-full lg:overflow-hidden bg-zinc-900/30 rounded-xl border border-zinc-800 p-3 sm:p-4 flex flex-col">
                         <div className="flex justify-between items-center mb-2">
                             <h2 className="text-zinc-400 text-xs font-mono uppercase tracking-wider">Quest Board</h2>
                         </div>
@@ -102,8 +102,8 @@ export default async function GuildPage() {
                         />
                     </div>
 
-                    {/* Right: Guild Chat (60-70%) */}
-                    <div className="lg:col-span-8 h-[70vh] lg:h-full flex flex-col">
+                    {/* Right: Guild Chat (60-70%) - Takes remaining space */}
+                    <div className="lg:col-span-8 flex-1 lg:h-full flex flex-col min-h-[250px] sm:min-h-[300px]">
                         <ChatBox
                             initialMessages={messages}
                             currentUser={session.username}

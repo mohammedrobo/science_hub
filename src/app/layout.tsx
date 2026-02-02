@@ -25,9 +25,14 @@ export const metadata: Metadata = {
     title: "Science Hub",
   },
   icons: {
-    icon: "/icon.png",
+    icon: [
+      { url: "/favicon.ico", sizes: "32x32" },
+      { url: "/icon.png", sizes: "1024x1024", type: "image/png" },
+    ],
     shortcut: "/favicon.ico",
-    apple: "/apple-icon.png",
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
 };
 

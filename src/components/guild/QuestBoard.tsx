@@ -81,12 +81,12 @@ export function QuestBoard({ initialQuests, currentUser, userRole, users: initia
     return (
         <div className="h-full flex flex-col">
             {/* Header / Filter Toolbar */}
-            <div className="flex flex-col gap-4 mb-4">
-                <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:gap-4 mb-3 sm:mb-4">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-0">
                     <div className="flex bg-zinc-900 rounded-lg p-1 border border-zinc-800">
                         <button
                             onClick={() => setFilter('all')}
-                            className={cn("px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-2 transition-all",
+                            className={cn("flex-1 sm:flex-initial px-3 py-1.5 text-xs font-medium rounded-md flex items-center justify-center gap-2 transition-all",
                                 filter === 'all' ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-300"
                             )}
                         >
@@ -94,7 +94,7 @@ export function QuestBoard({ initialQuests, currentUser, userRole, users: initia
                         </button>
                         <button
                             onClick={() => setFilter('mine')}
-                            className={cn("px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-2 transition-all",
+                            className={cn("flex-1 sm:flex-initial px-3 py-1.5 text-xs font-medium rounded-md flex items-center justify-center gap-2 transition-all",
                                 filter === 'mine' ? "bg-violet-900/30 text-violet-300 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
                             )}
                         >
