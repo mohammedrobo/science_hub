@@ -1,5 +1,6 @@
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import Link from 'next/link';
+import { SendNotificationForm } from '@/components/notifications/SendNotificationForm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -149,7 +150,22 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
             </div>
 
             {/* Main Content */}
-            <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
+            <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 space-y-6">
+
+                {/* Communications Center */}
+                <Card className="bg-zinc-900/50 border-zinc-800">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                            Communication Center
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="max-w-2xl">
+                            <SendNotificationForm role="admin" />
+                        </div>
+                    </CardContent>
+                </Card>
+
                 <Card className="bg-zinc-900/50 border-zinc-800">
                     <CardHeader className="pb-2 sm:pb-4 flex flex-row items-center justify-between">
                         <CardTitle className="text-base sm:text-lg">

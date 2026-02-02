@@ -5,6 +5,7 @@ import { BookOpen, Crown } from 'lucide-react';
 import { getSession } from '@/app/login/actions';
 import { MobileMenu } from './MobileMenu'; // Import the new client component
 import { getUserStats, type UserStats } from '@/lib/gamification';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 export async function Header() {
     const session = await getSession();
@@ -67,6 +68,9 @@ export async function Header() {
                 <div className="flex items-center gap-3 shrink-0">
                     <div className="shrink-0">
                         <SemesterToggle />
+                    </div>
+                    <div className="shrink-0">
+                        <NotificationBell />
                     </div>
                     <div className="shrink-0 hidden md:block">
                         <UserNav />

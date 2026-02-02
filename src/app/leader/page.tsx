@@ -2,13 +2,18 @@ import { getSession } from '@/app/login/actions';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Sword, Upload, Shield, Home, BookOpen, Settings } from 'lucide-react';
+import { Sword, Upload, Shield, Home, BookOpen, Settings, Send } from 'lucide-react';
+import { SendNotificationForm } from '@/components/notifications/SendNotificationForm';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default async function LeaderDashboard() {
     const session = await getSession();
     if (!session || !['admin', 'leader'].includes(session.role)) {
         redirect('/');
     }
+
+    const match = session.username.match(/^[A-D]_([A-D]\d)/i);
+    const userSection = match ? match[1].toUpperCase() : null;
 
     return (
         <div className="min-h-screen bg-zinc-950 font-sans text-zinc-100 flex flex-col items-center justify-center p-3 sm:p-4 relative">
@@ -31,6 +36,23 @@ export default async function LeaderDashboard() {
                         Welcome, {session.name}. Manage content and collaborate.
                     </p>
                 </div>
+
+                {/* Communication Section - Only for Leads with Section */}
+                {userSection && (
+                    <div className="max-w-2xl mx-auto w-full">
+                        <Card className="bg-zinc-900/40 border-zinc-800">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-lg flex items-center gap-2 text-white">
+                                    <Send className="w-5 h-5 text-violet-400" />
+                                    Notify Section {userSection}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <SendNotificationForm role="leader" userSection={userSection} />
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6 mt-8 sm:mt-12">
                     {/* Guild Hall Card */}
