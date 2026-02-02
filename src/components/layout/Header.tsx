@@ -52,6 +52,9 @@ export async function Header() {
                     <Link href="/leaderboard" className="hover:text-primary transition-colors">
                         Leaderboard
                     </Link>
+                    <Link href="/schedule" className="hover:text-primary transition-colors">
+                        Schedule
+                    </Link>
 
                     {/* Admin Button */}
                     {isAdmin && (

@@ -107,6 +107,14 @@ export function MobileMenu({ isAdmin, session, userNameInitial, profilePictureUr
                             <Trophy className="h-5 w-5 text-primary" />
                             <span className="font-medium">Leaderboard</span>
                         </Link>
+                        <Link
+                            href="/schedule"
+                            onClick={closeMenu}
+                            className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground hover:bg-muted transition-colors"
+                        >
+                            <Trophy className="h-5 w-5 text-violet-500" />
+                            <span className="font-medium">Schedule</span>
+                        </Link>
 
                         {/* Admin Link */}
                         {isAdmin && (
