@@ -73,7 +73,7 @@ export async function Header() {
                     </div>
 
                     {/* Mobile Menu (Client Component) */}
-                    <div className="md:hidden shrink-0 pr-1">
+                    <div className="md:hidden shrink-0">
                         <MobileMenu
                             isAdmin={isAdmin}
                             session={session}

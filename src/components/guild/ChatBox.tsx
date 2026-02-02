@@ -300,7 +300,7 @@ export function ChatBox({ initialMessages, currentUser, userRole, userMap: initi
             </div>
 
             {/* Input Area */}
-            <div className="p-4 bg-zinc-950 border-t border-zinc-800/50 relative pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div className="p-4 bg-zinc-950 border-t border-zinc-800/50 relative">
                 <form onSubmit={handleSendMessage} className="flex gap-3 items-end">
                     <div className="flex-1 bg-zinc-900/50 rounded-xl border border-zinc-800 focus-within:ring-2 focus-within:ring-violet-500/50 focus-within:border-violet-500 transition-all">
                         <Input
