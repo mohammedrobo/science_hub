@@ -1,0 +1,37 @@
+[
+  {
+    "id": "TC001",
+    "title": "login api authentication and rate limiting",
+    "description": "Test the /login POST endpoint to verify user authentication with correct username and password, ensure rate limiting is enforced to prevent brute force attacks, and validate session management via cookies."
+  },
+  {
+    "id": "TC002",
+    "title": "change password api strength validation and confirmation",
+    "description": "Test the /change-password POST endpoint to verify that password change requires matching new_password and confirm_password fields, enforce password strength validation, and ensure successful password update redirects appropriately."
+  },
+  {
+    "id": "TC003",
+    "title": "ai chat api message handling and error responses",
+    "description": "Test the /api/chat POST endpoint to verify that sending a valid message returns an AI response, handle missing message error with 400 status, simulate API key errors returning 500 status, and service unavailability returning 503 status."
+  },
+  {
+    "id": "TC004",
+    "title": "courses api semester filtering and error handling",
+    "description": "Test the /api/courses GET endpoint to verify that courses can be fetched filtered by semester query parameter, and handle internal server errors with appropriate 500 status response."
+  },
+  {
+    "id": "TC005",
+    "title": "progress tracking api mark content as completed",
+    "description": "Test the /actions/markContentAsCompleted POST endpoint to verify marking lessons or quizzes as completed, validate contentId and contentType inputs, and ensure correct XP rewards are calculated and returned."
+  },
+  {
+    "id": "TC006",
+    "title": "progress tracking api submit quiz result and xp calculation",
+    "description": "Test the /actions/submitQuizResult POST endpoint to verify submission of quiz scores, correct calculation and awarding of XP based on scorePercentage, and proper response structure."
+  },
+  {
+    "id": "TC007",
+    "title": "onboarding api complete user onboarding with gpa",
+    "description": "Test the /actions/completeOnboarding POST endpoint to verify completion of user onboarding process with GPA input, validate GPA value handling, and confirm successful onboarding response."
+  }
+]

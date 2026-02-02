@@ -1,0 +1,108 @@
+{
+    "tech_stack": [
+        "TypeScript",
+        "Next.js 16",
+        "React 19",
+        "Tailwind CSS",
+        "Supabase (PostgreSQL)",
+        "Framer Motion",
+        "Radix UI",
+        "Lucide Icons"
+    ],
+    "features": [
+        {
+            "name": "Course Dashboard",
+            "description": "Main dashboard showing course grid with progress bars and semester filtering",
+            "files": [
+                "src/app/(root)/page.tsx",
+                "src/components/courses/CourseGrid.tsx",
+                "src/components/courses/CourseCard.tsx"
+            ]
+        },
+        {
+            "name": "Course Detail & Video Player",
+            "description": "Course page with video player, collapsible sidebar for video parts, and lesson list",
+            "files": [
+                "src/app/(root)/course/[id]/page.tsx",
+                "src/components/courses/VideoPlayer.tsx",
+                "src/components/courses/CompleteButton.tsx"
+            ]
+        },
+        {
+            "name": "Quiz System",
+            "description": "Interactive quiz pages with multiple choice questions and scoring",
+            "files": [
+                "src/app/(root)/quiz/[id]/page.tsx",
+                "src/lib/quizzes.ts"
+            ]
+        },
+        {
+            "name": "Authentication",
+            "description": "Login system with session management and password change",
+            "files": [
+                "src/app/login/page.tsx",
+                "src/app/login/actions.ts",
+                "src/app/change-password/page.tsx"
+            ]
+        },
+        {
+            "name": "User Profile",
+            "description": "User profile page with avatar upload and stats display",
+            "files": [
+                "src/app/profile/page.tsx",
+                "src/app/profile/ProfilePictureUpload.tsx",
+                "src/app/profile/actions.ts"
+            ]
+        },
+        {
+            "name": "Admin Dashboard",
+            "description": "Admin panel for managing users and content",
+            "files": [
+                "src/app/admin/page.tsx",
+                "src/app/admin/SectionSelector.tsx"
+            ]
+        },
+        {
+            "name": "AI Chat",
+            "description": "AI-powered chat assistant with message persistence",
+            "files": [
+                "src/app/ai/page.tsx",
+                "src/components/ai/AIChat.tsx",
+                "src/app/actions/chat.ts"
+            ]
+        },
+        {
+            "name": "Leaderboard",
+            "description": "XP-based leaderboard showing top users",
+            "files": [
+                "src/app/leaderboard/page.tsx"
+            ]
+        },
+        {
+            "name": "GPA Calculator",
+            "description": "Tool for calculating GPA based on course grades",
+            "files": [
+                "src/app/tools/gpa/page.tsx"
+            ]
+        },
+        {
+            "name": "Navigation & Layout",
+            "description": "Header, mobile menu, user navigation, and page transitions",
+            "files": [
+                "src/app/layout.tsx",
+                "src/app/template.tsx",
+                "src/components/layout/Header.tsx",
+                "src/components/layout/MobileMenu.tsx",
+                "src/components/layout/UserNav.tsx"
+            ]
+        },
+        {
+            "name": "CSS Animations",
+            "description": "Pure CSS animations for fade-in, shimmer, and hover effects",
+            "files": [
+                "src/app/globals.css",
+                "src/components/courses/CourseCard.tsx"
+            ]
+        }
+    ]
+}
