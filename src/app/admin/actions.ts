@@ -464,6 +464,12 @@ export async function resetFullAccount(username: string) {
     // Store password as plaintext - will be auto-hashed on first login via verifyPassword migration
 
     // 2. Reset user flags and password
+
+    // Check current role to preserve Admin status if needed
+    const { data: currentUser } = await supabase.from('allowed_users').select('access_role').eq('username', username).single();
+    const shouldKeepAdmin = currentUser?.access_role === 'admin';
+    const newRole = shouldKeepAdmin ? 'admin' : 'student';
+
     const { error: userError } = await supabase
         .from('allowed_users')
         .update({
@@ -471,7 +477,8 @@ export async function resetFullAccount(username: string) {
             is_first_login: true,
             has_onboarded: false,
             nickname: null, // Clear nickname as requested
-            access_role: 'student' // Demote back to student if they were a leader
+            access_role: newRole, // Demote back to student unless they are Admin
+            session_token: null // Clear session on reset
         })
         .eq('username', username);
 

@@ -15,6 +15,7 @@ export interface SessionData {
     isFirstLogin: boolean;
     hasOnboarded?: boolean;
     loggedInAt: string;
+    sessionToken?: string;
 }
 
 /**
@@ -52,7 +53,7 @@ export async function getSession(): Promise<SessionData | null> {
         const supabase = await createClient();
         const { data: user } = await supabase
             .from('allowed_users')
-            .select('is_first_login, access_role, username')
+            .select('is_first_login, access_role, username, session_token')
             .eq('username', session.username)
             .single();
 
@@ -61,6 +62,14 @@ export async function getSession(): Promise<SessionData | null> {
         // to access /change-password. Middleware handles the redirection jail.
         if (!user) {
             // Force logout
+            await destroySession();
+            return null;
+        }
+
+        // Single Session Enforcement:
+        // If the DB has a token, it MUST match the session's token.
+        if (user.session_token && user.session_token !== session.sessionToken) {
+            console.log(`[Session] Token mismatch for ${session.username}. Force logout.`);
             await destroySession();
             return null;
         }

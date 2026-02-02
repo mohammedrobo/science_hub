@@ -81,6 +81,12 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     const isFirstLogin = user.is_first_login ?? user.must_change_password ?? true;
     const hasOnboarded = user.has_onboarded ?? false;
 
+    // Generate new Session Token for Single Session Enforcement
+    const sessionToken = crypto.randomUUID();
+
+    // Save token to DB (invalidates other sessions)
+    await supabase.from('allowed_users').update({ session_token: sessionToken }).eq('username', user.username);
+
     await createSession({
         username: user.username,
         name: user.full_name,
@@ -89,7 +95,8 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
         role: user.access_role,
         isFirstLogin: isFirstLogin,
         hasOnboarded: hasOnboarded,
-        loggedInAt: new Date().toISOString()
+        loggedInAt: new Date().toISOString(),
+        sessionToken: sessionToken
     });
 
     // 6. Check if first login - redirect to change password
