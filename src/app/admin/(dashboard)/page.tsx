@@ -1,6 +1,7 @@
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { SendNotificationForm } from '@/components/notifications/SendNotificationForm';
+import { ManageNotifications } from '@/components/notifications/ManageNotifications';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -160,8 +161,11 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="max-w-2xl">
+                        <div className="max-w-2xl space-y-8">
                             <SendNotificationForm role="admin" />
+                            <div className="border-t border-zinc-800 pt-6">
+                                <ManageNotifications />
+                            </div>
                         </div>
                     </CardContent>
                 </Card>

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sword, Upload, Shield, Home, BookOpen, Settings, Send } from 'lucide-react';
 import { SendNotificationForm } from '@/components/notifications/SendNotificationForm';
+import { ManageNotifications } from '@/components/notifications/ManageNotifications';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default async function LeaderDashboard() {
@@ -48,7 +49,12 @@ export default async function LeaderDashboard() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <SendNotificationForm role="leader" userSection={userSection} />
+                                <div className="space-y-6">
+                                    <SendNotificationForm role="leader" userSection={userSection} />
+                                    <div className="border-t border-zinc-800 pt-6">
+                                        <ManageNotifications />
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
                     </div>

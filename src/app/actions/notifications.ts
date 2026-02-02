@@ -110,3 +110,92 @@ export async function getNotifications() {
 
     return data as Notification[];
 }
+
+// Delete a notification
+export async function deleteNotification(id: string) {
+    const session = await getSession();
+    if (!session) return { error: "Unauthorized" };
+
+    const { username, role } = session;
+    const supabase = await createClient();
+
+    // Fetch the notification first to check ownership
+    const { data: notification, error: fetchError } = await supabase
+        .from('notifications')
+        .select('sender_username')
+        .eq('id', id)
+        .single();
+
+    if (fetchError || !notification) {
+        return { error: "Notification not found." };
+    }
+
+    // Permission Check
+    if (role === 'admin') {
+        // Admin can delete anything
+    } else if (role === 'leader') {
+        // Leader can only delete their own
+        if (notification.sender_username !== username) {
+            return { error: "You can only delete your own notifications." };
+        }
+    } else {
+        return { error: "Unauthorized." };
+    }
+
+    const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        return { error: "Failed to delete notification." };
+    }
+
+    revalidatePath('/');
+    revalidatePath('/schedule');
+    return { success: true };
+}
+
+// Update a notification
+export async function updateNotification(id: string, title: string, message: string) {
+    const session = await getSession();
+    if (!session) return { error: "Unauthorized" };
+
+    const { username, role } = session;
+    const supabase = await createClient();
+
+    // Fetch to check ownership
+    const { data: notification, error: fetchError } = await supabase
+        .from('notifications')
+        .select('sender_username')
+        .eq('id', id)
+        .single();
+
+    if (fetchError || !notification) {
+        return { error: "Notification not found." };
+    }
+
+    // Permission Check
+    if (role === 'admin') {
+        // Admin can edit anything
+    } else if (role === 'leader') {
+        if (notification.sender_username !== username) {
+            return { error: "You can only edit your own notifications." };
+        }
+    } else {
+        return { error: "Unauthorized." };
+    }
+
+    const { error } = await supabase
+        .from('notifications')
+        .update({ title, message, created_at: new Date().toISOString() }) // Also update timestamp? Maybe not, keep original? Let's update it to bump visibility if needed, or maybe add 'updated_at'. For now, simple update.
+        .eq('id', id);
+
+    if (error) {
+        return { error: "Failed to update notification." };
+    }
+
+    revalidatePath('/');
+    revalidatePath('/schedule');
+    return { success: true };
+}
