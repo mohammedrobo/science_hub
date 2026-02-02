@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 
 import { useSemesterStore } from '@/stores/semester-store';
 import { CourseGrid } from '@/components/courses/CourseGrid';
@@ -8,9 +8,13 @@ import { getCourseProgress } from '@/app/actions/progress';
 
 export default function Dashboard() {
     const [progress, setProgress] = useState<Record<string, number>>({});
+    const [, startTransition] = useTransition();
 
     useEffect(() => {
-        getCourseProgress().then(setProgress);
+        // Load progress in background without blocking UI
+        startTransition(() => {
+            getCourseProgress().then(setProgress);
+        });
     }, []);
 
     const { semester, hasHydrated } = useSemesterStore();
