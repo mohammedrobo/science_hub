@@ -1,5 +1,4 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 
 const SESSION_COOKIE = 'sciencehub_session';
 
@@ -36,52 +35,10 @@ export async function proxy(request: NextRequest) {
         // Parse session data
         const session = JSON.parse(sessionCookie.value) as SessionPayload;
 
-        // --- LIGHTWEIGHT SESSION CHECK ---
-        // Only verify against DB occasionally to avoid slow requests
-        // The session cookie is signed/trusted, DB check is extra security
-        const lastVerified = request.cookies.get('sciencehub_verified')?.value;
-        const now = Date.now();
-        const VERIFY_INTERVAL = 5 * 60 * 1000; // Only verify every 5 minutes
-        
-        const shouldVerifyDb = !lastVerified || (now - parseInt(lastVerified)) > VERIFY_INTERVAL;
-        
-        if (shouldVerifyDb) {
-            try {
-                const supabase = createClient(
-                    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-                );
-
-                const { data: user } = await supabase
-                    .from('allowed_users')
-                    .select('is_first_login, access_role')
-                    .eq('username', session.username)
-                    .single();
-
-                // 1. If user deleted or reset (is_first_login became true while session says false)
-                if (!user || (user.is_first_login && !session.isFirstLogin)) {
-                    const response = NextResponse.redirect(new URL('/login', request.url));
-                    response.cookies.delete(SESSION_COOKIE);
-                    response.cookies.delete('sciencehub_verified');
-                    return response;
-                }
-
-                // 2. Refresh Role if changed (e.g. Leader demotion)
-                if (user && user.access_role !== session.role) {
-                    session.role = user.access_role;
-                }
-
-                // Sync isFirstLogin from DB for logic below
-                if (user) {
-                    session.isFirstLogin = user.is_first_login;
-                }
-
-                // Mark as verified - will set cookie below
-            } catch (err) {
-                console.error('Proxy DB Check Failed:', err);
-                // If DB is down, trust the cookie for usability
-            }
-        }
+        // --- SKIP DB CHECK FOR SPEED ---
+        // DB verification only happens on login and password change
+        // The session cookie is trusted for all other navigation
+        // This makes navigation instant instead of 800ms+ delay
         // -------------------------------
 
         // If first login and not on change-password page, redirect there
@@ -124,22 +81,7 @@ export async function proxy(request: NextRequest) {
         return response;
     }
 
-    // Set verification timestamp cookie if we did a DB check
-    const response = NextResponse.next();
-    const lastVerified = request.cookies.get('sciencehub_verified')?.value;
-    const now = Date.now();
-    const VERIFY_INTERVAL = 5 * 60 * 1000;
-    
-    if (!lastVerified || (now - parseInt(lastVerified)) > VERIFY_INTERVAL) {
-        response.cookies.set('sciencehub_verified', now.toString(), {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 60 * 60, // 1 hour
-        });
-    }
-    
-    return response;
+    return NextResponse.next();
 }
 
 export const config = {

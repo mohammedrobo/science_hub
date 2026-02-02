@@ -1,10 +1,19 @@
 'use client';
 
+import { LazyMotion, domAnimation, m } from 'framer-motion';
+
 export default function Template({ children }: { children: React.ReactNode }) {
     return (
-        <div className="flex-1 w-full">
-            {children}
-        </div>
+        <LazyMotion features={domAnimation}>
+            <m.div
+                className="flex-1 w-full"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+            >
+                {children}
+            </m.div>
+        </LazyMotion>
     );
 }
 
