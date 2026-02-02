@@ -10,8 +10,9 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '500mb',
     },
     // Optimize imports for heavy packages
-    optimizePackageImports: ['lucide-react', 'framer-motion', 'katex', 'date-fns'],
+    optimizePackageImports: ['lucide-react', 'framer-motion', 'katex', 'date-fns', '@supabase/supabase-js'],
   },
+
   // Standalone output for Docker/Self-hosting
   output: 'standalone',
 
@@ -23,6 +24,7 @@ const nextConfig: NextConfig = {
   // Image optimization
   images: {
     formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 31536000, // 1 year cache
     remotePatterns: [
       {
         protocol: 'https',
@@ -39,24 +41,47 @@ const nextConfig: NextConfig = {
     } : false,
   },
 
+  // Enable gzip/brotli compression
+  compress: true,
+
+  // Reduce bundle size
+  productionBrowserSourceMaps: false,
+
   // Headers for security and caching
   async headers() {
     return [
       {
         source: '/:path*',
         headers: [
-          {
-            key: 'X-DNS-Prefetch-Control',
-            value: 'on',
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
+          { key: 'X-DNS-Prefetch-Control', value: 'on' },
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+        ],
+      },
+      // Cache static assets aggressively
+      {
+        source: '/icon.png',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      {
+        source: '/manifest.json',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=86400' },
+        ],
+      },
+      {
+        source: '/sw.js',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' },
+        ],
+      },
+      // Cache Next.js static files
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
         ],
       },
     ];

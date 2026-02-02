@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Calendar, Users, Lock } from 'lucide-react';
+import { Calendar, Users, Lock, ArrowLeft } from 'lucide-react';
 import { getSession } from '@/app/login/actions';
 
 const SECTIONS = [
@@ -41,6 +41,13 @@ export default async function ScheduleIndexPage() {
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white p-4 md:p-8">
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
+                <div className="flex justify-start mb-8">
+                    <Link href="/" className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
+                        <ArrowLeft size={20} />
+                        <span>Back to Home</span>
+                    </Link>
+                </div>
+
                 <div className="text-center mb-12">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-violet-600/20 mb-4">
                         <Calendar size={32} className="text-violet-400" />

@@ -3,7 +3,7 @@
 import { useState, useEffect, useTransition } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getSchedule, isLeaderOfSection, updateScheduleEntry, type ScheduleEntry } from '../../actions';
-import { ArrowLeft, Save, Plus, Trash2, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Loader2, Home } from 'lucide-react';
 import Link from 'next/link';
 
 const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday'];
@@ -127,13 +127,23 @@ export default function ScheduleEditPage() {
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white p-4 md:p-8">
             {/* Header */}
             <div className="max-w-4xl mx-auto mb-8">
-                <Link
-                    href={`/schedule/${sectionId.toLowerCase()}`}
-                    className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-4"
-                >
-                    <ArrowLeft size={20} />
-                    <span>Back to Schedule</span>
-                </Link>
+                <div className="flex items-center gap-4 mb-4">
+                    <Link
+                        href="/"
+                        className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+                    >
+                        <Home size={20} />
+                        <span>Home</span>
+                    </Link>
+                    <span className="text-gray-600">|</span>
+                    <Link
+                        href={`/schedule/${sectionId.toLowerCase()}`}
+                        className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+                    >
+                        <ArrowLeft size={20} />
+                        <span>Back to Schedule</span>
+                    </Link>
+                </div>
 
                 <div className="flex items-center justify-between">
                     <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-400 to-purple-500 bg-clip-text text-transparent">
@@ -165,8 +175,8 @@ export default function ScheduleEditPage() {
                             key={day}
                             onClick={() => setActiveDay(day)}
                             className={`px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${activeDay === day
-                                    ? 'bg-violet-600 text-white'
-                                    : 'bg-gray-800/50 text-gray-400 hover:bg-gray-700/50'
+                                ? 'bg-violet-600 text-white'
+                                : 'bg-gray-800/50 text-gray-400 hover:bg-gray-700/50'
                                 }`}
                         >
                             {DAY_LABELS[day]}

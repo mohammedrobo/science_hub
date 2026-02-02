@@ -1,59 +1,89 @@
-const CACHE_NAME = 'science-hub-v1';
-const STATIC_ASSETS = [
+const CACHE_NAME = 'science-hub-v2';
+const PRECACHE_ASSETS = [
     '/',
     '/icon.png',
     '/manifest.json'
 ];
 
-// Install event - cache static assets
+// Assets to cache on first visit
+const RUNTIME_CACHE = 'runtime-v1';
+
+// Install - precache critical assets
 self.addEventListener('install', (event) => {
     event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(STATIC_ASSETS);
-        })
+        caches.open(CACHE_NAME)
+            .then(cache => cache.addAll(PRECACHE_ASSETS))
+            .then(() => self.skipWaiting())
     );
-    self.skipWaiting();
 });
 
-// Activate event - clean old caches
+// Activate - clean old caches
 self.addEventListener('activate', (event) => {
     event.waitUntil(
-        caches.keys().then((cacheNames) => {
-            return Promise.all(
-                cacheNames
-                    .filter((name) => name !== CACHE_NAME)
-                    .map((name) => caches.delete(name))
-            );
-        })
+        caches.keys()
+            .then(keys => Promise.all(
+                keys
+                    .filter(key => key !== CACHE_NAME && key !== RUNTIME_CACHE)
+                    .map(key => caches.delete(key))
+            ))
+            .then(() => self.clients.claim())
     );
-    self.clients.claim();
 });
 
-// Fetch event - network first, fallback to cache
+// Fetch - stale-while-revalidate for pages, cache-first for assets
 self.addEventListener('fetch', (event) => {
-    // Skip non-GET requests
-    if (event.request.method !== 'GET') return;
+    const { request } = event;
+    const url = new URL(request.url);
 
-    // Skip API calls and external requests
-    if (event.request.url.includes('/api/') || !event.request.url.startsWith(self.location.origin)) {
+    // Skip non-GET and external requests
+    if (request.method !== 'GET' || !url.origin.includes(self.location.origin)) {
         return;
     }
 
+    // Skip API calls - always fetch fresh
+    if (url.pathname.startsWith('/api/')) {
+        return;
+    }
+
+    // Static assets - cache first
+    if (
+        url.pathname.startsWith('/_next/static/') ||
+        url.pathname.match(/\.(png|jpg|jpeg|svg|gif|webp|avif|ico|woff2?)$/i)
+    ) {
+        event.respondWith(
+            caches.match(request).then(cached => {
+                if (cached) return cached;
+                return fetch(request).then(response => {
+                    if (response.ok) {
+                        const clone = response.clone();
+                        caches.open(RUNTIME_CACHE).then(cache => cache.put(request, clone));
+                    }
+                    return response;
+                });
+            })
+        );
+        return;
+    }
+
+    // HTML pages - stale-while-revalidate
     event.respondWith(
-        fetch(event.request)
-            .then((response) => {
-                // Clone and cache successful responses
-                if (response.status === 200) {
-                    const responseClone = response.clone();
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, responseClone);
-                    });
+        caches.match(request).then(cached => {
+            const fetchPromise = fetch(request).then(response => {
+                if (response.ok) {
+                    const clone = response.clone();
+                    caches.open(RUNTIME_CACHE).then(cache => cache.put(request, clone));
                 }
                 return response;
-            })
-            .catch(() => {
-                // Fallback to cache
-                return caches.match(event.request);
-            })
+            }).catch(() => cached);
+
+            return cached || fetchPromise;
+        })
     );
+});
+
+// Background sync for offline actions
+self.addEventListener('sync', (event) => {
+    if (event.tag === 'sync-data') {
+        // Handle offline data sync
+    }
 });
