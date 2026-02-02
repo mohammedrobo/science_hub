@@ -477,8 +477,7 @@ export async function resetFullAccount(username: string) {
             is_first_login: true,
             has_onboarded: false,
             nickname: null, // Clear nickname as requested
-            access_role: newRole, // Demote back to student unless they are Admin
-            session_token: null // Clear session on reset
+            access_role: newRole // Demote back to student unless they are Admin
         })
         .eq('username', username);
 

@@ -1,5 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
+import { getSession } from '@/app/login/actions';
+import { getStudentContext } from '@/lib/student-data';
 
 // Helper to parse keys from env
 const getApiKeys = (): string[] => {
@@ -28,6 +30,18 @@ export async function POST(req: Request) {
             );
         }
 
+        // Fetch User Context
+        const session = await getSession();
+        let studentContext = "";
+
+        if (session?.username) {
+            try {
+                studentContext = await getStudentContext(session.username);
+            } catch (err) {
+                console.error("Error fetching student context:", err);
+            }
+        }
+
         const systemInstruction = `
             You are "Da Vinci", a Smart University Assistant for Science Hub.
             Your traits:
@@ -36,6 +50,7 @@ export async function POST(req: Request) {
             - You encourage curiosity and critical thinking.
             - If asked about courses, you refer to standard science topics generally.
             - Response max length: around 100 words unless asked for a detailed explanation.
+            ${studentContext ? `\n\n[ACADEMIC RECORDS ACCESS GRANTED]\n${studentContext}\n[INSTRUCTION]: The user is asking about their studies. YOU KNOW THEIR GRADES. Refer to them specifically if asked.` : ''}
         `;
         const prompt = `${systemInstruction}\n\nUser: ${message}\nDa Vinci:`;
 
