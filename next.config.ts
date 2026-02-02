@@ -9,11 +9,15 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '500mb',
     },
+    // Optimize imports for heavy packages
+    optimizePackageImports: ['lucide-react', 'framer-motion', 'katex', 'date-fns'],
   },
+  // Standalone output for Docker/Self-hosting
+  output: 'standalone',
 
   // Fix for workspace root warning
   turbopack: {
-     root: process.cwd(),
+    root: process.cwd(),
   },
 
   // Image optimization
