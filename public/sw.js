@@ -36,12 +36,28 @@ self.addEventListener('fetch', (event) => {
     const url = new URL(request.url);
 
     // Skip non-GET and external requests
-    if (request.method !== 'GET' || !url.origin.includes(self.location.origin)) {
+    if (request.method !== 'GET' || url.origin !== self.location.origin) {
         return;
     }
 
-    // Skip API calls - always fetch fresh
-    if (url.pathname.startsWith('/api/')) {
+    // Skip API calls and Next.js data routes - always fetch fresh
+    if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/_next/data/')) {
+        return;
+    }
+
+    // Navigation requests - network first to avoid stale auth/content
+    if (request.mode === 'navigate' || request.destination === 'document') {
+        event.respondWith(
+            fetch(request)
+                .then(response => {
+                    if (response.ok) {
+                        const clone = response.clone();
+                        caches.open(RUNTIME_CACHE).then(cache => cache.put(request, clone));
+                    }
+                    return response;
+                })
+                .catch(() => caches.match(request))
+        );
         return;
     }
 
@@ -65,7 +81,7 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // HTML pages - stale-while-revalidate
+    // Other requests - stale-while-revalidate
     event.respondWith(
         caches.match(request).then(cached => {
             const fetchPromise = fetch(request).then(response => {
