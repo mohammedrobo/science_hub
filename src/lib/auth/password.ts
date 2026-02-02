@@ -10,20 +10,26 @@ export async function hashPassword(password: string): Promise<string> {
 }
 
 /**
- * Verify password against hash
+ * Verify password against bcrypt hash
+ * 
+ * SECURITY: Plaintext password support has been REMOVED.
+ * All passwords MUST be bcrypt hashed.
+ * 
+ * If you have legacy plaintext passwords, run the migration script:
+ * npx tsx scripts/migrate-passwords.ts
  */
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-    // Backwards compatibility: if hash doesn't start with $2, it's plaintext
+    // SECURITY: Reject non-bcrypt hashes (legacy plaintext)
     if (!hash.startsWith('$2')) {
-        // Legacy plaintext comparison (will be migrated)
-        return password === hash;
+        console.error('[SECURITY] Attempted login with non-bcrypt password. Run migration script.');
+        return false;
     }
     return bcrypt.compare(password, hash);
 }
 
 /**
- * Check if password needs migration (is plaintext)
+ * Check if password is properly hashed
  */
-export function needsHashMigration(storedPassword: string): boolean {
-    return !storedPassword.startsWith('$2');
+export function isPasswordHashed(storedPassword: string): boolean {
+    return storedPassword.startsWith('$2');
 }

@@ -11,6 +11,15 @@ const getApiKeys = (): string[] => {
 };
 
 export async function POST(req: Request) {
+    // SECURITY: Require authentication
+    const session = await getSession();
+    if (!session?.username) {
+        return NextResponse.json(
+            { error: 'Authentication required' },
+            { status: 401 }
+        );
+    }
+
     const apiKeys = getApiKeys();
 
     if (apiKeys.length === 0) {
@@ -30,16 +39,13 @@ export async function POST(req: Request) {
             );
         }
 
-        // Fetch User Context
-        const session = await getSession();
+        // Fetch User Context (session already verified above)
         let studentContext = "";
 
-        if (session?.username) {
-            try {
-                studentContext = await getStudentContext(session.username);
-            } catch (err) {
-                console.error("Error fetching student context:", err);
-            }
+        try {
+            studentContext = await getStudentContext(session.username);
+        } catch (err) {
+            console.error("Error fetching student context:", err);
         }
 
         const systemInstruction = `

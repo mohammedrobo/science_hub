@@ -10,13 +10,49 @@ import {
     destroySession,
     updateSession,
     verifyPassword,
-    hashPassword,
-    needsHashMigration
+    hashPassword
 } from '@/lib/auth/session';
-import { isRateLimited, recordFailedAttempt, clearAttempts, getRemainingLockout } from '@/lib/auth/rate-limit';
+import { checkLoginRateLimit, recordLoginFailure, clearLoginRateLimit } from '@/lib/auth/rate-limit-redis';
+import { logSecurityEvent } from '@/lib/auth/security-monitor';
 
 interface LoginState {
     error?: string;
+}
+
+// Parse device info from user agent string
+function parseDeviceInfo(userAgent: string): {
+    browser: string;
+    os: string;
+    device: string;
+    isMobile: boolean;
+} {
+    const ua = userAgent.toLowerCase();
+    
+    // Detect browser
+    let browser = 'Unknown';
+    if (ua.includes('firefox')) browser = 'Firefox';
+    else if (ua.includes('edg/')) browser = 'Edge';
+    else if (ua.includes('chrome')) browser = 'Chrome';
+    else if (ua.includes('safari')) browser = 'Safari';
+    else if (ua.includes('opera') || ua.includes('opr/')) browser = 'Opera';
+
+    // Detect OS
+    let os = 'Unknown';
+    if (ua.includes('windows')) os = 'Windows';
+    else if (ua.includes('mac os')) os = 'macOS';
+    else if (ua.includes('linux')) os = 'Linux';
+    else if (ua.includes('android')) os = 'Android';
+    else if (ua.includes('iphone') || ua.includes('ipad')) os = 'iOS';
+
+    // Detect if mobile
+    const isMobile = /mobile|android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua);
+
+    // Friendly device name
+    let device = `${browser} on ${os}`;
+    if (isMobile) device = `📱 ${device}`;
+    else device = `💻 ${device}`;
+
+    return { browser, os, device, isMobile };
 }
 
 export async function login(_prevState: LoginState, formData: FormData): Promise<LoginState> {
@@ -32,12 +68,20 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     // Get client IP for rate limiting
     const headersList = await headers();
     const ip = headersList.get('x-forwarded-for')?.split(',')[0] || 'unknown';
-    const rateLimitKey = `login:${ip}:${username.trim().toLowerCase()}`;
+    const userAgent = headersList.get('user-agent') || 'unknown';
+    const rateLimitKey = `${ip}:${username.trim().toLowerCase()}`;
 
-    // Check rate limit
-    if (isRateLimited(rateLimitKey)) {
-        const remaining = getRemainingLockout(rateLimitKey);
-        return { error: `Too many attempts. Try again in ${Math.ceil(remaining / 60)} minutes.` };
+    // Check rate limit (Redis-backed in production)
+    const rateLimit = await checkLoginRateLimit(rateLimitKey);
+    if (rateLimit.limited) {
+        await logSecurityEvent({
+            type: 'RATE_LIMIT_EXCEEDED',
+            username: username.trim(),
+            ip,
+            userAgent,
+            details: `Blocked after exceeding login attempts. Reset in ${rateLimit.resetInSeconds}s`
+        });
+        return { error: `Too many attempts. Try again in ${Math.ceil(rateLimit.resetInSeconds / 60)} minutes.` };
     }
 
     // 1. Check credentials against allowed_users table
@@ -48,44 +92,79 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
         .single();
 
     if (userError || !user) {
-        recordFailedAttempt(rateLimitKey);
+        await recordLoginFailure(rateLimitKey);
+        await logSecurityEvent({
+            type: 'LOGIN_FAILED',
+            username: username.trim(),
+            ip,
+            userAgent,
+            details: 'User not found'
+        });
         return { error: 'Invalid username or password' };
     }
 
-    // 2. Verify password (supports both hashed and legacy plaintext)
+    // 2. Verify password (bcrypt hashed only - plaintext support removed)
     const isValid = await verifyPassword(password, user.password);
 
     if (!isValid) {
-        recordFailedAttempt(rateLimitKey);
+        await recordLoginFailure(rateLimitKey);
+        await logSecurityEvent({
+            type: 'LOGIN_FAILED',
+            username: user.username,
+            ip,
+            userAgent,
+            details: 'Invalid password'
+        });
         return { error: 'Invalid username or password' };
     }
 
-    // 3. Auto-migrate plaintext passwords to hashed
-    if (await needsHashMigration(user.password)) {
-        const hashedPassword = await hashPassword(password);
-        await supabase
-            .from('allowed_users')
-            .update({ password: hashedPassword })
-            .eq('username', user.username);
-    }
+    // 3. Clear rate limit on success
+    await clearLoginRateLimit(rateLimitKey);
 
-    // 4. Clear rate limit on success
-    clearAttempts(rateLimitKey);
-
-    // 5. Create session
+    // 4. Create session
     const isFirstLogin = user.is_first_login ?? user.must_change_password ?? true;
     const hasOnboarded = user.has_onboarded ?? false;
 
     // Generate new Session Token for Single Session Enforcement
     const sessionToken = crypto.randomUUID();
 
-    // Save token to DB (invalidates other sessions)
-    // Note: This may fail silently if migration hasn't been applied yet
+    // Parse device info from user agent
+    const deviceInfo = parseDeviceInfo(userAgent);
+
+    // Save token + device info to DB (invalidates other sessions)
     try {
-        await supabase.from('allowed_users').update({ session_token: sessionToken }).eq('username', user.username);
+        await supabase.from('allowed_users').update({ 
+            session_token: sessionToken,
+            device_info: deviceInfo,
+            last_login_at: new Date().toISOString(),
+            last_login_ip: ip
+        }).eq('username', user.username);
+
+        // Record in session history (for audit trail)
+        try {
+            await supabase.from('session_history').insert({
+                username: user.username,
+                session_token: sessionToken,
+                device_info: deviceInfo,
+                ip_address: ip,
+                user_agent: userAgent,
+                is_active: true
+            });
+        } catch {
+            // Silently fail if table doesn't exist yet
+        }
     } catch (err) {
-        console.warn('[Login] Could not update session_token:', err);
+        console.warn('[Login] Could not update session info:', err);
     }
+
+    // Log successful login
+    await logSecurityEvent({
+        type: 'LOGIN_SUCCESS',
+        username: user.username,
+        ip,
+        userAgent,
+        details: `Role: ${user.access_role}, Device: ${deviceInfo.device || 'Unknown'}`
+    });
 
     await createSession({
         username: user.username,
@@ -99,12 +178,12 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
         sessionToken: sessionToken
     });
 
-    // 6. Check if first login - redirect to change password
+    // 5. Check if first login - redirect to change password
     if (isFirstLogin) {
         redirect('/change-password');
     }
 
-    // 7. Check if needs onboarding - redirect to onboarding
+    // 6. Check if needs onboarding - redirect to onboarding
     if (!hasOnboarded && user.access_role !== 'admin') {
         redirect('/onboarding');
     }

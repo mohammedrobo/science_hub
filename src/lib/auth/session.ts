@@ -1,10 +1,8 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import bcrypt from 'bcryptjs';
 
 const SESSION_COOKIE = 'sciencehub_session';
-const SALT_ROUNDS = 12;
 
 export interface SessionData {
     username: string;
@@ -105,27 +103,9 @@ export async function updateSession(updates: Partial<SessionData>): Promise<void
     await createSession({ ...current, ...updates });
 }
 
-/**
- * Hash a plaintext password
- */
-export async function hashPassword(password: string): Promise<string> {
-    return bcrypt.hash(password, SALT_ROUNDS);
-}
+// Import and re-export password functions
+import { hashPassword as _hashPassword, verifyPassword as _verifyPassword, isPasswordHashed as _isPasswordHashed } from './password';
 
-/**
- * Verify password against hash
- */
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-    // Backwards compatibility: if hash doesn't start with $2, it's plaintext
-    if (!hash.startsWith('$2')) {
-        return password === hash;
-    }
-    return bcrypt.compare(password, hash);
-}
-
-/**
- * Check if password needs migration (is plaintext)
- */
-export async function needsHashMigration(storedPassword: string): Promise<boolean> {
-    return !storedPassword.startsWith('$2');
-}
+export const hashPassword = _hashPassword;
+export const verifyPassword = _verifyPassword;
+export const isPasswordHashed = _isPasswordHashed;
