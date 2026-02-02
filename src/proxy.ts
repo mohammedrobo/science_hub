@@ -36,46 +36,51 @@ export async function proxy(request: NextRequest) {
         // Parse session data
         const session = JSON.parse(sessionCookie.value) as SessionPayload;
 
-        // --- ENHANCED SECURITY CHECK ---
-        // Verify user status against DB to catch resets/bans immediately
-        // We use a fresh client for middleware to avoid cookie caching issues
-        try {
-            const supabase = createClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-            );
+        // --- LIGHTWEIGHT SESSION CHECK ---
+        // Only verify against DB occasionally to avoid slow requests
+        // The session cookie is signed/trusted, DB check is extra security
+        const lastVerified = request.cookies.get('sciencehub_verified')?.value;
+        const now = Date.now();
+        const VERIFY_INTERVAL = 5 * 60 * 1000; // Only verify every 5 minutes
+        
+        const shouldVerifyDb = !lastVerified || (now - parseInt(lastVerified)) > VERIFY_INTERVAL;
+        
+        if (shouldVerifyDb) {
+            try {
+                const supabase = createClient(
+                    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+                );
 
-            const { data: user } = await supabase
-                .from('allowed_users')
-                .select('is_first_login, access_role')
-                .eq('username', session.username)
-                .single();
+                const { data: user } = await supabase
+                    .from('allowed_users')
+                    .select('is_first_login, access_role')
+                    .eq('username', session.username)
+                    .single();
 
-            // 1. If user deleted or reset (is_first_login became true while session says false)
-            if (!user || (user.is_first_login && !session.isFirstLogin)) {
-                const response = NextResponse.redirect(new URL('/login', request.url));
-                response.cookies.delete(SESSION_COOKIE);
-                return response;
+                // 1. If user deleted or reset (is_first_login became true while session says false)
+                if (!user || (user.is_first_login && !session.isFirstLogin)) {
+                    const response = NextResponse.redirect(new URL('/login', request.url));
+                    response.cookies.delete(SESSION_COOKIE);
+                    response.cookies.delete('sciencehub_verified');
+                    return response;
+                }
+
+                // 2. Refresh Role if changed (e.g. Leader demotion)
+                if (user && user.access_role !== session.role) {
+                    session.role = user.access_role;
+                }
+
+                // Sync isFirstLogin from DB for logic below
+                if (user) {
+                    session.isFirstLogin = user.is_first_login;
+                }
+
+                // Mark as verified - will set cookie below
+            } catch (err) {
+                console.error('Proxy DB Check Failed:', err);
+                // If DB is down, trust the cookie for usability
             }
-
-            // 2. Refresh Role if changed (e.g. Leader demotion)
-            if (user && user.access_role !== session.role) {
-                session.role = user.access_role;
-                // Note: We don't update the cookie here to keep middleware simple, 
-                // but we use the NEW role for the checks below.
-            }
-
-            // Sync isFirstLogin from DB for logic below
-            if (user) {
-                session.isFirstLogin = user.is_first_login;
-            }
-
-        } catch (err) {
-            console.error('Middleware DB Check Failed:', err);
-            // Fail open or closed? 
-            // If DB is down, maybe fail closed for security, or open for usability?
-            // For now, proceed with cookie data, but log error. 
-            // Or better: if we can't verify, we trust cookie for now to avoid downtime.
         }
         // -------------------------------
 
@@ -119,7 +124,22 @@ export async function proxy(request: NextRequest) {
         return response;
     }
 
-    return NextResponse.next();
+    // Set verification timestamp cookie if we did a DB check
+    const response = NextResponse.next();
+    const lastVerified = request.cookies.get('sciencehub_verified')?.value;
+    const now = Date.now();
+    const VERIFY_INTERVAL = 5 * 60 * 1000;
+    
+    if (!lastVerified || (now - parseInt(lastVerified)) > VERIFY_INTERVAL) {
+        response.cookies.set('sciencehub_verified', now.toString(), {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 60 * 60, // 1 hour
+        });
+    }
+    
+    return response;
 }
 
 export const config = {
