@@ -19,15 +19,29 @@ const description = "Your digital science companion";
 export const metadata: Metadata = {
   title: "Science Hub",
   description,
+  manifest: "/manifest.json",
+  themeColor: "#7c3aed",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Science Hub",
+  },
   icons: {
     icon: "/icon.png",
     shortcut: "/favicon.ico",
     apple: "/icon.png",
   },
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
 };
 
 import { FloatingDaVinciWrapper } from "@/components/FloatingDaVinciWrapper";
 import { Toaster } from "@/components/ui/sonner";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 
 export default function RootLayout({
   children,
@@ -45,6 +59,7 @@ export default function RootLayout({
           <FloatingDaVinciWrapper />
           <Toaster />
         </div>
+        <ServiceWorkerRegistration />
       </body>
     </html>
   );
