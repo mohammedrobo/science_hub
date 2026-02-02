@@ -1,279 +1,207 @@
 [
   {
     "id": "TC001",
-    "title": "Middleware blocks /admin access for non-admin users",
-    "description": "Verify that middleware correctly restricts access to /admin routes, allowing only users with the admin role and denying or redirecting others.",
-    "category": "functional",
+    "title": "Middleware blocks non-admin access to /admin routes",
+    "description": "Verify that middleware properly enforces role-based access control by denying access to /admin routes for users without the admin role and allowing access for admin users.",
+    "category": "security",
     "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Simulate a request to /admin route as a user with student role"
+        "description": "Attempt to access /admin route as a user with 'student' role"
       },
       {
         "type": "assertion",
-        "description": "Verify access is denied or user is redirected"
+        "description": "Verify access is denied or redirected to an error or home page"
       },
       {
         "type": "action",
-        "description": "Simulate a request to /admin route as a user with admin role"
+        "description": "Attempt to access /admin route as a user with 'admin' role"
       },
       {
         "type": "assertion",
-        "description": "Verify access is granted"
+        "description": "Verify access is granted and the admin page is displayed"
       }
     ]
   },
   {
     "id": "TC002",
-    "title": "Server actions require authentication",
-    "description": "Check all server actions verify the user is authenticated before processing and reject unauthenticated requests.",
+    "title": "Server actions require proper authentication and authorization",
+    "description": "Check that all server actions (including login, change password, progress marking, onboarding actions) enforce authentication and role-based authorization.",
     "category": "security",
     "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Invoke server action without authentication token"
+        "description": "Call server action endpoint without any authentication token"
       },
       {
         "type": "assertion",
-        "description": "Verify that the action is rejected due to missing authentication"
+        "description": "Verify request is rejected with an authentication error"
       },
       {
         "type": "action",
-        "description": "Invoke server action with a valid authenticated user token"
+        "description": "Call server action endpoint with authentication token of a user with insufficient privileges"
       },
       {
         "type": "assertion",
-        "description": "Verify that the action proceeds successfully"
+        "description": "Verify request is rejected with authorization error"
+      },
+      {
+        "type": "action",
+        "description": "Call server action endpoint with authentication token of a properly authorized user"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify request completes successfully"
       }
     ]
   },
   {
     "id": "TC003",
-    "title": "Server actions enforce role-based authorization",
-    "description": "Ensure server actions verify the authenticated user's role matches required permissions before proceeding.",
+    "title": "Prevent Insecure Direct Object Reference (IDOR) in user resource access",
+    "description": "Verify that server actions correctly validate user identity and resource ownership preventing users from accessing or modifying resources that do not belong to them.",
     "category": "security",
     "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Invoke admin-only server action as a user with student role"
+        "description": "Send a request to update user profile or progress with an authenticated user but specifying another user's userId"
       },
       {
         "type": "assertion",
-        "description": "Verify access is denied"
+        "description": "Verify the server rejects the request with an authorization or validation error"
       },
       {
         "type": "action",
-        "description": "Invoke admin-only server action as a user with admin role"
+        "description": "Send a request to mark content completed or submit quiz result with mismatched userId"
       },
       {
         "type": "assertion",
-        "description": "Verify access is granted"
+        "description": "Verify the server rejects the request"
+      },
+      {
+        "type": "action",
+        "description": "Send valid requests where userId matches authenticated user"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the requests succeed"
       }
     ]
   },
   {
     "id": "TC004",
-    "title": "Prevent IDOR by validating user resource ownership",
-    "description": "Verify that server actions check that resource IDs in payloads belong to the authenticated user and reject unauthorized access.",
+    "title": "No supabase-admin clients or secrets exposed in client-side code",
+    "description": "Verify that no supabase-admin client instances or secrets are included or accessible in any frontend or client bundle.",
     "category": "security",
     "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "User A attempts to access or modify resources owned by User B via server action"
+        "description": "Perform static analysis and bundle inspection on the client-side code"
       },
       {
         "type": "assertion",
-        "description": "Validate that the server action rejects the request due to resource ownership mismatch"
+        "description": "Confirm that no supabase-admin client instances or secrets appear in the client code bundles"
       },
       {
         "type": "action",
-        "description": "User A accesses or modifies own resources"
+        "description": "Attempt to access supabase-admin client functionality from client runtime"
       },
       {
         "type": "assertion",
-        "description": "Validate successful processing"
+        "description": "Verify such attempts fail or are not possible"
       }
     ]
   },
   {
     "id": "TC005",
-    "title": "Supabase admin client not exposed to client-side code",
-    "description": "Ensure no supabase-admin client or secrets are included or accessible in client-side JavaScript bundles.",
+    "title": "User data responses exclude sensitive fields",
+    "description": "Verify that user data sent to the frontend carefully excludes sensitive fields such as raw passwords, other users' emails, and internal metadata.",
     "category": "security",
     "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Build and analyze client-side code bundles"
+        "description": "Fetch user data from any server API or server action response"
       },
       {
         "type": "assertion",
-        "description": "Verify absence of supabase-admin client instances or secret keys in bundles"
-      },
-      {
-        "type": "action",
-        "description": "Attempt to access supabase-admin client from browser console"
+        "description": "Confirm the response does not contain raw passwords"
       },
       {
         "type": "assertion",
-        "description": "Confirm client is inaccessible"
+        "description": "Confirm the response does not include emails of other users"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm the response does not expose internal metadata fields"
       }
     ]
   },
   {
     "id": "TC006",
-    "title": "User data responses exclude sensitive fields",
-    "description": "Verify that API responses never include sensitive user data such as raw passwords, emails of other users, or internal metadata.",
-    "category": "security",
+    "title": "Login API rate limiting and successful authentication",
+    "description": "Verify successful login with correct credentials and enforce rate limiting on failed login attempts.",
+    "category": "functional",
     "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Request user data via frontend API as an authenticated user"
+        "description": "Submit login request with valid username and password"
       },
       {
         "type": "assertion",
-        "description": "Confirm response excludes sensitive fields like raw passwords and other users' emails"
+        "description": "Verify response redirects to dashboard or change-password page"
       },
       {
         "type": "action",
-        "description": "Request other user data directly if possible"
+        "description": "Submit multiple login requests with invalid passwords exceeding rate limit threshold"
       },
       {
         "type": "assertion",
-        "description": "Validate that sensitive fields are omitted and access is denied if unauthorized"
+        "description": "Verify rate limiting error is returned"
       }
     ]
   },
   {
     "id": "TC007",
-    "title": "Login API success with valid credentials",
-    "description": "Test user login success flow with valid username and password.",
+    "title": "Change Password API validates password strength and confirmation",
+    "description": "Verify that the change password API enforces password strength rules and matches new_password and confirm_password fields before accepting the change.",
     "category": "functional",
     "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Submit login form with valid username and password"
+        "description": "Submit change password request with new_password and confirm_password that do not match"
       },
       {
         "type": "assertion",
-        "description": "Verify response status 302 Redirect to dashboard or change-password page"
+        "description": "Verify error response indicating passwords do not match"
+      },
+      {
+        "type": "action",
+        "description": "Submit change password request with weak new_password"
       },
       {
         "type": "assertion",
-        "description": "Verify session cookie is set correctly"
+        "description": "Verify error response indicating password strength requirements not met"
+      },
+      {
+        "type": "action",
+        "description": "Submit change password request with strong matching passwords"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response redirects to home or success confirmation"
       }
     ]
   },
   {
     "id": "TC008",
-    "title": "Login API fails with invalid credentials",
-    "description": "Verify login attempt with incorrect username or password is rejected.",
-    "category": "error handling",
-    "priority": "High",
-    "steps": [
-      {
-        "type": "action",
-        "description": "Submit login form with invalid password"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify response status 200 with error message and no redirect"
-      }
-    ]
-  },
-  {
-    "id": "TC009",
-    "title": "Change Password API success with valid input",
-    "description": "Test first-time login password change with valid new password and confirmation.",
-    "category": "functional",
-    "priority": "High",
-    "steps": [
-      {
-        "type": "action",
-        "description": "Post to change-password API with matching new_password and confirm_password fulfilling strength policies"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify response status 302 redirect to home page"
-      }
-    ]
-  },
-  {
-    "id": "TC010",
-    "title": "Change Password API fails with invalid input",
-    "description": "Verify error responses when changing password with mismatched confirmation or weak passwords.",
-    "category": "error handling",
-    "priority": "Medium",
-    "steps": [
-      {
-        "type": "action",
-        "description": "Post to change-password API with mismatched new_password and confirm_password"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify response status 200 with error message"
-      },
-      {
-        "type": "action",
-        "description": "Post to change-password API with weak/new_password that fails strength validation"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify response status 200 with appropriate error message"
-      }
-    ]
-  },
-  {
-    "id": "TC011",
-    "title": "AI Chat API success and error handling",
-    "description": "Validate AI chat endpoint handles messages correctly and returns appropriate errors for missing input or failures.",
-    "category": "functional",
-    "priority": "Medium",
-    "steps": [
-      {
-        "type": "action",
-        "description": "Send a valid message payload to AI Chat API"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify response status 200 with AI response content"
-      },
-      {
-        "type": "action",
-        "description": "Send request to AI Chat API without message field"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify response status 400 with missing message error"
-      },
-      {
-        "type": "action",
-        "description": "Simulate AI API key error and send message"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify response status 500 reporting API key issues"
-      },
-      {
-        "type": "action",
-        "description": "Simulate service unavailable and send message"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify response status 503 reporting service unavailable"
-      }
-    ]
-  },
-  {
-    "id": "TC012",
-    "title": "Courses API returns courses by semester",
-    "description": "Test fetching a list of courses filtered by semester parameter with normal and error scenarios.",
+    "title": "Courses API returns valid course list filtered by semester",
+    "description": "Verify /api/courses GET endpoint returns a valid list of courses filtered by the specified semester query parameter and handles invalid requests gracefully.",
     "category": "functional",
     "priority": "Medium",
     "steps": [
@@ -283,7 +211,7 @@
       },
       {
         "type": "assertion",
-        "description": "Verify response status 200 with array of courses belonging to the semester"
+        "description": "Verify response contains array of courses for the specified semester"
       },
       {
         "type": "action",
@@ -291,91 +219,81 @@
       },
       {
         "type": "assertion",
-        "description": "Verify reasonable handling, e.g. default to all courses or error response"
-      },
-      {
-        "type": "action",
-        "description": "Simulate internal server error scenario"
-      },
-      {
-        "type": "assertion",
-        "description": "Validate response status 500"
+        "description": "Verify response is handled gracefully with error or fallback"
       }
     ]
   },
   {
-    "id": "TC013",
-    "title": "Progress Tracking API marks content as completed",
-    "description": "Validate marking lessons or quizzes as completed succeeds and handles repeated completions correctly.",
-    "category": "functional",
-    "priority": "Medium",
-    "steps": [
-      {
-        "type": "action",
-        "description": "Post valid completion data (contentId, contentType, xp) to markContentAsCompleted API"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify response status 200 with success confirmation"
-      },
-      {
-        "type": "action",
-        "description": "Repeat completion request for the same content"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify response status 200 indicating already completed"
-      }
-    ]
-  },
-  {
-    "id": "TC014",
-    "title": "Progress Tracking API submits quiz result and awards XP",
-    "description": "Test submitting quiz scores for XP calculation and verify correct awarding.",
-    "category": "functional",
-    "priority": "Medium",
-    "steps": [
-      {
-        "type": "action",
-        "description": "Post quizId and scorePercentage to submitQuizResult API"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify response status 200 with correct XP awarded"
-      }
-    ]
-  },
-  {
-    "id": "TC015",
-    "title": "Onboarding API completes user onboarding with GPA input",
-    "description": "Validate completing onboarding accepts GPA input and responds with success.",
-    "category": "functional",
-    "priority": "Medium",
-    "steps": [
-      {
-        "type": "action",
-        "description": "Post valid gpaTerm1 value to completeOnboarding API"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify response status 200 confirming onboarding completion"
-      }
-    ]
-  },
-  {
-    "id": "TC016",
-    "title": "Unauthorized user cannot complete onboarding for others",
-    "description": "Ensure that a user cannot submit onboarding data for another user.",
+    "id": "TC009",
+    "title": "Progress Tracking API enforces ownership and returns correct status",
+    "description": "Verify marking lessons/quizzes as completed and submitting quiz results validate the requesting user's identity matches resource ownership and return appropriate success or error responses.",
     "category": "security",
     "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Attempt to complete onboarding with a user context different from the authenticated user"
+        "description": "Send markContentAsCompleted request with authenticated user and valid contentId and contentType"
       },
       {
         "type": "assertion",
-        "description": "Verify that the request is rejected due to authorization failure"
+        "description": "Verify response indicates success or already completed"
+      },
+      {
+        "type": "action",
+        "description": "Send markContentAsCompleted request with mismatched or invalid user context"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify request is rejected"
+      },
+      {
+        "type": "action",
+        "description": "Submit submitQuizResult request with valid quizId, scorePercentage, and authenticated user"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response awards XP and confirms success"
+      },
+      {
+        "type": "action",
+        "description": "Submit submitQuizResult request with mismatched user context"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify request is rejected"
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Onboarding API completes user onboarding with GPA validation",
+    "description": "Verify that completing onboarding via the API validates GPA input and updates user state correctly.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send completeOnboarding request with valid GPA value and authenticated user"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response confirms successful onboarding completion"
+      },
+      {
+        "type": "action",
+        "description": "Send completeOnboarding request with invalid GPA values (e.g. negative or too high)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify appropriate validation error is returned"
+      },
+      {
+        "type": "action",
+        "description": "Send completeOnboarding request without authentication"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify request is rejected due to missing authentication"
       }
     ]
   }

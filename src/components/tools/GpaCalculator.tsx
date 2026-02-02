@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { Calculator, Zap, GraduationCap, RotateCcw, Check, ChevronDown } from 'lucide-react';
-import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
+import { GraduationCap, ChevronDown } from 'lucide-react';
 
 // --- Types & Constants ---
 
@@ -53,7 +52,7 @@ const INITIAL_TERM_2: Course[] = [
     { id: 't2-7', name: 'General Zoology 2', credits: 2, grade: 'None' },
     { id: 't2-8', name: 'General Botany', credits: 3, grade: 'None' },
     { id: 't2-9', name: 'Intro to Computer', credits: 3, grade: 'None' },
-    { id: 't2-10', name: 'Societal Issues', credits: 0, grade: 'None' }, // 0 Credits as requested
+    { id: 't2-10', name: 'Societal Issues', credits: 0, grade: 'None' },
 ];
 
 // --- Helper Components ---
@@ -94,16 +93,11 @@ export function GpaCalculator() {
         });
 
         const gpa = totalCredits === 0 ? 0 : totalPoints / totalCredits;
-        // Formula: Percentage = ((CGPA - 1) / 0.06) + 50
-        // We clamp it to 0 if GPA equivalent is below scale (though formula handles straight mapping)
-        // If GPA < 1.0 (D-), formula might behave weirdly? 
-        // 1.0 -> 50%. 0.0 -> -1/0.06 + 50 = 33%. 
-        // Let's implement exact formula requested.
         const percentage = totalCredits === 0 ? 0 : ((gpa - 1) / 0.06) + 50;
 
         return {
             gpa,
-            percentage: Math.max(0, percentage), // Avoid negative percentage just in case
+            percentage: Math.max(0, percentage),
             totalCredits
         };
     }, [activeCourses]);
@@ -119,12 +113,11 @@ export function GpaCalculator() {
     };
 
     return (
-        <LazyMotion features={domAnimation}>
-            <div className="w-full max-w-4xl mx-auto p-2 sm:p-4 space-y-6 sm:space-y-8 font-sans">
+        <div className="w-full max-w-4xl mx-auto p-2 sm:p-4 space-y-6 sm:space-y-8 font-sans">
 
             {/* Header */}
             <div className="text-center space-y-2 mb-8">
-                <div className="inline-flex items-center justify-center p-3 bg-zinc-900/50 rounded-full mb-4 border border-zinc-800">
+                <div className="inline-flex items-center justify-center p-3 bg-zinc-900/50 rounded-full mb-4 border border-zinc-800 hover:scale-110 transition-transform duration-300">
                     <GraduationCap className="w-8 h-8 text-violet-500" />
                 </div>
                 <h1 className="text-2xl sm:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-white to-zinc-500">
@@ -133,10 +126,9 @@ export function GpaCalculator() {
                 <p className="text-zinc-400">Faculty of Science • Credit Hour System</p>
             </div>
 
-            {/* Results Card (Floating / Glowing) */}
-            <GlowingCard className="mx-auto max-w-2xl transform hover:scale-[1.01] transition-all duration-300">
+            {/* Results Card */}
+            <GlowingCard className="mx-auto max-w-2xl hover:scale-[1.01] transition-transform duration-300">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 items-center text-center">
-
                     {/* Semester GPA */}
                     <div className="space-y-1">
                         <p className="text-zinc-500 text-sm font-medium uppercase tracking-wider">Semester GPA</p>
@@ -193,50 +185,43 @@ export function GpaCalculator() {
                 </div>
 
                 <div className="divide-y divide-zinc-900">
-                    <AnimatePresence mode='wait'>
-                        <m.div
-                            key={activeTab}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            transition={{ duration: 0.2 }}
+                    {activeCourses.map((course) => (
+                        <div 
+                            key={course.id} 
+                            className="grid grid-cols-12 items-center px-2 sm:px-4 py-2 sm:py-3 hover:bg-zinc-900/50 transition-colors duration-200"
                         >
-                            {activeCourses.map((course) => (
-                                <div key={course.id} className="grid grid-cols-12 items-center px-2 sm:px-4 py-2 sm:py-3 hover:bg-zinc-900/30 transition-colors">
-                                    {/* Name */}
-                                    <div className="col-span-6 md:col-span-5 font-medium text-zinc-300 truncate pr-1 sm:pr-2 text-xs sm:text-sm" title={course.name}>
-                                        {course.name}
-                                    </div>
+                            {/* Name */}
+                            <div className="col-span-6 md:col-span-5 font-medium text-zinc-300 truncate pr-1 sm:pr-2 text-xs sm:text-sm" title={course.name}>
+                                {course.name}
+                            </div>
 
-                                    {/* Credits */}
-                                    <div className="col-span-2 text-center">
-                                        <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-zinc-900 text-zinc-500 text-xs font-mono">
-                                            {course.credits}
-                                        </span>
-                                    </div>
+                            {/* Credits */}
+                            <div className="col-span-2 text-center">
+                                <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-zinc-900 text-zinc-500 text-xs font-mono">
+                                    {course.credits}
+                                </span>
+                            </div>
 
-                                    {/* Grade Dropdown */}
-                                    <div className="col-span-4 md:col-span-5 flex justify-end">
-                                        <div className="relative inline-block w-24">
-                                            <select
-                                                value={course.grade}
-                                                onChange={(e) => handleGradeChange(course.id, e.target.value as Grade)}
-                                                className={`appearance-none w-full bg-zinc-900 border border-zinc-800 hover:border-violet-500/50 text-right px-3 py-1.5 pr-8 rounded-lg focus:outline-none focus:ring-1 focus:ring-violet-500 transition-all font-mono font-bold cursor-pointer ${getGradeColor(course.grade)}`}
-                                            >
-                                                <option value="None" className="text-zinc-500">-</option>
-                                                {Object.keys(GRADE_POINTS).filter(g => g !== 'None').map(g => (
-                                                    <option key={g} value={g} className="bg-zinc-950 text-zinc-300">
-                                                        {g}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-600 pointer-events-none" />
-                                        </div>
-                                    </div>
+                            {/* Grade Dropdown */}
+                            <div className="col-span-4 md:col-span-5 flex justify-end">
+                                <div className="relative inline-block w-24">
+                                    <select
+                                        value={course.grade}
+                                        onChange={(e) => handleGradeChange(course.id, e.target.value as Grade)}
+                                        className={`appearance-none w-full bg-zinc-900 border border-zinc-800 hover:border-violet-500/50 text-right px-3 py-1.5 pr-8 rounded-lg focus:outline-none focus:ring-1 focus:ring-violet-500 transition-all font-mono font-bold cursor-pointer ${getGradeColor(course.grade)}`}
+                                    >
+                                        <option value="None" className="text-zinc-500">-</option>
+                                        {Object.keys(GRADE_POINTS).filter(g => g !== 'None').map(g => (
+                                            <option key={g} value={g} className="bg-zinc-950 text-zinc-300">
+                                                {g}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-600 pointer-events-none" />
                                 </div>
-                            ))}
-                        </m.div>
-                    </AnimatePresence>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
 
@@ -245,7 +230,6 @@ export function GpaCalculator() {
                 <p>Pass/Fail subjects (Societal Issues) are excluded from calculation automatically.</p>
                 <p className="mt-1">"None" assumes the course is not yet graded.</p>
             </div>
-            </div>
-        </LazyMotion>
+        </div>
     );
 }

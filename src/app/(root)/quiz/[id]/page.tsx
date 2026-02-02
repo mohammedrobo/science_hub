@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { submitQuizResult } from '@/app/actions/progress';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, XCircle, AlertCircle, ChevronRight, Trophy, RotateCcw, ArrowLeft, Loader2, Check, X } from 'lucide-react';
 import { cn, getGrade } from '@/lib/utils';
 import Link from 'next/link';
@@ -166,13 +165,11 @@ export default function QuizPage() {
         const { grade, color, label } = getGrade(percentage);
 
         return (
-            <LazyMotion features={domAnimation}>
-                <div className="container max-w-4xl mx-auto py-10 px-4 space-y-8">
+            <div className="container max-w-4xl mx-auto py-10 px-4 space-y-8">
                     {/* SUMMARY CARD */}
-                    <m.div
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
+                    <div
                         className="border border-zinc-800 bg-zinc-900/50 p-8 rounded-2xl relative overflow-hidden text-center"
+                        style={{ animation: 'scaleIn 0.4s ease-out forwards' }}
                     >
                     <div className="absolute inset-0 bg-primary/5 blur-3xl rounded-full pointer-events-none" />
                     <div className="relative z-10">
@@ -192,7 +189,7 @@ export default function QuizPage() {
                             </Button>
                         </div>
                     </div>
-                    </m.div>
+                    </div>
 
                 {/* CORRECTION REPORT */}
                 <div className="space-y-4">
@@ -246,14 +243,12 @@ export default function QuizPage() {
                     })}
                 </div>
                 </div>
-            </LazyMotion>
         );
     }
 
     // ---------------- RENDER GAMEPLAY ----------------
     return (
-        <LazyMotion features={domAnimation}>
-            <div className="container max-w-3xl mx-auto py-6 sm:py-10 px-3 sm:px-4">
+        <div className="container max-w-3xl mx-auto py-6 sm:py-10 px-3 sm:px-4">
                 <div className="mb-8 space-y-4">
                 <Link href={`/course/${quiz.course_id}`} className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors mb-4">
                     <ArrowLeft className="w-4 h-4 mr-1" />
@@ -272,23 +267,17 @@ export default function QuizPage() {
                 </div>
 
                 <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
-                    <m.div
-                        className="h-full bg-primary shadow-[0_0_10px_var(--color-primary)]"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${progress}%` }}
-                        transition={{ duration: 0.5 }}
+                    <div
+                        className="h-full w-full bg-primary shadow-[0_0_10px_var(--color-primary)] transition-transform duration-500 ease-out origin-left"
+                        style={{ transform: `scaleX(${progress / 100})` }}
                     />
                 </div>
                 </div>
 
-            <AnimatePresence mode="wait">
-                <m.div
-                    key={currentQuestion.id}
-                    initial={{ x: 20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    exit={{ x: -20, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                >
+            <div
+                key={currentQuestion.id}
+                style={{ animation: 'slideIn 0.2s ease-out forwards' }}
+            >
                     <Card className="border-zinc-800 bg-zinc-900 overflow-hidden">
                         <div className="absolute top-0 left-0 w-1 h-full bg-primary/20" />
                         <CardHeader className="pb-4">
@@ -300,16 +289,15 @@ export default function QuizPage() {
                             {currentQuestion.options.map((option, idx) => {
                                 const isSelected = selectedAnswer === option;
                                 return (
-                                    <m.button
+                                    <button
                                         key={idx}
                                         onClick={() => handleAnswerSelect(option)}
                                         className={cn(
-                                            "w-full text-left p-4 rounded-lg border transition-all flex items-center justify-between group",
+                                            "w-full text-left p-4 rounded-lg border transition-all flex items-center justify-between group active:scale-[0.99]",
                                             isSelected
                                                 ? "border-primary bg-primary/10 text-primary"
                                                 : "border-zinc-800 bg-zinc-950/30 text-zinc-400 hover:border-primary/50 hover:bg-zinc-900"
                                         )}
-                                        whileTap={{ scale: 0.99 }}
                                     >
                                         <span className="flex items-center gap-3">
                                             <span className={cn(
@@ -320,7 +308,7 @@ export default function QuizPage() {
                                             </span>
                                             <span className="font-medium"><MathText text={option} /></span>
                                         </span>
-                                    </m.button>
+                                    </button>
                                 );
                             })}
                         </CardContent>
@@ -336,9 +324,7 @@ export default function QuizPage() {
                             </div>
                         </CardFooter>
                     </Card>
-                </m.div>
-            </AnimatePresence>
+                </div>
             </div>
-        </LazyMotion>
     );
 }

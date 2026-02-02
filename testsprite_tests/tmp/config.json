@@ -7,10 +7,10 @@
     "projectName": "science_hub",
     "projectPath": "/home/satoru/projects/science_hub",
     "testIds": [],
-    "additionalInstruction": "Focus on testing CSS animations (fade-in, hover effects, active states) and the collapsible sidebar in the video player",
+    "additionalInstruction": "Focus on identifying and reporting all runtime errors, server action errors, and UI rendering issues. The user reported issues with GPA calculator not showing and AI chatbot errors.",
     "envs": {
       "API_KEY": "sk-user-EP_loACOhwuqgETDD2rkJG_iwEqM782QURnlhBkpn3AFHYOlfN-HfgrQDCPjiQXMvoeMXDJkIpvq6t_tZyEPJSNHnbWRsaokMUXYDsfDxbUB5GZdA6rWF1rE62NjlNWwRgU"
     }
   },
-  "proxy": "http://884816e2-54af-4868-9b93-ff3e0d5c8a99:uaNTubYWsOHXPnztLW0luMi8QAdwr03c@tun.testsprite.com:8080"
+  "proxy": "http://552f79ed-d8a7-41de-a38f-d2d61fc777a1:hTclfLLektgLGT93HMCni2hNewvOY2Xv@tun.testsprite.com:8080"
 }

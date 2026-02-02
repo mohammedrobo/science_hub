@@ -10,7 +10,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { PlayCircle, FileText, BrainCircuit, ChevronLeft, Lock, Sparkles, MonitorPlay } from 'lucide-react';
 import Link from 'next/link';
-import { LazyMotion, domAnimation, m } from 'framer-motion';
 import { Course, Lesson } from '@/types';
 import { VideoPlayer } from '@/components/courses/VideoPlayer';
 import { useState } from 'react';
@@ -206,8 +205,7 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
     const groupedData = getGroupedLessons();
 
     return (
-        <LazyMotion features={domAnimation}>
-            <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-background">
             {/* Top Section: The Stage (Master Player) - Sticky on mobile */}
             <div className="w-full bg-zinc-950 border-b border-zinc-800 relative z-30 shadow-2xl sticky top-0 lg:relative">
                 <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-6 max-w-6xl">
@@ -230,11 +228,9 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-zinc-900 to-black p-8 text-center relative overflow-hidden">
                                 <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.05]" />
-                                <m.div
-                                    initial={{ scale: 0.9, opacity: 0 }}
-                                    animate={{ scale: 1, opacity: 1 }}
-                                    transition={{ duration: 0.5 }}
+                                <div
                                     className="relative z-10 max-w-lg"
+                                    style={{ animation: 'scaleIn 0.5s ease-out forwards' }}
                                 >
                                     <MonitorPlay className="w-20 h-20 text-primary/50 mx-auto mb-6" />
                                     <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">{course.name}</h2>
@@ -243,7 +239,7 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                                         <Sparkles className="w-4 h-4" />
                                         Select a lecture below to begin transmission
                                     </div>
-                                </m.div>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -263,11 +259,7 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
 
             {/* Bottom Section: The List (Detail) */}
             <div className="container mx-auto px-3 sm:px-4 py-8 sm:py-12 max-w-4xl">
-                <m.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                >
+                <div>
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-lg sm:text-xl font-bold text-white tracking-wide flex items-center gap-2">
                             <span className="w-1.5 h-6 bg-primary rounded-full shadow-[0_0_10px_var(--color-primary)]"></span>
@@ -340,9 +332,8 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                             </Accordion>
                         )}
                     </div>
-                </m.div>
+                </div>
             </div>
             </div>
-        </LazyMotion>
     );
 }

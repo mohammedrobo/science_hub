@@ -126,6 +126,7 @@
   background: #3f3f46;
 }
 
+/* Accordion animations - required by Radix UI (animates height, acceptable exception) */
 @keyframes accordion-down {
   from {
     height: 0;
@@ -146,64 +147,43 @@
   }
 }
 
-/* Custom utility classes if not using tailwind config animation extensions directly */
-.animate-accordion-down {
-  animation: accordion-down 0.2s ease-out;
-}
-
-.animate-accordion-up {
-  animation: accordion-up 0.2s ease-out;
-}
-
-@layer base {
-
-  html,
-  body {
-    background-color: #050505;
-    min-height: 100dvh;
-  }
-
-  * {
-    @apply border-border outline-ring/50;
-  }
-
-  body {
-    @apply bg-background text-foreground antialiased selection:bg-primary/30 selection:text-white;
-    font-family: var(--font-sans);
-  }
-
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    @apply tracking-tight text-foreground font-bold;
-  }
-}
-
-/* Performance-optimized animations */
+/* GPU-accelerated animations - only animate opacity and transform */
 @keyframes fadeIn {
   from {
     opacity: 0;
   }
-
   to {
     opacity: 1;
   }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.2s ease-out;
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* GPU-accelerated transform animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 @keyframes slideUp {
   from {
     opacity: 0;
     transform: translateY(10px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
@@ -215,7 +195,6 @@
     opacity: 0;
     transform: translateY(-10px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
@@ -227,11 +206,23 @@
     opacity: 0;
     transform: scale(0.95);
   }
-
   to {
     opacity: 1;
     transform: scale(1);
   }
+}
+
+/* Animation utility classes */
+.animate-accordion-down {
+  animation: accordion-down 0.2s ease-out;
+}
+
+.animate-accordion-up {
+  animation: accordion-up 0.2s ease-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out;
 }
 
 .animate-slide-up {
@@ -288,7 +279,7 @@ video {
   height: auto;
 }
 
-/* Faster hover transitions on desktop */
+/* Faster hover transitions on desktop - only transform and opacity */
 @media (hover: hover) {
   .hover-lift {
     transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
@@ -297,5 +288,31 @@ video {
   .hover-lift:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}
+
+@layer base {
+  html,
+  body {
+    background-color: #050505;
+    min-height: 100dvh;
+  }
+
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-primary/30 selection:text-white;
+    font-family: var(--font-sans);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply tracking-tight text-foreground font-bold;
   }
 }

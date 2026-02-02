@@ -2,24 +2,18 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { completeOnboarding } from './submit-onboarding';
-import { LazyMotion, domAnimation, m } from 'framer-motion';
-import { Sparkles, Trophy, GraduationCap } from 'lucide-react';
+import { Sparkles, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
 
 export default function OnboardingPage() {
     const [loading, setLoading] = useState(false);
-    const router = useRouter();
 
     const handleComplete = async () => {
         setLoading(true);
 
         try {
-            // Pass 0.0 as default GPA since the feature is removed
             const result = await completeOnboarding();
 
             if (result.error) {
@@ -27,7 +21,6 @@ export default function OnboardingPage() {
                 setLoading(false);
             } else {
                 toast.success("Welcome to Science Hub!");
-                // Force hard reload to ensure session cookie is picked up by middleware
                 window.location.href = '/';
             }
         } catch (err: any) {
@@ -38,20 +31,13 @@ export default function OnboardingPage() {
     };
 
     return (
-        <LazyMotion features={domAnimation}>
-            <div className="min-h-screen flex items-center justify-center bg-black p-4 relative overflow-hidden">
+        <div className="min-h-screen flex items-center justify-center bg-black p-4 relative overflow-hidden">
             {/* Background elements */}
             <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.05]" />
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-violet-500/10 via-transparent to-emerald-500/10" />
 
-            <m.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, ease: 'easeOut' }}
-                style={{ willChange: 'transform, opacity' }}
-                className="w-full max-w-md relative z-10"
-            >
-                <Card className="bg-zinc-900 border-zinc-800 shadow-2xl">
+            <div className="w-full max-w-md relative z-10">
+                <Card className="bg-zinc-900 border-zinc-800 shadow-2xl hover:shadow-violet-900/20 transition-shadow duration-300">
                     <CardHeader className="text-center pb-2">
                         <div className="mx-auto w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mb-4">
                             <Sparkles className="w-6 h-6 text-primary" />
@@ -91,14 +77,13 @@ export default function OnboardingPage() {
                         <Button
                             onClick={handleComplete}
                             disabled={loading}
-                            className="w-full bg-primary hover:bg-primary/90 text-white font-semibold"
+                            className="w-full bg-primary hover:bg-primary/90 text-white font-semibold transition-all duration-200 hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/25 active:scale-[0.98]"
                         >
                             {loading ? "Setting up..." : "Get Started"}
                         </Button>
                     </CardFooter>
                 </Card>
-            </m.div>
+            </div>
         </div>
-        </LazyMotion>
     );
 }

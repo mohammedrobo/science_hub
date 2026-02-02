@@ -3,10 +3,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, Sparkles, User, Bot } from 'lucide-react';
-import { LazyMotion, domAnimation, m } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { getChatHistory, saveChatMessage } from '@/app/actions/chat';
 
 interface Message {
     id: string;
@@ -30,16 +29,21 @@ export function AIChat() {
     // Load history on mount
     useEffect(() => {
         const loadHistory = async () => {
-            const { getChatHistory } = await import('@/app/actions/chat');
-            const { messages: history } = await getChatHistory();
+            try {
+                const { messages: history, error } = await getChatHistory();
 
-            if (history && history.length > 0) {
-                setMessages(history.map(msg => ({
-                    id: msg.id,
-                    role: msg.role,
-                    content: msg.content,
-                    isStreaming: false
-                })));
+                if (!error && history && history.length > 0) {
+                    setMessages(history.map(msg => ({
+                        id: msg.id,
+                        role: msg.role,
+                        content: msg.content,
+                        isStreaming: false
+                    })));
+                }
+                // If error or no history, keep the default welcome message
+            } catch (e) {
+                console.log('Could not load chat history, using defaults');
+                // Keep default welcome message on error
             }
         };
         loadHistory();
@@ -54,22 +58,19 @@ export function AIChat() {
 
     // Streaming Effect Helper
     const streamText = async (text: string, messageId: string) => {
-        const words = text.split(''); // Split by character for smoother "typing"
+        const words = text.split('');
         let currentText = '';
 
         for (let i = 0; i < words.length; i++) {
             currentText += words[i];
-            // Update the specific message in state
             setMessages(prev => prev.map(msg =>
                 msg.id === messageId
                     ? { ...msg, content: currentText, isStreaming: true }
                     : msg
             ));
-            // Slight delay for typing effect
             await new Promise(resolve => setTimeout(resolve, 15));
         }
 
-        // Finish streaming
         setMessages(prev => prev.map(msg =>
             msg.id === messageId
                 ? { ...msg, isStreaming: false }
@@ -81,8 +82,6 @@ export function AIChat() {
         e.preventDefault();
         if (!input.trim() || isLoading) return;
 
-        const { saveChatMessage } = await import('@/app/actions/chat');
-
         const userMsg: Message = {
             id: Date.now().toString(),
             role: 'user',
@@ -93,7 +92,6 @@ export function AIChat() {
         setInput('');
         setIsLoading(true);
 
-        // Save User Message asynchronously
         saveChatMessage('user', userMsg.content);
 
         try {
@@ -110,7 +108,6 @@ export function AIChat() {
             }
 
             const botMsgId = (Date.now() + 1).toString();
-            // Initialize empty bot message
             setMessages(prev => [...prev, {
                 id: botMsgId,
                 role: 'assistant',
@@ -118,13 +115,8 @@ export function AIChat() {
                 isStreaming: true
             }]);
 
-            // Save Assistant Message (Optimistic/Initial) - We save full content after streaming usually, 
-            // but for safety let's save after streaming completes.
-
-            // Start streaming the response
             await streamText(data.content, botMsgId);
 
-            // Save full Assistant Message
             saveChatMessage('assistant', data.content);
 
         } catch (error) {
@@ -140,8 +132,7 @@ export function AIChat() {
     };
 
     return (
-        <LazyMotion features={domAnimation}>
-            <div className="flex flex-col h-[400px] sm:h-[500px] md:h-[600px] w-full max-w-4xl mx-auto border-2 border-indigo-500/30 rounded-xl bg-slate-950 overflow-hidden shadow-[0_0_40px_-5px_rgba(79,70,229,0.3)] relative">
+        <div className="flex flex-col h-[400px] sm:h-[500px] md:h-[600px] w-full max-w-4xl mx-auto border-2 border-indigo-500/30 rounded-xl bg-slate-950 overflow-hidden shadow-[0_0_40px_-5px_rgba(79,70,229,0.3)] relative">
             {/* Background Effects */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(56,33,252,0.15),transparent_60%)] pointer-events-none" />
 
@@ -166,11 +157,9 @@ export function AIChat() {
                 ref={scrollRef}
             >
                 <div className="space-y-6 pb-4">
-                    {messages.map((msg) => (
-                        <m.div
+                    {messages.map((msg, index) => (
+                        <div
                             key={msg.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
                             className={cn(
                                 "flex gap-4 max-w-[85%]",
                                 msg.role === 'user' ? "ml-auto flex-row-reverse" : ""
@@ -198,7 +187,7 @@ export function AIChat() {
                                     <span className="inline-block w-1.5 h-4 ml-1 align-middle bg-indigo-400 animate-pulse" />
                                 )}
                             </div>
-                        </m.div>
+                        </div>
                     ))}
 
                     {isLoading && !messages[messages.length - 1].isStreaming && (
@@ -243,7 +232,6 @@ export function AIChat() {
                     </Button>
                 </form>
             </div>
-            </div>
-        </LazyMotion>
+        </div>
     );
 }

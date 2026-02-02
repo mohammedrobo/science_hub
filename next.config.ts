@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '500mb',
     },
     // Optimize imports for heavy packages
-    optimizePackageImports: ['lucide-react', 'framer-motion', 'katex', 'date-fns', '@supabase/supabase-js'],
+    optimizePackageImports: ['lucide-react', 'katex', 'date-fns', '@supabase/supabase-js'],
   },
 
   // Standalone output for Docker/Self-hosting

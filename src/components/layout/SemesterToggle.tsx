@@ -1,6 +1,5 @@
 'use client';
 
-import { LazyMotion, domAnimation, m } from 'framer-motion';
 import { useSemesterStore } from '@/stores/semester-store';
 import { cn } from '@/lib/utils';
 import { useRouter, usePathname } from 'next/navigation';
@@ -27,33 +26,26 @@ export function SemesterToggle() {
     ];
 
     return (
-        <LazyMotion features={domAnimation}>
-            <div className="flex items-center bg-muted p-1 rounded-full border border-border">
-                {tabs.map((tab) => (
-                    <button
-                        key={tab.id}
-                        onClick={() => handleToggle(tab.id)}
-                        className={cn(
-                            "relative px-4 py-1.5 text-xs sm:text-sm font-medium transition-colors w-20 sm:w-24 text-center rounded-full z-10 duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                            semester === tab.id ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                        )}
-                    >
-                        {semester === tab.id && (
-                            <m.div
-                                layoutId="active-pill"
-                                className="absolute inset-0 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full shadow-lg shadow-violet-500/25 -z-10"
-                                transition={{ 
-                                    type: "spring", 
-                                    stiffness: 350, 
-                                    damping: 30,
-                                    mass: 1
-                                }}
-                            />
-                        )}
-                        {tab.label}
-                    </button>
-                ))}
-            </div>
-        </LazyMotion>
+        <div className="relative flex items-center bg-muted p-1 rounded-full border border-border">
+            {/* Sliding background pill */}
+            <div 
+                className={cn(
+                    "absolute top-1 bottom-1 w-20 sm:w-24 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full shadow-lg shadow-violet-500/25 transition-all duration-300 ease-out",
+                    semester === 1 ? "left-1" : "left-[calc(50%)]" 
+                )}
+            />
+            {tabs.map((tab) => (
+                <button
+                    key={tab.id}
+                    onClick={() => handleToggle(tab.id)}
+                    className={cn(
+                        "relative px-4 py-1.5 text-xs sm:text-sm font-medium w-20 sm:w-24 text-center rounded-full z-10 outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors duration-200",
+                        semester === tab.id ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                    )}
+                >
+                    {tab.label}
+                </button>
+            ))}
+        </div>
     );
 }
