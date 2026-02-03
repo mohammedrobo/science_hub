@@ -1,8 +1,8 @@
-const CACHE_NAME = 'science-hub-v10';
+const CACHE_NAME = 'science-hub-v11';
 const PRECACHE_ASSETS = [
     '/',
-    '/icon.png?v=2',
-    '/favicon.ico?v=2',
+    '/icon.png',
+    '/favicon.ico',
     '/manifest.json',
     '/login',
 ];
