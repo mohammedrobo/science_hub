@@ -17,25 +17,49 @@ export interface ScheduleEntry {
     time_end?: string;
 }
 
+// Valid section IDs to prevent injection
+const VALID_SECTIONS = [
+    'A1', 'A2', 'A3', 'A4',
+    'B1', 'B2', 'B3', 'B4',
+    'C1', 'C2', 'C3', 'C4',
+    'D1', 'D2', 'D3', 'D4'
+];
+
+// Sanitize and validate section ID
+function validateSectionId(sectionId: string): string | null {
+    const sanitized = sectionId.toUpperCase().trim();
+    if (!VALID_SECTIONS.includes(sanitized)) {
+        return null;
+    }
+    return sanitized;
+}
+
 // Get schedule for a specific section
 export async function getSchedule(sectionId: string) {
+    // SECURITY: Validate section ID
+    const validSection = validateSectionId(sectionId);
+    if (!validSection) {
+        console.warn(`[SECURITY] Invalid section ID requested: ${sectionId}`);
+        return {};
+    }
+    
     const supabase = await createServiceRoleClient();
 
     const { data, error } = await supabase
         .from('schedule_entries')
         .select('*')
-        .eq('section_id', sectionId)
+        .eq('section_id', validSection)
         .order('slot_order', { ascending: true });
 
     if (error) {
         console.error('Error fetching schedule:', error);
         // Fallback to JSON data
-        return getScheduleFromJSON(sectionId);
+        return getScheduleFromJSON(validSection);
     }
 
     // If database is empty, return JSON data
     if (!data || data.length === 0) {
-        return getScheduleFromJSON(sectionId);
+        return getScheduleFromJSON(validSection);
     }
 
     // Group by day
@@ -224,4 +248,103 @@ export async function getCurrentClass(sectionId: string) {
     }
 
     return { status: 'none', class: null };
+}
+
+export interface NextClassInfo {
+    status: 'current' | 'next' | 'none';
+    currentClass: ScheduleEntry | null;
+    nextClass: ScheduleEntry | null;
+    minutesUntil: number;
+    todaySchedule: ScheduleEntry[];
+}
+
+// Enhanced version with countdown and full schedule
+export async function getCurrentClassWithCountdown(sectionId: string): Promise<NextClassInfo> {
+    const now = new Date();
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const today = days[now.getDay()];
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentTotalMinutes = currentHour * 60 + currentMinute;
+
+    const schedule = await getSchedule(sectionId);
+    const todaySchedule = schedule[today] || [];
+
+    let currentClass: ScheduleEntry | null = null;
+    let nextClass: ScheduleEntry | null = null;
+    let minutesUntil = 0;
+
+    for (let i = 0; i < todaySchedule.length; i++) {
+        const entry = todaySchedule[i];
+        const startHour = parseInt(entry.time_start || '0');
+        const endHour = parseInt(entry.time_end || '0');
+        const startMinutes = startHour * 60;
+        const endMinutes = endHour * 60;
+
+        // Currently in this class
+        if (currentTotalMinutes >= startMinutes && currentTotalMinutes < endMinutes) {
+            currentClass = entry;
+            // Find next class
+            if (i + 1 < todaySchedule.length) {
+                nextClass = todaySchedule[i + 1];
+                const nextStart = parseInt(nextClass.time_start || '0') * 60;
+                minutesUntil = nextStart - currentTotalMinutes;
+            }
+            return { 
+                status: 'current', 
+                currentClass, 
+                nextClass, 
+                minutesUntil,
+                todaySchedule 
+            };
+        }
+
+        // Next upcoming class
+        if (currentTotalMinutes < startMinutes) {
+            nextClass = entry;
+            minutesUntil = startMinutes - currentTotalMinutes;
+            return { 
+                status: 'next', 
+                currentClass: null, 
+                nextClass, 
+                minutesUntil,
+                todaySchedule 
+            };
+        }
+    }
+
+    // No more classes today
+    return { 
+        status: 'none', 
+        currentClass: null, 
+        nextClass: null, 
+        minutesUntil: 0,
+        todaySchedule 
+    };
+}
+
+// Get all classes for a section on a specific day
+export async function getDaySchedule(sectionId: string, dayName?: string) {
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const day = dayName || days[new Date().getDay()];
+    
+    const schedule = await getSchedule(sectionId);
+    return schedule[day] || [];
+}
+
+// Get students in a section (for notifications)
+export async function getSectionStudents(sectionId: string) {
+    const supabase = await createServiceRoleClient();
+    
+    const { data, error } = await supabase
+        .from('allowed_users')
+        .select('username, full_name')
+        .ilike('original_section', sectionId);
+    
+    if (error) {
+        console.error('Error fetching section students:', error);
+        return [];
+    }
+    
+    return data || [];
 }

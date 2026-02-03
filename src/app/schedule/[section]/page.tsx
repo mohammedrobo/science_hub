@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getSchedule, isLeaderOfSection, canAccessSection, type ScheduleEntry } from '../actions';
-import { BookOpen, Clock, MapPin, Pencil, ChevronLeft, Home } from 'lucide-react';
+import { BookOpen, Clock, MapPin, Pencil, ChevronLeft, Home, Bell } from 'lucide-react';
 import Link from 'next/link';
+import { UpcomingClassCard } from '@/components/schedule/UpcomingClassCard';
+import { ScheduleNotificationToggle } from '@/components/schedule/ScheduleNotificationToggle';
 
 const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday'];
 const DAY_LABELS: Record<string, string> = {
@@ -96,16 +98,24 @@ export default function SchedulePage() {
                         Schedule - Section {sectionId}
                     </h1>
 
-                    {canEdit && (
-                        <Link
-                            href={`/schedule/${sectionId.toLowerCase()}/edit`}
-                            className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 rounded-lg transition-colors"
-                        >
-                            <Pencil size={16} />
-                            <span>Edit</span>
-                        </Link>
-                    )}
+                    <div className="flex items-center gap-2">
+                        <ScheduleNotificationToggle sectionId={sectionId} />
+                        {canEdit && (
+                            <Link
+                                href={`/schedule/${sectionId.toLowerCase()}/edit`}
+                                className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 rounded-lg transition-colors"
+                            >
+                                <Pencil size={16} />
+                                <span>Edit</span>
+                            </Link>
+                        )}
+                    </div>
                 </div>
+            </div>
+
+            {/* Upcoming Class Card */}
+            <div className="max-w-4xl mx-auto mb-6">
+                <UpcomingClassCard sectionId={sectionId} />
             </div>
 
             {/* Day Tabs */}
