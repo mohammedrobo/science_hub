@@ -4,6 +4,11 @@ import { cookies } from 'next/headers';
 
 const SESSION_COOKIE = 'sciencehub_session';
 
+// Cache for DB verification to avoid checking on every request
+// Key: username, Value: { verified: timestamp, valid: boolean }
+const verificationCache = new Map<string, { verified: number; valid: boolean; sessionToken?: string }>();
+const CACHE_TTL = 60 * 1000; // 1 minute cache for DB verification
+
 export interface SessionData {
     username: string;
     name: string;
@@ -28,6 +33,9 @@ export async function createSession(data: SessionData): Promise<void> {
         maxAge: 60 * 60 * 24 * 7, // 7 days
         path: '/'
     });
+    
+    // Clear cache for this user
+    verificationCache.delete(data.username);
 }
 
 /**
@@ -36,7 +44,8 @@ export async function createSession(data: SessionData): Promise<void> {
 import { createClient } from '@/lib/supabase/server';
 
 /**
- * Get current session with DB verification
+ * Get current session with cached DB verification
+ * DB is only checked once per minute to avoid excessive queries
  */
 export async function getSession(): Promise<SessionData | null> {
     const cookieStore = await cookies();
@@ -46,8 +55,26 @@ export async function getSession(): Promise<SessionData | null> {
 
     try {
         const session = JSON.parse(sessionCookie.value) as SessionData;
+        
+        // Check cache first
+        const cached = verificationCache.get(session.username);
+        const now = Date.now();
+        
+        if (cached && (now - cached.verified) < CACHE_TTL) {
+            // Use cached result
+            if (!cached.valid) {
+                await destroySession();
+                return null;
+            }
+            // Check session token from cache
+            if (cached.sessionToken && cached.sessionToken !== session.sessionToken) {
+                await destroySession();
+                return null;
+            }
+            return session;
+        }
 
-        // Verify against database to catch resets/bans immediately
+        // Verify against database (only if cache expired or missing)
         const supabase = await createClient();
         const { data: user } = await supabase
             .from('allowed_users')
@@ -55,29 +82,29 @@ export async function getSession(): Promise<SessionData | null> {
             .eq('username', session.username)
             .single();
 
-        // If user doesn't exist, invalidate session
-        // Note: We DO NOT invalidate if is_first_login is true, because they need the session
-        // to access /change-password. Middleware handles the redirection jail.
+        // Update cache
         if (!user) {
-            // Force logout
+            verificationCache.set(session.username, { verified: now, valid: false });
             await destroySession();
             return null;
         }
+        
+        // Cache the verification result
+        verificationCache.set(session.username, { 
+            verified: now, 
+            valid: true, 
+            sessionToken: user.session_token 
+        });
 
         // Single Session Enforcement:
-        // If the DB has a token, it MUST match the session's token.
         if (user.session_token && user.session_token !== session.sessionToken) {
             await destroySession();
             return null;
         }
 
-        // Optional: Update role if it changed (demotion handling)
+        // Update role if it changed
         if (user.access_role !== session.role) {
-            // We could update the session, but for security, maybe just returning the updated role is safer?
-            // Or just fail? Let's update the session object in memory at least.
-            // Better behavior: If role changed (e.g. Leader -> Student), let's honor the DB role.
             session.role = user.access_role;
-            // Optimistically update cookie? check later. For now, returning correct data is key.
         }
 
         return session;
@@ -92,6 +119,8 @@ export async function getSession(): Promise<SessionData | null> {
 export async function destroySession(): Promise<void> {
     const cookieStore = await cookies();
     cookieStore.delete(SESSION_COOKIE);
+    
+    // Note: Cache will be cleared on next login attempt
 }
 
 /**

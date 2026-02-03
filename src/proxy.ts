@@ -81,7 +81,20 @@ export async function proxy(request: NextRequest) {
         return response;
     }
 
-    return NextResponse.next();
+    // Session is valid - create response with refreshed cookie (rolling session)
+    const response = NextResponse.next();
+    
+    // Refresh the session cookie - extend by 7 days on every request
+    // This prevents the session from expiring while user is actively using the site
+    response.cookies.set(SESSION_COOKIE, sessionCookie.value, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+        path: '/'
+    });
+    
+    return response;
 }
 
 export const config = {
