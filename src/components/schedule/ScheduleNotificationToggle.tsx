@@ -1,127 +1,203 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Bell, BellOff, BellRing } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Bell, BellOff, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { getCurrentClassWithCountdown } from '@/app/schedule/actions';
 
 interface ScheduleNotificationToggleProps {
     sectionId: string;
 }
 
+// Convert base64 to Uint8Array for VAPID key
+function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding)
+        .replace(/-/g, '+')
+        .replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray.buffer as ArrayBuffer;
+}
+
 export function ScheduleNotificationToggle({ sectionId }: ScheduleNotificationToggleProps) {
     const [enabled, setEnabled] = useState(false);
-    const [permission, setPermission] = useState<NotificationPermission>('default');
-    const [checkInterval, setCheckIntervalId] = useState<NodeJS.Timeout | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [isPushSupported, setIsPushSupported] = useState(false);
 
-    // Check if notifications are supported and get current permission
+    // Check support and existing subscription on mount
     useEffect(() => {
-        if ('Notification' in window) {
-            setPermission(Notification.permission);
-            const savedPref = localStorage.getItem(`schedule_notifications_${sectionId}`);
-            if (savedPref === 'true' && Notification.permission === 'granted') {
-                setEnabled(true);
+        const checkSupport = async () => {
+            // Check if Push API is supported
+            if ('serviceWorker' in navigator && 'PushManager' in window) {
+                setIsPushSupported(true);
             }
-        }
+
+            // Check if already subscribed
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registration = await navigator.serviceWorker.ready;
+                    const subscription = await registration.pushManager.getSubscription();
+                    if (subscription) {
+                        const savedSection = localStorage.getItem('push_notification_section');
+                        if (savedSection === sectionId) {
+                            setEnabled(true);
+                        }
+                    }
+                } catch (e) {
+                    console.log('[Push] Error checking subscription:', e);
+                }
+            }
+        };
+
+        checkSupport();
     }, [sectionId]);
 
-    // Set up notification checking when enabled
-    useEffect(() => {
-        if (!enabled) {
-            if (checkInterval) {
-                clearInterval(checkInterval);
-                setCheckIntervalId(null);
-            }
-            return;
+    const subscribeToPush = useCallback(async () => {
+        if (!isPushSupported) {
+            toast.error('Push notifications not supported on this browser');
+            return false;
         }
-
-        // Check every minute
-        const interval = setInterval(async () => {
-            await checkAndNotify();
-        }, 60000);
-
-        setCheckIntervalId(interval);
-        
-        // Initial check
-        checkAndNotify();
-
-        return () => {
-            if (interval) clearInterval(interval);
-        };
-    }, [enabled, sectionId]);
-
-    const checkAndNotify = async () => {
-        if (!enabled || Notification.permission !== 'granted') return;
 
         try {
-            const classInfo = await getCurrentClassWithCountdown(sectionId);
-            
-            if (classInfo.status === 'none') return;
-            
-            const nextClass = classInfo.status === 'current' ? classInfo.nextClass : classInfo.nextClass;
-            const minutes = classInfo.minutesUntil;
-            
-            // Notify at specific intervals: 15 and 5 minutes before class
-            const notifyAt = [15, 5];
-            const shouldNotify = notifyAt.some(m => minutes >= m - 1 && minutes <= m + 1);
-            
-            // Check if we already notified for this class at this interval
-            const notifyKey = `notified_${sectionId}_${nextClass?.subject}_${Math.round(minutes / 5) * 5}`;
-            if (sessionStorage.getItem(notifyKey)) return;
-            
-            if (shouldNotify && nextClass) {
-                // Mark as notified
-                sessionStorage.setItem(notifyKey, 'true');
-                
-                // Send browser notification
-                new Notification(`📚 ${nextClass.subject} in ${Math.round(minutes)} minutes`, {
-                    body: `${nextClass.class_type}${nextClass.room ? ` • Room ${nextClass.room}` : ''}\nStarts at ${nextClass.time_start}:00`,
-                    icon: '/icon.png',
-                    badge: '/icon.png',
-                    tag: `class-${sectionId}-${nextClass.subject}`,
-                    requireInteraction: minutes <= 15
+            setLoading(true);
+
+            // Request notification permission first
+            const permission = await Notification.requestPermission();
+
+            if (permission !== 'granted') {
+                toast.error('Please allow notifications to receive class reminders on your phone.');
+                return false;
+            }
+
+            // Get VAPID public key from server
+            const keyResponse = await fetch('/api/push/subscribe');
+            const { publicKey } = await keyResponse.json();
+
+            if (!publicKey) {
+                toast.error('Could not get push configuration');
+                return false;
+            }
+
+            // Get service worker registration
+            const registration = await navigator.serviceWorker.ready;
+
+            // Check for existing subscription
+            let subscription = await registration.pushManager.getSubscription();
+
+            if (!subscription) {
+                // Create new subscription
+                subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(publicKey)
                 });
             }
-        } catch (error) {
-            console.error('Error checking schedule for notifications:', error);
+
+            // Send subscription to server
+            const response = await fetch('/api/push/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    subscription: subscription.toJSON(),
+                    sectionId
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to subscribe');
+            }
+
+            // Save section ID for later checks
+            localStorage.setItem('push_notification_section', sectionId);
+
+            return true;
+        } catch (error: any) {
+            console.error('[Push] Subscribe error:', error);
+            toast.error(error.message || 'Failed to enable notifications');
+            return false;
+        } finally {
+            setLoading(false);
         }
-    };
+    }, [isPushSupported, sectionId]);
+
+    const unsubscribeFromPush = useCallback(async () => {
+        try {
+            setLoading(true);
+
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.getSubscription();
+
+            if (subscription) {
+                // Remove from server
+                await fetch('/api/push/subscribe', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        endpoint: subscription.endpoint
+                    })
+                });
+
+                // Unsubscribe locally
+                await subscription.unsubscribe();
+            }
+
+            localStorage.removeItem('push_notification_section');
+            return true;
+        } catch (error: any) {
+            console.error('[Push] Unsubscribe error:', error);
+            toast.error('Failed to disable notifications');
+            return false;
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
     const handleToggle = async () => {
-        if (!('Notification' in window)) {
-            toast.error('Browser notifications not supported');
-            return;
-        }
-
         if (!enabled) {
-            // Request permission
-            const result = await Notification.requestPermission();
-            setPermission(result);
-
-            if (result === 'granted') {
+            // Subscribe
+            const success = await subscribeToPush();
+            if (success) {
                 setEnabled(true);
-                localStorage.setItem(`schedule_notifications_${sectionId}`, 'true');
-                toast.success('Class reminders enabled! You\'ll get notified before each class.');
-                
-                // Send test notification
-                new Notification('🔔 Notifications Enabled', {
-                    body: 'You will receive reminders before your classes start.',
-                    icon: '/icon.png'
+                toast.success('📱 Phone notifications enabled! You\'ll get alerts 15 and 5 min before class.', {
+                    duration: 5000
                 });
-            } else if (result === 'denied') {
-                toast.error('Notifications blocked. Enable them in your browser settings.');
+
+                // Send test notification via service worker
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification('🔔 Phone Alerts Enabled!', {
+                        body: 'You\'ll receive reminders even when your phone is locked!',
+                        icon: '/icon.png',
+                        badge: '/icon.png'
+                    });
+                }
             }
         } else {
-            setEnabled(false);
-            localStorage.setItem(`schedule_notifications_${sectionId}`, 'false');
-            toast.info('Class reminders disabled');
+            // Unsubscribe
+            const success = await unsubscribeFromPush();
+            if (success) {
+                setEnabled(false);
+                toast.info('Notifications disabled');
+            }
         }
     };
 
-    // Don't show on browsers that don't support notifications
-    if (typeof window !== 'undefined' && !('Notification' in window)) {
-        return null;
+    // Show appropriate message for unsupported browsers
+    if (typeof window !== 'undefined' && !isPushSupported && !('Notification' in window)) {
+        return (
+            <Button
+                variant="outline"
+                size="sm"
+                disabled
+                className="gap-2 bg-zinc-800/50 border-zinc-700 text-zinc-500"
+            >
+                <BellOff className="w-4 h-4" />
+                <span className="hidden sm:inline">Not Supported</span>
+            </Button>
+        );
     }
 
     return (
@@ -129,24 +205,27 @@ export function ScheduleNotificationToggle({ sectionId }: ScheduleNotificationTo
             variant="outline"
             size="sm"
             onClick={handleToggle}
+            disabled={loading}
             className={`
                 gap-2 transition-all
                 ${enabled 
-                    ? 'bg-violet-600/20 border-violet-500/50 text-violet-400 hover:bg-violet-600/30' 
+                    ? 'bg-green-600/20 border-green-500/50 text-green-400 hover:bg-green-600/30' 
                     : 'bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:bg-zinc-700/50'
                 }
             `}
-            title={enabled ? 'Disable class reminders' : 'Enable class reminders'}
+            title={enabled ? 'Disable phone notifications' : 'Get notified on your phone'}
         >
-            {enabled ? (
+            {loading ? (
+                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            ) : enabled ? (
                 <>
-                    <BellRing className="w-4 h-4 animate-pulse" />
-                    <span className="hidden sm:inline">Reminders On</span>
+                    <Smartphone className="w-4 h-4 text-green-400" />
+                    <span className="hidden sm:inline">📱 Alerts On</span>
                 </>
             ) : (
                 <>
-                    <BellOff className="w-4 h-4" />
-                    <span className="hidden sm:inline">Enable Reminders</span>
+                    <Bell className="w-4 h-4" />
+                    <span className="hidden sm:inline">📱 Phone Alerts</span>
                 </>
             )}
         </Button>

@@ -1,9 +1,74 @@
-const CACHE_NAME = 'science-hub-v8';
+const CACHE_NAME = 'science-hub-v9';
 const PRECACHE_ASSETS = [
     '/icon.png?v=2',
     '/favicon.ico?v=2',
     '/manifest.json',
 ];
+
+// ==========================================
+// PUSH NOTIFICATIONS - Works on phone!
+// ==========================================
+
+self.addEventListener('push', (event) => {
+    console.log('[SW] Push received:', event);
+    
+    if (!event.data) {
+        console.log('[SW] No data in push');
+        return;
+    }
+
+    const data = event.data.json();
+    console.log('[SW] Push data:', data);
+
+    const options = {
+        body: data.body || 'Class starting soon!',
+        icon: '/icon.png',
+        badge: '/icon.png',
+        vibrate: [200, 100, 200, 100, 200],
+        tag: data.tag || 'class-reminder',
+        requireInteraction: true,
+        actions: [
+            { action: 'view', title: '📅 View Schedule' },
+            { action: 'dismiss', title: '✓ Got it' }
+        ],
+        data: {
+            url: data.url || '/schedule',
+            timestamp: Date.now()
+        }
+    };
+
+    event.waitUntil(
+        self.registration.showNotification(data.title || '📚 Class Reminder', options)
+    );
+});
+
+// Handle notification click
+self.addEventListener('notificationclick', (event) => {
+    console.log('[SW] Notification clicked:', event.action);
+    event.notification.close();
+
+    if (event.action === 'dismiss') {
+        return;
+    }
+
+    // Open or focus the app
+    const urlToOpen = event.notification.data?.url || '/schedule';
+    
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true })
+            .then(clientList => {
+                // If app is already open, focus it
+                for (const client of clientList) {
+                    if (client.url.includes(self.location.origin) && 'focus' in client) {
+                        client.navigate(urlToOpen);
+                        return client.focus();
+                    }
+                }
+                // Otherwise open new window
+                return clients.openWindow(urlToOpen);
+            })
+    );
+});
 
 // Runtime cache for dynamic content
 const RUNTIME_CACHE = 'runtime-v7';
