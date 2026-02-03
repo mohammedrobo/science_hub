@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getSchedule, isLeaderOfSection, updateScheduleEntry, type ScheduleEntry } from '../../actions';
+import { getSchedulePageData, updateScheduleEntry, type ScheduleEntry } from '../../actions';
 import { ArrowLeft, Save, Plus, Trash2, Loader2, Home } from 'lucide-react';
 import Link from 'next/link';
 
@@ -34,10 +34,9 @@ export default function ScheduleEditPage() {
     useEffect(() => {
         async function fetchData() {
             setLoading(true);
-            const [scheduleData, hasPermission] = await Promise.all([
-                getSchedule(sectionId),
-                isLeaderOfSection(sectionId)
-            ]);
+            
+            // OPTIMIZED: Single call gets schedule + permissions
+            const { schedule: scheduleData, canEdit: hasPermission } = await getSchedulePageData(sectionId);
 
             if (!hasPermission) {
                 router.push(`/schedule/${sectionId.toLowerCase()}`);

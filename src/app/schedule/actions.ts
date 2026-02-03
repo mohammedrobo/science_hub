@@ -3,6 +3,7 @@
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { getSession } from '@/app/login/actions';
 import { revalidatePath } from 'next/cache';
+import { unstable_cache } from 'next/cache';
 import scheduleData from '@/../secure_data/structured_schedules.json';
 
 export interface ScheduleEntry {
@@ -34,13 +35,23 @@ function validateSectionId(sectionId: string): string | null {
     return sanitized;
 }
 
-// Get schedule for a specific section
+// In-memory cache for schedule data (5 minute TTL)
+const scheduleCache = new Map<string, { data: Record<string, ScheduleEntry[]>; expires: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// Get schedule for a specific section (with caching)
 export async function getSchedule(sectionId: string) {
     // SECURITY: Validate section ID
     const validSection = validateSectionId(sectionId);
     if (!validSection) {
         console.warn(`[SECURITY] Invalid section ID requested: ${sectionId}`);
         return {};
+    }
+    
+    // Check cache first
+    const cached = scheduleCache.get(validSection);
+    if (cached && cached.expires > Date.now()) {
+        return cached.data;
     }
     
     const supabase = await createServiceRoleClient();
@@ -53,7 +64,7 @@ export async function getSchedule(sectionId: string) {
 
     if (error) {
         console.error('Error fetching schedule:', error);
-        // Fallback to JSON data
+        // Fallback to JSON data (instant)
         return getScheduleFromJSON(validSection);
     }
 
@@ -70,6 +81,9 @@ export async function getSchedule(sectionId: string) {
         }
         schedule[entry.day_of_week].push(entry);
     }
+
+    // Cache the result
+    scheduleCache.set(validSection, { data: schedule, expires: Date.now() + CACHE_TTL });
 
     return schedule;
 }
@@ -146,6 +160,46 @@ export async function canAccessSection(sectionId: string): Promise<boolean> {
 
     // Students and leaders can only view their own section
     return userSection === sectionId.toUpperCase();
+}
+
+// OPTIMIZED: Get all schedule data in one call (schedule + permissions)
+export async function getSchedulePageData(sectionId: string) {
+    const validSection = validateSectionId(sectionId);
+    if (!validSection) {
+        return { schedule: {}, canEdit: false, canAccess: false };
+    }
+
+    // Get session once
+    const session = await getSession();
+    if (!session?.username) {
+        return { schedule: {}, canEdit: false, canAccess: false };
+    }
+
+    const role = session.role;
+    const username = session.username;
+    
+    // Extract user's section from username
+    const match = username.match(/^[A-D]_([A-D]\d)/i);
+    const userSection = match ? match[1].toUpperCase() : null;
+
+    // Check access
+    const canAccess = role === 'admin' || userSection === validSection;
+    if (!canAccess) {
+        return { schedule: {}, canEdit: false, canAccess: false };
+    }
+
+    // Check edit permission
+    let canEdit = false;
+    if (role === 'admin') {
+        canEdit = true;
+    } else if (role === 'leader' && userSection === validSection) {
+        canEdit = true;
+    }
+
+    // Get schedule (uses cache)
+    const schedule = await getSchedule(validSection);
+
+    return { schedule, canEdit, canAccess };
 }
 
 // Update schedule entry (leaders only)

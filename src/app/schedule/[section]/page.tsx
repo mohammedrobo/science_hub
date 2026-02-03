@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getSchedule, isLeaderOfSection, canAccessSection, type ScheduleEntry } from '../actions';
+import { getSchedulePageData, type ScheduleEntry } from '../actions';
 import { BookOpen, Clock, MapPin, Pencil, ChevronLeft, Home, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { UpcomingClassCard } from '@/components/schedule/UpcomingClassCard';
@@ -47,20 +47,17 @@ export default function SchedulePage() {
         async function fetchData() {
             setLoading(true);
 
-            // Check access first
-            const hasAccess = await canAccessSection(sectionId);
-            if (!hasAccess) {
+            // OPTIMIZED: Single call gets schedule + permissions
+            const { schedule: scheduleData, canEdit: editPermission, canAccess } = await getSchedulePageData(sectionId);
+            
+            if (!canAccess) {
                 setAccessDenied(true);
                 setLoading(false);
                 return;
             }
 
-            const [scheduleData, isLeader] = await Promise.all([
-                getSchedule(sectionId),
-                isLeaderOfSection(sectionId)
-            ]);
             setSchedule(scheduleData);
-            setCanEdit(isLeader);
+            setCanEdit(editPermission);
             setLoading(false);
         }
         fetchData();

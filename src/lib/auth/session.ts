@@ -5,9 +5,9 @@ import { cookies } from 'next/headers';
 const SESSION_COOKIE = 'sciencehub_session';
 
 // Cache for DB verification to avoid checking on every request
-// Key: username, Value: { verified: timestamp, valid: boolean }
-const verificationCache = new Map<string, { verified: number; valid: boolean; sessionToken?: string }>();
-const CACHE_TTL = 60 * 1000; // 1 minute cache for DB verification
+// Key: sessionToken, Value: { verified: timestamp, valid: boolean }
+const verificationCache = new Map<string, { verified: number; valid: boolean }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache for DB verification (extended from 1 min)
 
 export interface SessionData {
     username: string;
@@ -34,8 +34,10 @@ export async function createSession(data: SessionData): Promise<void> {
         path: '/'
     });
     
-    // Clear cache for this user
-    verificationCache.delete(data.username);
+    // Cache this session as valid
+    if (data.sessionToken) {
+        verificationCache.set(data.sessionToken, { verified: Date.now(), valid: true });
+    }
 }
 
 /**
@@ -44,8 +46,8 @@ export async function createSession(data: SessionData): Promise<void> {
 import { createClient } from '@/lib/supabase/server';
 
 /**
- * Get current session with cached DB verification
- * DB is only checked once per minute to avoid excessive queries
+ * Get current session - FAST path trusts the cookie
+ * DB verification only happens on sensitive actions via verifySessionWithDB()
  */
 export async function getSession(): Promise<SessionData | null> {
     const cookieStore = await cookies();
@@ -55,26 +57,40 @@ export async function getSession(): Promise<SessionData | null> {
 
     try {
         const session = JSON.parse(sessionCookie.value) as SessionData;
+        return session;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Verify session against database - only use for sensitive operations
+ * This checks if the session token is still valid (not kicked by another login)
+ */
+export async function verifySessionWithDB(): Promise<SessionData | null> {
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get(SESSION_COOKIE);
+
+    if (!sessionCookie) return null;
+
+    try {
+        const session = JSON.parse(sessionCookie.value) as SessionData;
         
-        // Check cache first
-        const cached = verificationCache.get(session.username);
-        const now = Date.now();
-        
-        if (cached && (now - cached.verified) < CACHE_TTL) {
-            // Use cached result
-            if (!cached.valid) {
-                await destroySession();
-                return null;
+        // Check cache first (keyed by sessionToken for accuracy)
+        if (session.sessionToken) {
+            const cached = verificationCache.get(session.sessionToken);
+            const now = Date.now();
+            
+            if (cached && (now - cached.verified) < CACHE_TTL) {
+                if (!cached.valid) {
+                    await destroySession();
+                    return null;
+                }
+                return session;
             }
-            // Check session token from cache
-            if (cached.sessionToken && cached.sessionToken !== session.sessionToken) {
-                await destroySession();
-                return null;
-            }
-            return session;
         }
 
-        // Verify against database (only if cache expired or missing)
+        // Verify against database
         const supabase = await createClient();
         const { data: user } = await supabase
             .from('allowed_users')
@@ -82,24 +98,28 @@ export async function getSession(): Promise<SessionData | null> {
             .eq('username', session.username)
             .single();
 
-        // Update cache
+        const now = Date.now();
+
         if (!user) {
-            verificationCache.set(session.username, { verified: now, valid: false });
+            if (session.sessionToken) {
+                verificationCache.set(session.sessionToken, { verified: now, valid: false });
+            }
             await destroySession();
             return null;
         }
         
-        // Cache the verification result
-        verificationCache.set(session.username, { 
-            verified: now, 
-            valid: true, 
-            sessionToken: user.session_token 
-        });
-
-        // Single Session Enforcement:
+        // Single Session Enforcement: check if session token matches
         if (user.session_token && user.session_token !== session.sessionToken) {
+            if (session.sessionToken) {
+                verificationCache.set(session.sessionToken, { verified: now, valid: false });
+            }
             await destroySession();
             return null;
+        }
+
+        // Cache as valid
+        if (session.sessionToken) {
+            verificationCache.set(session.sessionToken, { verified: now, valid: true });
         }
 
         // Update role if it changed
