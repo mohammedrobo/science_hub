@@ -48,6 +48,7 @@ export const viewport: Viewport = {
 import { FloatingDaVinciWrapper } from "@/components/FloatingDaVinciWrapper";
 import { Toaster } from "@/components/ui/sonner";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import { FeedbackButton } from "@/components/FeedbackButton";
 
 export default function RootLayout({
   children,
@@ -63,6 +64,7 @@ export default function RootLayout({
         <div className="relative w-full overflow-x-hidden min-h-[100dvh] flex flex-col">
           {children}
           <FloatingDaVinciWrapper />
+          <FeedbackButton />
           <Toaster />
         </div>
         <ServiceWorkerRegistration />

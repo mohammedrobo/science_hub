@@ -1,9 +1,20 @@
-const CACHE_NAME = 'science-hub-v9';
+const CACHE_NAME = 'science-hub-v10';
 const PRECACHE_ASSETS = [
+    '/',
     '/icon.png?v=2',
     '/favicon.ico?v=2',
     '/manifest.json',
+    '/login',
 ];
+
+// Runtime caches
+const RUNTIME_CACHE = 'runtime-v8';
+const IMAGE_CACHE = 'images-v1';
+const FONT_CACHE = 'fonts-v1';
+
+// Cache size limits
+const MAX_RUNTIME_ENTRIES = 50;
+const MAX_IMAGE_ENTRIES = 100;
 
 // ==========================================
 // PUSH NOTIFICATIONS - Works on phone!
@@ -70,19 +81,36 @@ self.addEventListener('notificationclick', (event) => {
     );
 });
 
-// Runtime cache for dynamic content
-const RUNTIME_CACHE = 'runtime-v7';
+// ==========================================
+// CACHE MANAGEMENT UTILITIES
+// ==========================================
 
-// Install - precache critical assets (skip errors for dev)
+async function limitCacheSize(cacheName, maxItems) {
+    const cache = await caches.open(cacheName);
+    const keys = await cache.keys();
+    if (keys.length > maxItems) {
+        // Delete oldest entries (first in cache)
+        const toDelete = keys.slice(0, keys.length - maxItems);
+        await Promise.all(toDelete.map(key => cache.delete(key)));
+    }
+}
+
+// Periodic cache cleanup
+async function cleanupCaches() {
+    await limitCacheSize(RUNTIME_CACHE, MAX_RUNTIME_ENTRIES);
+    await limitCacheSize(IMAGE_CACHE, MAX_IMAGE_ENTRIES);
+}
+
+// Install - precache critical assets
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(cache => {
-                // Use addAll with error handling for individual assets
+                // Precache critical assets with error handling
                 return Promise.allSettled(
                     PRECACHE_ASSETS.map(url =>
                         cache.add(url).catch(err => {
-                            console.warn(`Failed to cache ${url}:`, err);
+                            console.warn(`[SW] Failed to cache ${url}:`, err);
                         })
                     )
                 );
@@ -91,20 +119,25 @@ self.addEventListener('install', (event) => {
     );
 });
 
-// Activate - clean old caches
+// Activate - clean old caches and take control immediately
 self.addEventListener('activate', (event) => {
+    const currentCaches = [CACHE_NAME, RUNTIME_CACHE, IMAGE_CACHE, FONT_CACHE];
     event.waitUntil(
         caches.keys()
             .then(keys => Promise.all(
                 keys
-                    .filter(key => key !== CACHE_NAME && key !== RUNTIME_CACHE)
-                    .map(key => caches.delete(key))
+                    .filter(key => !currentCaches.includes(key))
+                    .map(key => {
+                        console.log('[SW] Deleting old cache:', key);
+                        return caches.delete(key);
+                    })
             ))
+            .then(() => cleanupCaches())
             .then(() => self.clients.claim())
     );
 });
 
-// Fetch - stale-while-revalidate for pages, cache-first for assets
+// Fetch - optimized caching strategies
 self.addEventListener('fetch', (event) => {
     const { request } = event;
     const url = new URL(request.url);
@@ -124,27 +157,44 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Navigation requests - network first to avoid stale auth/content
-    if (request.mode === 'navigate' || request.destination === 'document') {
+    // FONTS - Cache first, long-lived
+    if (url.pathname.match(/\.(woff2?|ttf|otf|eot)$/i)) {
         event.respondWith(
-            fetch(request)
-                .then(response => {
-                    if (response.ok) {
-                        const clone = response.clone();
-                        caches.open(RUNTIME_CACHE).then(cache => cache.put(request, clone));
-                    }
-                    return response;
+            caches.open(FONT_CACHE).then(cache =>
+                cache.match(request).then(cached => {
+                    if (cached) return cached;
+                    return fetch(request).then(response => {
+                        if (response.ok) cache.put(request, response.clone());
+                        return response;
+                    });
                 })
-                .catch(() => caches.match(request))
+            )
         );
         return;
     }
 
-    // Static assets - cache first
-    if (
-        url.pathname.startsWith('/_next/static/') ||
-        url.pathname.match(/\.(png|jpg|jpeg|svg|gif|webp|avif|ico|woff2?)$/i)
-    ) {
+    // IMAGES - Cache first with size limit
+    if (url.pathname.match(/\.(png|jpg|jpeg|svg|gif|webp|avif|ico)$/i)) {
+        event.respondWith(
+            caches.open(IMAGE_CACHE).then(cache =>
+                cache.match(request).then(cached => {
+                    if (cached) return cached;
+                    return fetch(request).then(response => {
+                        if (response.ok) {
+                            cache.put(request, response.clone());
+                            // Async cleanup
+                            limitCacheSize(IMAGE_CACHE, MAX_IMAGE_ENTRIES);
+                        }
+                        return response;
+                    });
+                })
+            )
+        );
+        return;
+    }
+
+    // STATIC ASSETS (JS/CSS) - Cache first, immutable
+    if (url.pathname.startsWith('/_next/static/')) {
         event.respondWith(
             caches.match(request).then(cached => {
                 if (cached) return cached;
@@ -160,18 +210,74 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Other requests - stale-while-revalidate
+    // NAVIGATION - Network first with offline fallback
+    if (request.mode === 'navigate' || request.destination === 'document') {
+        event.respondWith(
+            fetch(request)
+                .then(response => {
+                    if (response.ok) {
+                        const clone = response.clone();
+                        caches.open(RUNTIME_CACHE).then(cache => cache.put(request, clone));
+                    }
+                    return response;
+                })
+                .catch(async () => {
+                    const cached = await caches.match(request);
+                    if (cached) return cached;
+                    // Return offline page or root
+                    return caches.match('/') || new Response('Offline', { status: 503 });
+                })
+        );
+        return;
+    }
+
+    // OTHER - Stale-while-revalidate
     event.respondWith(
         caches.match(request).then(cached => {
-            const fetchPromise = fetch(request).then(response => {
-                if (response.ok) {
-                    const clone = response.clone();
-                    caches.open(RUNTIME_CACHE).then(cache => cache.put(request, clone));
-                }
-                return response;
-            }).catch(() => cached);
+            const fetchPromise = fetch(request)
+                .then(response => {
+                    if (response.ok) {
+                        const clone = response.clone();
+                        caches.open(RUNTIME_CACHE).then(cache => {
+                            cache.put(request, clone);
+                            limitCacheSize(RUNTIME_CACHE, MAX_RUNTIME_ENTRIES);
+                        });
+                    }
+                    return response;
+                })
+                .catch(() => cached);
 
             return cached || fetchPromise;
         })
     );
 });
+
+// Background sync for offline actions
+self.addEventListener('sync', (event) => {
+    if (event.tag === 'sync-feedback') {
+        event.waitUntil(syncFeedback());
+    }
+});
+
+async function syncFeedback() {
+    // Handle queued feedback submissions when back online
+    try {
+        const cache = await caches.open('pending-feedback');
+        const requests = await cache.keys();
+        
+        for (const request of requests) {
+            const response = await cache.match(request);
+            if (response) {
+                const data = await response.json();
+                await fetch('/api/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                await cache.delete(request);
+            }
+        }
+    } catch (error) {
+        console.error('[SW] Sync feedback failed:', error);
+    }
+}

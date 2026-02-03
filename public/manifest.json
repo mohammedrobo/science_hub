@@ -2,12 +2,16 @@
     "name": "Science Hub",
     "short_name": "SciHub",
     "description": "Your digital science companion - Learn, Quiz, and Excel",
-    "start_url": "/",
+    "start_url": "/?source=pwa",
+    "id": "/",
     "display": "standalone",
+    "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
     "background_color": "#0a0a0a",
     "theme_color": "#7c3aed",
     "orientation": "portrait-primary",
     "scope": "/",
+    "lang": "en",
+    "dir": "ltr",
     "icons": [
         {
             "src": "/android-chrome-192x192.png?v=2",
@@ -32,6 +36,33 @@
         "education",
         "productivity"
     ],
+    "shortcuts": [
+        {
+            "name": "My Schedule",
+            "short_name": "Schedule",
+            "url": "/schedule?source=pwa",
+            "icons": [{ "src": "/icon.png?v=2", "sizes": "96x96" }]
+        },
+        {
+            "name": "Leaderboard",
+            "short_name": "Leaders",
+            "url": "/leaderboard?source=pwa",
+            "icons": [{ "src": "/icon.png?v=2", "sizes": "96x96" }]
+        },
+        {
+            "name": "AI Chat",
+            "short_name": "AI",
+            "url": "/ai?source=pwa",
+            "icons": [{ "src": "/icon.png?v=2", "sizes": "96x96" }]
+        }
+    ],
     "screenshots": [],
-    "prefer_related_applications": false
+    "prefer_related_applications": false,
+    "launch_handler": {
+        "client_mode": "navigate-existing"
+    },
+    "handle_links": "preferred",
+    "edge_side_panel": {
+        "preferred_width": 400
+    }
 }

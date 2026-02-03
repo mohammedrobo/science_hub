@@ -2,15 +2,18 @@
 import webpush from 'web-push';
 
 // VAPID keys for push authentication
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BItHJT8UzbU1NzZgy2GIFLQcje35ksYqM8n157V_gqMcq7QyKW7S5VG8yD7Dfj6osSl1V0nnIAdoA8DfDCYa6Bw';
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'MndyNKfjiEOZ1W9kAK10XXF1FLzQiBwrpPWScitbn2A';
+// These MUST be set in environment variables - no fallbacks for security
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 
-// Configure web-push with VAPID details
-webpush.setVapidDetails(
-    'mailto:science-hub@example.com',
-    VAPID_PUBLIC_KEY,
-    VAPID_PRIVATE_KEY
-);
+// Only configure if keys are present
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+    webpush.setVapidDetails(
+        'mailto:science-hub@example.com',
+        VAPID_PUBLIC_KEY,
+        VAPID_PRIVATE_KEY
+    );
+}
 
 export interface PushSubscription {
     endpoint: string;
@@ -65,5 +68,8 @@ export async function sendPushNotification(
  * Get the public VAPID key for client-side subscription
  */
 export function getVapidPublicKey(): string {
+    if (!VAPID_PUBLIC_KEY) {
+        throw new Error('VAPID public key not configured');
+    }
     return VAPID_PUBLIC_KEY;
 }
