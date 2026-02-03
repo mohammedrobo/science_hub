@@ -83,14 +83,15 @@ export async function proxy(request: NextRequest) {
 
     // Session is valid - create response with refreshed cookie (rolling session)
     const response = NextResponse.next();
+    const isProduction = process.env.NODE_ENV === 'production';
     
-    // Refresh the session cookie - extend by 7 days on every request
+    // Refresh the session cookie - extend by 30 days on every request
     // This prevents the session from expiring while user is actively using the site
     response.cookies.set(SESSION_COOKIE, sessionCookie.value, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: isProduction,
         sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7, // 7 days
+        maxAge: 60 * 60 * 24 * 30, // 30 days
         path: '/'
     });
     

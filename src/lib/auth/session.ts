@@ -26,18 +26,23 @@ export interface SessionData {
  */
 export async function createSession(data: SessionData): Promise<void> {
     const cookieStore = await cookies();
+    const isProduction = process.env.NODE_ENV === 'production';
+    
     cookieStore.set(SESSION_COOKIE, JSON.stringify(data), {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: isProduction,
         sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7, // 7 days
-        path: '/'
+        maxAge: 60 * 60 * 24 * 30, // 30 days (extended from 7)
+        path: '/',
+        // Don't set domain - let browser use current domain automatically
     });
     
     // Cache this session as valid
     if (data.sessionToken) {
         verificationCache.set(data.sessionToken, { verified: Date.now(), valid: true });
     }
+    
+    console.log(`[Session] Created session for ${data.username}`);
 }
 
 /**
