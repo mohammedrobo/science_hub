@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { createClient } from '@supabase/supabase-js';
-import { getVapidPublicKey } from '@/lib/push-notifications';
+import { getVapidPublicKey, isPushConfigured } from '@/lib/push-notifications';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,9 +10,16 @@ const supabase = createClient(
 
 // GET - Return VAPID public key for client
 export async function GET() {
-    return NextResponse.json({
-        publicKey: getVapidPublicKey()
-    });
+    try {
+        if (!isPushConfigured()) {
+            return NextResponse.json({ error: 'Push notifications not configured' }, { status: 503 });
+        }
+        return NextResponse.json({
+            publicKey: getVapidPublicKey()
+        });
+    } catch {
+        return NextResponse.json({ error: 'Push notifications not configured' }, { status: 503 });
+    }
 }
 
 // POST - Subscribe to push notifications

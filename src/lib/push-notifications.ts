@@ -3,16 +3,24 @@ import webpush from 'web-push';
 
 // VAPID keys for push authentication
 // These MUST be set in environment variables - no fallbacks for security
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
 
-// Only configure if keys are present
-if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
-    webpush.setVapidDetails(
-        'mailto:science-hub@example.com',
-        VAPID_PUBLIC_KEY,
-        VAPID_PRIVATE_KEY
-    );
+// Track if VAPID is configured
+let vapidConfigured = false;
+
+// Only configure if both keys are present and valid
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY && VAPID_PUBLIC_KEY.length > 10) {
+    try {
+        webpush.setVapidDetails(
+            'mailto:science-hub@example.com',
+            VAPID_PUBLIC_KEY,
+            VAPID_PRIVATE_KEY
+        );
+        vapidConfigured = true;
+    } catch (error) {
+        console.warn('[Push] VAPID configuration failed:', error);
+    }
 }
 
 export interface PushSubscription {
@@ -37,6 +45,11 @@ export async function sendPushNotification(
     subscription: PushSubscription,
     payload: NotificationPayload
 ): Promise<boolean> {
+    if (!vapidConfigured) {
+        console.warn('[Push] VAPID not configured, skipping notification');
+        return false;
+    }
+    
     try {
         await webpush.sendNotification(
             {
@@ -68,8 +81,15 @@ export async function sendPushNotification(
  * Get the public VAPID key for client-side subscription
  */
 export function getVapidPublicKey(): string {
-    if (!VAPID_PUBLIC_KEY) {
+    if (!VAPID_PUBLIC_KEY || !vapidConfigured) {
         throw new Error('VAPID public key not configured');
     }
     return VAPID_PUBLIC_KEY;
+}
+
+/**
+ * Check if push notifications are configured
+ */
+export function isPushConfigured(): boolean {
+    return vapidConfigured;
 }
