@@ -3,9 +3,15 @@
 import { useState } from 'react';
 import { MessageSquarePlus } from 'lucide-react';
 import { FeedbackModal } from './FeedbackModal';
+import { usePathname } from 'next/navigation';
 
 export function FeedbackButton() {
     const [isOpen, setIsOpen] = useState(false);
+
+    const pathname = usePathname();
+
+    // Hide on login page
+    if (pathname === '/login') return null;
 
     return (
         <>
@@ -19,9 +25,9 @@ export function FeedbackButton() {
             </button>
 
             {/* Modal */}
-            <FeedbackModal 
-                isOpen={isOpen} 
-                onClose={() => setIsOpen(false)} 
+            <FeedbackModal
+                isOpen={isOpen}
+                onClose={() => setIsOpen(false)}
             />
         </>
     );

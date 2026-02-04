@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getLesson, updateLesson, uploadFile } from '@/app/admin/actions';
+import { getLesson, updateLesson, getSignedUploadUrl } from '@/app/admin/actions';
 import {
     ArrowLeft, Save, Video, FileText, BookOpen,
     Loader2, AlertCircle, CheckCircle, Home
@@ -78,18 +78,37 @@ export default function EditLessonPage({ params }: PageProps) {
                 const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
                 const filePath = `lessons/${fileName}`;
 
-                const formData = new FormData();
-                formData.append('file', pdfFile);
+                // 1. Get Signed URL token
+                const { token, error: signError } = await getSignedUploadUrl(filePath);
 
-                const uploadResult = await uploadFile(formData, filePath);
-
-                if (uploadResult.error) {
-                    throw new Error(uploadResult.error);
+                if (signError || !token) {
+                    throw new Error(signError || 'Failed to get upload permission');
                 }
 
-                if (uploadResult.publicUrl) {
-                    finalPdfUrl = uploadResult.publicUrl;
+                // 2. Upload directly to Supabase Storage
+                // Import the client supabase instance or use a fresh client here
+                const { createClient } = require('@supabase/supabase-js');
+                const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+                const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+                const supabase = createClient(supabaseUrl, supabaseKey);
+
+                const { error: uploadError } = await supabase.storage
+                    .from('pdfs')
+                    .uploadToSignedUrl(filePath, token, pdfFile, {
+                        contentType: pdfFile.type || 'application/pdf',
+                        upsert: true
+                    });
+
+                if (uploadError) {
+                    throw new Error('Upload failed: ' + uploadError.message);
                 }
+
+                // 3. Get Public URL
+                const { data } = supabase.storage
+                    .from('pdfs')
+                    .getPublicUrl(filePath);
+
+                finalPdfUrl = data.publicUrl;
             }
 
             const response = await updateLesson(id, {
