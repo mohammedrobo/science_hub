@@ -41,12 +41,26 @@ export async function createQuest(data: { title: string; description: string; as
 
 export async function updateQuestStatus(id: string, status: 'pending' | 'in_progress' | 'completed') {
     try {
-        await ensureLeaderOrAdmin();
+        const session = await ensureLeaderOrAdmin();
         const supabase = await createServiceRoleClient();
+
+        // Fetch current quest to check assignment status
+        const { data: currentQuest } = await supabase
+            .from('guild_quests')
+            .select('assigned_to')
+            .eq('id', id)
+            .single();
+
+        const updates: any = { status };
+
+        // If starting an unassigned quest, assign it to the current user (Claim it)
+        if (status === 'in_progress' && !currentQuest?.assigned_to) {
+            updates.assigned_to = session.username;
+        }
 
         const { error } = await supabase
             .from('guild_quests')
-            .update({ status })
+            .update(updates)
             .eq('id', id);
 
         if (error) {

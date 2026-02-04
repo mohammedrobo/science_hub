@@ -139,6 +139,12 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
                         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                             <SectionSelector sections={sections} />
 
+                            <Link href="/admin/feedback">
+                                <Button variant="outline" size="sm" className="border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white">
+                                    <span className="mr-2">📬</span>
+                                    <span className="hidden sm:inline">Feedback</span>
+                                </Button>
+                            </Link>
                             <Link href="/">
                                 <Button variant="outline" size="sm" className="border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white">
                                     <Home className="w-4 h-4 sm:mr-2" />

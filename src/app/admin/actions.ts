@@ -267,13 +267,15 @@ export async function uploadFile(formData: FormData, path: string) {
         const file = formData.get('file') as File;
         if (!file) throw new Error('No file provided');
 
-        const arrayBuffer = await file.arrayBuffer();
+        // Use stream() to avoid loading the entire file into memory (prevent OOM)
+        const fileBody = file.stream ? file.stream() : await file.arrayBuffer();
 
         const { error } = await supabase.storage
             .from('pdfs')
-            .upload(path, arrayBuffer, {
+            .upload(path, fileBody, {
                 contentType: file.type || 'application/pdf',
-                upsert: false
+                upsert: false,
+                duplex: 'half' // Required for streaming uploads in some environments
             });
 
         if (error) {
