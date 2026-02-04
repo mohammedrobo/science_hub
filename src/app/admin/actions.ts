@@ -259,38 +259,21 @@ export async function createLesson(data: {
  * Uploads a file to Supabase Storage using the Service Role (Server-Side)
  * This avoids client-side "Authorization header missing" or CORS issues.
  */
-export async function uploadFile(formData: FormData, path: string) {
+export async function getSignedUploadUrl(path: string) {
     try {
         await ensureLeaderOrAdmin();
         const supabase = await createServiceRoleClient();
 
-        const file = formData.get('file') as File;
-        if (!file) throw new Error('No file provided');
-
-        // Use stream() to avoid loading the entire file into memory (prevent OOM)
-        const fileBody = file.stream ? file.stream() : await file.arrayBuffer();
-
-        const { error } = await supabase.storage
+        const { data, error } = await supabase.storage
             .from('pdfs')
-            .upload(path, fileBody, {
-                contentType: file.type || 'application/pdf',
-                upsert: false,
-                duplex: 'half' // Required for streaming uploads in some environments
-            });
+            .createSignedUploadUrl(path);
 
-        if (error) {
-            console.error('Storage Upload Error:', error);
-            throw new Error(`Storage upload failed: ${error.message}`);
-        }
+        if (error) throw error;
+        if (!data) throw new Error('No data returned from signed URL creation');
 
-        const { data } = supabase.storage
-            .from('pdfs')
-            .getPublicUrl(path);
-
-        return { success: true, publicUrl: data.publicUrl };
-
+        return { success: true, token: data.token, path: data.path, signedUrl: data.signedUrl };
     } catch (error: any) {
-        console.error('Upload Action Error:', error);
+        console.error('Get Signed URL Error:', error);
         return { error: error.message };
     }
 }

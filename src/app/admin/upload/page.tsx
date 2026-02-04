@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MOCK_COURSES, COURSE_SUBSECTIONS } from '@/lib/constants';
-import { createLesson, uploadFile } from '../actions';
+import { createLesson, getSignedUploadUrl } from '../actions';
 import { Upload, ArrowLeft, Video, FileText, BookOpen, CheckCircle, AlertCircle, Loader2, User, Home } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { QuizUploader } from '@/components/admin/QuizUploader';
@@ -55,19 +55,31 @@ export default function UploadPage() {
                 const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
                 const filePath = `${selectedCourse}/${fileName}`;
 
-                // Use Server Action for upload to avoid client-side header/auth issues
-                const formData = new FormData();
-                formData.append('file', pdfFile);
+                // 1. Get Signed URL token from server (secure)
+                // This bypasses the Next.js body size limit by uploading directly to Supabase from the browser
+                const { token, error: signError } = await getSignedUploadUrl(filePath);
 
-                const uploadResult = await uploadFile(formData, filePath);
-
-                if (uploadResult.error) {
-                    throw new Error(uploadResult.error);
+                if (signError || !token) {
+                    throw new Error(signError || 'Failed to get upload permission');
                 }
 
-                if (uploadResult.publicUrl) {
-                    finalPdfUrl = uploadResult.publicUrl;
+                // 2. Upload directly to Supabase Storage using the token
+                const { error: uploadError } = await supabase.storage
+                    .from('pdfs')
+                    .uploadToSignedUrl(filePath, token, pdfFile, {
+                        contentType: pdfFile.type || 'application/pdf',
+                    });
+
+                if (uploadError) {
+                    throw new Error('Upload failed: ' + uploadError.message);
                 }
+
+                // 3. Get Public URL
+                const { data } = supabase.storage
+                    .from('pdfs')
+                    .getPublicUrl(filePath);
+
+                finalPdfUrl = data.publicUrl;
             }
 
             // Build lesson title with sub-section prefix if applicable
@@ -125,6 +137,12 @@ export default function UploadPage() {
                             <Upload className="w-4 h-4 sm:w-5 sm:h-5" />
                             <span className="hidden xs:inline">Upload</span> Lesson
                         </h1>
+                        <Link href="/">
+                            <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-white">
+                                <Home className="w-5 h-5" />
+                                <span className="ml-2 hidden sm:inline">Home</span>
+                            </Button>
+                        </Link>
                     </div>
                 </div>
             </div>
