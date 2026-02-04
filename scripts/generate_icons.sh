@@ -14,13 +14,13 @@ echo "Generating icons from '$SOURCE_IMG'..."
 TRIMMED_IMG="public/temp_trimmed_source.png"
 magick "$SOURCE_IMG" -trim +repage "$TRIMMED_IMG"
 
-# Function to generate square icon with crop-to-fill
+# Function to generate square icon with crop-to-fill and stripped metadata
 generate_square_icon() {
     local size=$1
     local output=$2
-    # Resize to FILL the box (using ^), then crop from center
-    # This ensures no whitespace/bars.
-    magick "$TRIMMED_IMG" -resize "${size}x${size}^" -gravity center -extent "${size}x${size}" "$output"
+    # Resize to FILL the box (using ^), then crop from center, and STRIP metadata
+    # This ensures no whitespace/bars and prevents color profile issues (darkening).
+    magick "$TRIMMED_IMG" -resize "${size}x${size}^" -gravity center -extent "${size}x${size}" -strip "$output"
 }
 
 # Generate standard icons
@@ -40,7 +40,7 @@ generate_square_icon 96 public/icon.png
 # Favicons
 generate_square_icon 32 public/favicon-32x32.png
 generate_square_icon 16 public/favicon-16x16.png
-magick "$TRIMMED_IMG" -resize 48x48 -background none -gravity center -extent 48x48 -define icon:auto-resize=48,32,16 public/favicon.ico
+magick "$TRIMMED_IMG" -resize 48x48 -background none -gravity center -extent 48x48 -strip -define icon:auto-resize=48,32,16 public/favicon.ico
 
 # Cleanup
 rm "$TRIMMED_IMG"
