@@ -152,6 +152,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -162,6 +163,7 @@
     opacity: 0;
     transform: translateY(16px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -173,6 +175,7 @@
     opacity: 0;
     transform: translateX(20px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -184,6 +187,7 @@
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -195,6 +199,7 @@
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -206,6 +211,7 @@
     opacity: 0;
     transform: scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -213,28 +219,30 @@
 }
 
 /* Animation utility classes */
+/* Animation utility classes - Accelerated for performance */
 .animate-accordion-down {
-  animation: accordion-down 0.2s ease-out;
+  animation: accordion-down 0.1s ease-out;
 }
 
 .animate-accordion-up {
-  animation: accordion-up 0.2s ease-out;
+  animation: accordion-up 0.1s ease-out;
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.2s ease-out;
+  animation: fadeIn 0.1s ease-out;
 }
 
 .animate-slide-up {
-  animation: slideUp 0.2s ease-out;
+  animation: slideUp 0.1s ease-out;
 }
 
 .animate-slide-down {
-  animation: slideDown 0.2s ease-out;
+  animation: slideDown 0.1s ease-out;
 }
 
 .animate-scale-in {
-  animation: scaleIn 0.15s ease-out;
+  /* Nearly instant scale in */
+  animation: scaleIn 0.05s ease-out;
 }
 
 /* Performance utility classes */
@@ -280,18 +288,21 @@ video {
 }
 
 /* Faster hover transitions on desktop - only transform and opacity */
+/* Faster hover transitions on desktop - only transform and opacity */
 @media (hover: hover) {
   .hover-lift {
-    transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+    /* Disabled lift for performance */
+    transition: none;
   }
 
   .hover-lift:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: none;
+    box-shadow: none;
   }
 }
 
 @layer base {
+
   html,
   body {
     background-color: #050505;

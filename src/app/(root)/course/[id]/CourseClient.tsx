@@ -1,6 +1,8 @@
 'use client';
 
 import { MOCK_COURSES, COURSE_SUBSECTIONS } from '@/lib/constants';
+import { useLessonStore } from '@/lib/store/lesson-store';
+import { useEffect } from 'react';
 import {
     Accordion,
     AccordionContent,
@@ -31,6 +33,21 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
 
     // Check if this course has sub-sections (e.g., P102 with doctors, C102 with topics)
     const subSectionConfig = COURSE_SUBSECTIONS[id];
+
+    // Global Store Sync
+    const { setLessonContext } = useLessonStore();
+
+    useEffect(() => {
+        if (currentLesson) {
+            setLessonContext({
+                courseId: course.code, // P102 etc
+                lessonId: currentLesson.id,
+                lessonTitle: currentLesson.title,
+                pdfUrl: currentLesson.pdf_url,
+                videoUrl: currentLesson.video_url || (currentLesson.video_parts?.[0]?.url || null)
+            });
+        }
+    }, [currentLesson, course.code, setLessonContext]);
 
 
 
@@ -334,6 +351,6 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                     </div>
                 </div>
             </div>
-            </div>
+        </div>
     );
 }

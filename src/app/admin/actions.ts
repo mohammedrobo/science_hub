@@ -73,13 +73,13 @@ export async function parseQuizWithAI(rawText: string) {
                 const genAI = new GoogleGenerativeAI(apiKey);
 
                 // === SMART MODEL SELECTION WITH FALLBACK ===
-                // Primary: gemini-3-pro-preview (most intelligent, best for complex parsing)
-                // Fallback: gemini-2.5-flash (fast, reliable backup)
+                // Primary: gemini-3-pro-preview (USER REQUIRED - most intelligent for parsing)
+                // Fallback: gemini-2.0-flash (fast, reliable backup)
 
                 let responseText = null;
 
                 try {
-                    // PRIMARY ATTEMPT
+                    // PRIMARY ATTEMPT - User explicitly requires gemini-3-pro-preview
                     const model = genAI.getGenerativeModel({ model: 'gemini-3-pro-preview' });
                     const result = await model.generateContent(prompt);
                     responseText = result.response.text();
@@ -88,12 +88,12 @@ export async function parseQuizWithAI(rawText: string) {
 
                     // FALLBACK ATTEMPT
                     try {
-                        console.log(`[QuizAI] Switching to fallback model: gemini-2.5-flash`);
-                        const fallbackModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+                        console.log(`[QuizAI] Switching to fallback model: gemini-3-flash-preview`);
+                        const fallbackModel = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' });
                         const fallbackResult = await fallbackModel.generateContent(prompt);
                         responseText = fallbackResult.response.text();
                     } catch (fallbackError: any) {
-                        console.error(`[QuizAI] Fallback model (2.5-flash) also failed: ${fallbackError.message}`);
+                        console.error(`[QuizAI] Fallback model (3-flash-preview) also failed: ${fallbackError.message}`);
                         // Throw to outer loop to try next API key
                         throw fallbackError;
                     }

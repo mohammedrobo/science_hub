@@ -22,12 +22,8 @@ export function CourseCard({ course, progress = 0 }: CourseCardProps) {
     const [animatedProgress, setAnimatedProgress] = useState(0);
 
     useEffect(() => {
-        // Delay progress animation to start after card entrance
-        const timer = setTimeout(() => {
-            setAnimatedProgress(progress);
-        }, 500);
-
-        return () => clearTimeout(timer);
+        // Immediate progress update
+        setAnimatedProgress(progress);
     }, [progress]);
 
     const cardContent = (
@@ -35,21 +31,21 @@ export function CourseCard({ course, progress = 0 }: CourseCardProps) {
             className={cn(
                 "group h-full relative will-change-transform",
                 isClosed && "cursor-not-allowed",
-                !isClosed && "hover:-translate-y-1 active:scale-[0.98]",
-                "transition-transform duration-200 ease-out"
+                !isClosed && "cursor-pointer active:opacity-90",
+                "transition-opacity duration-100"
             )}
         >
             {/* Glow Effect Layer - appears on hover (only for open courses) */}
             {!isClosed && (
                 <div
-                    className="absolute -inset-1 bg-gradient-to-br from-violet-600/20 to-indigo-600/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm"
+                    className="absolute -inset-1 bg-gradient-to-br from-violet-600/20 to-indigo-600/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-100 blur-sm"
                     aria-hidden="true"
                 />
             )}
 
             <div className={cn(
                 "h-full flex flex-col bg-zinc-900 border border-border rounded-sm overflow-hidden relative z-10",
-                "transition-all duration-300",
+                "transition-colors duration-100",
                 isClosed
                     ? "opacity-70 grayscale-[40%]"
                     : "group-hover:border-violet-500/50 group-hover:shadow-lg group-hover:shadow-violet-900/20"
@@ -78,7 +74,7 @@ export function CourseCard({ course, progress = 0 }: CourseCardProps) {
                             fill
                             sizes="(max-width: 768px) 100vw, 33vw"
                             className={cn(
-                                "object-cover transition-all duration-500 ease-out",
+                                "object-cover transition-opacity duration-150 ease-out",
                                 isClosed
                                     ? "grayscale-[60%] opacity-60"
                                     : cn(
@@ -127,7 +123,7 @@ export function CourseCard({ course, progress = 0 }: CourseCardProps) {
                                 {progress === 0 && "Start Course"}
                                 {progress > 0 && progress < 100 && "Continue"}
                                 {progress >= 100 && "Review Course"}
-                                <ChevronRight className="h-3 w-3 transition-transform duration-200 group-hover:translate-x-[3px]" />
+                                <ChevronRight className="h-3 w-3" />
                             </span>
                         )}
 
@@ -148,7 +144,7 @@ export function CourseCard({ course, progress = 0 }: CourseCardProps) {
                 {!isClosed && (
                     <div className="h-1 bg-zinc-950 w-full mt-auto relative overflow-hidden">
                         <div
-                            className="h-full w-full bg-gradient-to-r from-violet-600 to-cyan-400 transition-transform duration-700 ease-out origin-left"
+                            className="h-full w-full bg-gradient-to-r from-violet-600 to-cyan-400 transition-transform duration-300 ease-out origin-left"
                             style={{ transform: `scaleX(${animatedProgress / 100})` }}
                         />
                     </div>
