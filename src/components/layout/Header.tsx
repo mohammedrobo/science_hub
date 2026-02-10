@@ -44,9 +44,7 @@ export async function Header() {
                 </Link>
 
                 <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
-                    <Link href="/ai" className="hover:text-primary transition-colors">
-                        AI Assistant
-                    </Link>
+
                     <Link href="/tools/gpa" className="hover:text-primary transition-colors">
                         GPA Calc
                     </Link>
