@@ -334,8 +334,8 @@ export default async function ProfilePage() {
                                             <div className="h-2 bg-zinc-700 rounded-full overflow-hidden">
                                                 <div
                                                     className={`h-full transition-all duration-500 ${subject.averageScore >= 85 ? 'bg-emerald-500' :
-                                                            subject.averageScore >= 70 ? 'bg-blue-500' :
-                                                                subject.averageScore >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                                                        subject.averageScore >= 70 ? 'bg-blue-500' :
+                                                            subject.averageScore >= 60 ? 'bg-yellow-500' : 'bg-red-500'
                                                         }`}
                                                     style={{ width: `${subject.averageScore}%` }}
                                                 />
