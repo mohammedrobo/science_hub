@@ -278,7 +278,10 @@ export default function UploadPage() {
 
                             {/* Quiz Section */}
                             <div className="space-y-4 pt-4 border-t border-zinc-800">
-                                <QuizUploader onQuizDataChange={setQuizData} />
+                                <QuizUploader
+                                    onQuizDataChange={setQuizData}
+                                    onParsingChange={setIsSubmitting} // Reuse isSubmitting to block "Add Lesson"
+                                />
                             </div>
 
                             {/* Result Message */}
@@ -301,13 +304,13 @@ export default function UploadPage() {
                             {/* Submit Button */}
                             <Button
                                 type="submit"
-                                disabled={isSubmitting}
+                                disabled={isSubmitting} // This now blocks on BOTH upload AND AI parsing
                                 className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white py-6 text-base font-semibold shadow-lg shadow-violet-900/30"
                             >
                                 {isSubmitting ? (
                                     <>
                                         <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                                        {pdfFile ? 'Uploading & Saving...' : 'Saving Lesson...'}
+                                        {pdfFile ? 'Uploading & Saving...' : 'Processing...'}
                                     </>
                                 ) : (
                                     <>

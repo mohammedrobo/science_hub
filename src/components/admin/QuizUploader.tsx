@@ -12,9 +12,10 @@ import { MathText } from '@/components/MathText';
 
 interface QuizUploaderProps {
     onQuizDataChange: (data: { questions: QuizQuestion[] } | null) => void;
+    onParsingChange?: (isParsing: boolean) => void;
 }
 
-export function QuizUploader({ onQuizDataChange }: QuizUploaderProps) {
+export function QuizUploader({ onQuizDataChange, onParsingChange }: QuizUploaderProps) {
     const [rawText, setRawText] = useState('');
     const [parsedQuestions, setParsedQuestions] = useState<QuizQuestion[]>([]);
     const [errors, setErrors] = useState<string[]>([]);
@@ -46,30 +47,61 @@ export function QuizUploader({ onQuizDataChange }: QuizUploaderProps) {
         }
     }, [rawText]);
 
-    const handleAiParse = async () => {
-        if (!rawText.trim()) {
-            toast.error("Please paste some text first.");
-            return;
-        }
+    // Debounced Auto-Parse
+    useEffect(() => {
+        if (!rawText.trim()) return;
 
-        setIsAiParsing(true);
-        try {
-            const result = await parseQuizWithAI(rawText);
+        // Skip if already parsing or if we have a valid regex parse
+        // Actually, we want AI to take over if regex fails, or just run AI on paste.
+        // Let's debounce the AI call.
 
-            if (result.success && result.questions) {
-                setParsedQuestions(result.questions);
-                setErrors([]); // Clear errors since AI "fixed" it
-                onChangeRef.current({ questions: result.questions });
-                toast.success("AI successfully parsed the quiz!");
-            } else {
-                toast.error(result.error || "AI failed to parse the content.");
+        const timeoutId = setTimeout(async () => {
+            // Only run AI if standard regex failed or returned no questions
+            // OR if the user explicitly wants AI (implied by pasting raw text)
+            // For "Auto-Magic", we'll try AI if regex returns nothing USEFUL or if it looks messy.
+            // Simplest approach: Always trying AI is expensive. 
+            // Better approach: Try regex first. If 0 questions or errors, try AI.
+            // The prompt implies "instead of a button... make it auto".
+
+            // Let's try standard regex first inside this debounce
+            const regexResult = parseQuizMarkdown(rawText);
+
+            if (regexResult.questions.length > 0 && regexResult.errors.length === 0) {
+                // Standard format works! No need for AI.
+                return;
             }
-        } catch (e) {
-            toast.error("An unexpected error occurred.");
-            console.error(e);
-        } finally {
-            setIsAiParsing(false);
-        }
+
+            // If standard format failed, TRIGGER AI
+            setIsAiParsing(true);
+            onParsingChange?.(true); // Notify parent
+
+            try {
+                const result = await parseQuizWithAI(rawText);
+                if (result.success && result.questions) {
+                    setParsedQuestions(result.questions);
+                    setErrors([]);
+                    onChangeRef.current({ questions: result.questions });
+                    toast.success("AI successfully parsed your content!");
+                } else {
+                    // Don't show error toast on auto-type, it's annoying. 
+                    // Just show standard regex errors if AI fails?
+                    // Or keep silent.
+                    console.log("AI Parse failed/skipped:", result.error);
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setIsAiParsing(false);
+                onParsingChange?.(false);
+            }
+        }, 1500); // 1.5s debounce
+
+        return () => clearTimeout(timeoutId);
+    }, [rawText, onParsingChange]);
+
+    const handleAiParse = async () => {
+        // Kept as fallback/internal if needed, or we can remove.
+        // Logic moved to useEffect.
     };
 
     return (
@@ -80,25 +112,19 @@ export function QuizUploader({ onQuizDataChange }: QuizUploaderProps) {
                         <BrainCircuit className="w-4 h-4 text-violet-400" />
                         Quiz Content
                     </label>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleAiParse}
-                        disabled={isAiParsing || !rawText.trim()}
-                        className="bg-violet-500/10 text-violet-300 border-violet-500/50 hover:bg-violet-500/20 hover:text-violet-200 transition-all"
-                    >
-                        {isAiParsing ? (
-                            <>
-                                <Loader2 className="w-3 h-3 mr-2 animate-spin" />
-                                AI Parsing...
-                            </>
-                        ) : (
-                            <>
-                                <Sparkles className="w-3 h-3 mr-2" />
-                                Magic Parse (AI)
-                            </>
-                        )}
-                    </Button>
+
+                    {/* Status Indicator */}
+                    {isAiParsing ? (
+                        <div className="flex items-center gap-2 text-xs text-violet-300 bg-violet-500/10 px-3 py-1.5 rounded-full border border-violet-500/20">
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            <span>AI Parsing in progress...</span>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2 text-xs text-zinc-500 bg-zinc-800/50 px-3 py-1.5 rounded-full border border-zinc-800">
+                            <Sparkles className="w-3 h-3 text-violet-400" />
+                            <span>Auto-Magic Parse Enabled</span>
+                        </div>
+                    )}
                 </div>
                 <p className="text-xs text-zinc-500">
                     Paste your quiz below (PDF copy-paste, Word doc, or raw text). The AI will auto-format it.
