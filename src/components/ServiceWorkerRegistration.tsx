@@ -79,7 +79,12 @@ export function ServiceWorkerRegistration() {
 
     return (
         <Dialog open={showDialog} onOpenChange={setShowDialog}>
-            <DialogContent className="sm:max-w-md bg-zinc-950 border-zinc-800 text-zinc-100">
+            <DialogContent
+                className="sm:max-w-md bg-zinc-950 border-zinc-800 text-zinc-100"
+                onPointerDownOutside={(e) => e.preventDefault()}
+                onInteractOutside={(e) => e.preventDefault()}
+                onEscapeKeyDown={(e) => e.preventDefault()}
+            >
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-xl text-violet-400">
                         <Download className="w-6 h-6" />
