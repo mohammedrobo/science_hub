@@ -1,11 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
-import { Sparkles, ArrowRight } from 'lucide-react';
 import { LATEST_VERSION } from '@/lib/data/changelog';
-import { Button } from '@/components/ui/button';
 
 export function WhatsNewDialog() {
     const router = useRouter();

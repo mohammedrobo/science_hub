@@ -78,40 +78,46 @@ export async function parseQuizWithAI(rawText: string) {
                 const genAI = new GoogleGenerativeAI(apiKey);
 
                 // === SMART MODEL SELECTION ===
-                // Primary: gemini-3-flash-preview (Selected for speed & high rate limits)
-                // Fallback: gemini-2.0-flash (Reliable backup)
+                // Primary: gemini-2.0-flash (Latest fast model)
+                // Fallback: gemini-1.5-flash (Stable backup)
 
                 let responseText = null;
 
                 try {
-                    // PRIMARY ATTEMPT - gemini-1.5-flash is currently the most stable high-rate-limit model
-                    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+                    // PRIMARY ATTEMPT
+                    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
                     const result = await model.generateContent(prompt);
                     responseText = result.response.text();
                 } catch (primaryError: any) {
-                    console.warn(`[QuizAI] Primary model (1.5-flash) failed: ${primaryError.message}`);
+                    console.warn(`[QuizAI] Primary model (2.0-flash) failed: ${primaryError.message}`);
 
-                    // FALLBACK ATTEMPT - gemini-2.0-flash (Newer, might have lower limits)
+                    // FALLBACK ATTEMPT
                     try {
-                        console.log(`[QuizAI] Switching to fallback model: gemini-2.0-flash`);
-                        const fallbackModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+                        console.log(`[QuizAI] Switching to fallback model: gemini-1.5-flash`);
+                        const fallbackModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
                         const fallbackResult = await fallbackModel.generateContent(prompt);
                         responseText = fallbackResult.response.text();
                     } catch (fallbackError: any) {
-                        console.error(`[QuizAI] Fallback model (2.0-flash) also failed: ${fallbackError.message}`);
+                        console.error(`[QuizAI] Fallback model (1.5-flash) also failed: ${fallbackError.message}`);
 
-                        // Check for 429 in either error
                         if (primaryError.message.includes('429') || fallbackError.message.includes('429')) {
                             throw new Error('AI Usage Limit Exceeded. Please try again in a minute.');
                         }
-
-                        // Throw to outer loop to try next API key
                         throw fallbackError;
                     }
                 }
 
-                // Cleanup: Remove markdown code blocks if the model adds them despite instructions
-                const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+                // Cleanup: Robustly extract JSON array
+                // 1. Remove markdown code blocks
+                let cleanJson = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+                // 2. Find the first '[' and last ']' to ignore any conversational text
+                const firstOpen = cleanJson.indexOf('[');
+                const lastClose = cleanJson.lastIndexOf(']');
+
+                if (firstOpen !== -1 && lastClose !== -1) {
+                    cleanJson = cleanJson.substring(firstOpen, lastClose + 1);
+                }
 
                 let parsedQuestions;
                 try {
