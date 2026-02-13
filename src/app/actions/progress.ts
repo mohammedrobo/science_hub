@@ -2,7 +2,7 @@
 
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { getSession } from '@/app/login/actions';
-import { MOCK_COURSES } from '@/lib/constants'; // Assuming this exists based on page.tsx import
+import { MOCK_COURSES } from '@/lib/data/mocks';
 
 export async function getCourseProgress(): Promise<Record<string, number>> {
     const session = await getSession();

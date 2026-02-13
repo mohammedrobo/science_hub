@@ -3,7 +3,7 @@ import { useState, useEffect, useTransition } from 'react';
 
 import { useSemesterStore } from '@/stores/semester-store';
 import { CourseGrid } from '@/components/courses/CourseGrid';
-import { MOCK_COURSES } from '@/lib/constants';
+import { MOCK_COURSES } from '@/lib/data/mocks';
 import { getCourseProgress } from '@/app/actions/progress';
 
 export default function Dashboard() {

@@ -3,14 +3,17 @@
   "type": "frontend",
   "scope": "codebase",
   "localEndpoint": "http://localhost:3000",
+  "loginUser": "C_C2-36-4da3",
+  "loginPassword": "Satoru123@",
   "executionArgs": {
     "projectName": "science_hub",
     "projectPath": "/home/satoru/projects/science_hub",
     "testIds": [],
-    "additionalInstruction": "Focus on identifying and reporting all runtime errors, server action errors, and UI rendering issues. The user reported issues with GPA calculator not showing and AI chatbot errors.",
+    "additionalInstruction": "",
     "envs": {
       "API_KEY": "sk-user-EP_loACOhwuqgETDD2rkJG_iwEqM782QURnlhBkpn3AFHYOlfN-HfgrQDCPjiQXMvoeMXDJkIpvq6t_tZyEPJSNHnbWRsaokMUXYDsfDxbUB5GZdA6rWF1rE62NjlNWwRgU"
     }
   },
-  "proxy": "http://552f79ed-d8a7-41de-a38f-d2d61fc777a1:hTclfLLektgLGT93HMCni2hNewvOY2Xv@tun.testsprite.com:8080"
+  "serverPort": 40967,
+  "proxy": "http://0a24c2c9-2dac-47fd-a2ab-591d031b69f0:HmKa5NyNEE2G0uC8PWSm6EMBrkm3bhG9@tun.testsprite.com:8080"
 }

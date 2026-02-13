@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getSchedulePageData, updateScheduleEntry, type ScheduleEntry } from '../../actions';
+import { getSchedulePageData, updateScheduleEntry, deleteScheduleEntries, type ScheduleEntry } from '../../actions';
 import { ArrowLeft, Save, Plus, Trash2, Loader2, Home } from 'lucide-react';
 import Link from 'next/link';
 
@@ -30,11 +30,12 @@ export default function ScheduleEditPage() {
     const [saving, setSaving] = useState(false);
     const [isPending, startTransition] = useTransition();
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         async function fetchData() {
             setLoading(true);
-            
+
             // OPTIMIZED: Single call gets schedule + permissions
             const { schedule: scheduleData, canEdit: hasPermission } = await getSchedulePageData(sectionId);
 
@@ -83,6 +84,17 @@ export default function ScheduleEditPage() {
     const removeEntry = (index: number) => {
         setSchedule(prev => {
             const updated = { ...prev };
+            const entryToRemove = updated[activeDay][index];
+
+            // If entry has an ID (exists in DB), mark for deletion
+            if (entryToRemove.id) {
+                setDeletedIds(prevIds => {
+                    const newIds = new Set(prevIds);
+                    newIds.add(entryToRemove.id!);
+                    return newIds;
+                });
+            }
+
             updated[activeDay] = updated[activeDay].filter((_, i) => i !== index);
             return updated;
         });
@@ -93,7 +105,19 @@ export default function ScheduleEditPage() {
         setMessage(null);
 
         try {
-            // Save all entries for the current day
+            // 1. Process deletions first
+            if (deletedIds.size > 0) {
+                const deleteResult = await deleteScheduleEntries(Array.from(deletedIds), sectionId);
+                if (deleteResult.error) {
+                    setMessage({ type: 'error', text: deleteResult.error });
+                    setSaving(false);
+                    return;
+                }
+                // Clear deleted IDs on success
+                setDeletedIds(new Set());
+            }
+
+            // 2. Save all entries for the current day
             for (const entry of schedule[activeDay] || []) {
                 const result = await updateScheduleEntry(entry);
                 if (result.error) {
@@ -194,7 +218,7 @@ export default function ScheduleEditPage() {
                                 <select
                                     value={entry.subject}
                                     onChange={(e) => handleEntryChange(idx, 'subject', e.target.value)}
-                                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white"
+                                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-3 text-white"
                                 >
                                     {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
@@ -204,7 +228,7 @@ export default function ScheduleEditPage() {
                                 <select
                                     value={entry.class_type}
                                     onChange={(e) => handleEntryChange(idx, 'class_type', e.target.value)}
-                                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white"
+                                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-3 text-white"
                                 >
                                     {CLASS_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                                 </select>
@@ -215,7 +239,7 @@ export default function ScheduleEditPage() {
                                     type="text"
                                     value={entry.room || ''}
                                     onChange={(e) => handleEntryChange(idx, 'room', e.target.value)}
-                                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white"
+                                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-3 text-white"
                                     placeholder="e.g., C104"
                                 />
                             </div>
@@ -226,7 +250,7 @@ export default function ScheduleEditPage() {
                                         type="text"
                                         value={entry.time_start || ''}
                                         onChange={(e) => handleEntryChange(idx, 'time_start', e.target.value)}
-                                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white"
+                                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-3 text-white"
                                         placeholder="8"
                                     />
                                 </div>
@@ -236,15 +260,16 @@ export default function ScheduleEditPage() {
                                         type="text"
                                         value={entry.time_end || ''}
                                         onChange={(e) => handleEntryChange(idx, 'time_end', e.target.value)}
-                                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white"
+                                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-3 text-white"
                                         placeholder="10"
                                     />
                                 </div>
                                 <button
                                     onClick={() => removeEntry(idx)}
-                                    className="self-end p-2 text-red-400 hover:bg-red-600/20 rounded-lg transition-colors"
+                                    className="self-end p-3 text-red-400 hover:bg-red-600/20 rounded-lg transition-colors ml-2"
+                                    title="Remove Class"
                                 >
-                                    <Trash2 size={20} />
+                                    <Trash2 size={22} />
                                 </button>
                             </div>
                         </div>

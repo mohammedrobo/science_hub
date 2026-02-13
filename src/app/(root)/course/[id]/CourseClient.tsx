@@ -1,6 +1,7 @@
 'use client';
 
-import { MOCK_COURSES, COURSE_SUBSECTIONS } from '@/lib/constants';
+import { COURSE_SUBSECTIONS } from '@/lib/constants';
+import { MOCK_COURSES } from '@/lib/data/mocks';
 import { useLessonStore } from '@/lib/store/lesson-store';
 import { useEffect } from 'react';
 import {

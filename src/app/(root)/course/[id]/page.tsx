@@ -1,5 +1,5 @@
 import { getCourseContent, getCourseProgress } from './actions';
-import { MOCK_COURSES } from '@/lib/constants';
+import { MOCK_COURSES } from '@/lib/data/mocks';
 import CourseClient from './CourseClient';
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';

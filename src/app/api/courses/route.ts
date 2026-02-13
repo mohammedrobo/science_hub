@@ -1,39 +1,35 @@
 import { NextResponse } from 'next/server';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase/client';
-import { MOCK_COURSES } from '@/lib/constants';
+import { createClient } from '@/lib/supabase/server';
+import { MOCK_COURSES } from '@/lib/data/mocks';
 
 export const dynamic = 'force-dynamic';
 
 // GET /api/courses
 export async function GET(request: Request) {
+    const { searchParams } = new URL(request.url);
+    const semester = searchParams.get('semester');
+
     try {
-        const { searchParams } = new URL(request.url);
-        const semester = searchParams.get('semester');
+        const supabase = await createClient();
+        let query = supabase.from('courses').select('*');
 
-        // Check if Supabase is configured
-        if (isSupabaseConfigured()) {
-            let query = supabase.from('courses').select('*');
+        if (semester) {
+            query = query.eq('semester', parseInt(semester));
+        }
 
-            if (semester) {
-                query = query.eq('semester', parseInt(semester));
-            }
+        const { data, error } = await query.order('code');
 
-            const { data, error } = await query.order('code');
-
-            if (error) {
-                console.error('Database error:', error);
-                // Fallback to mock data if DB fails
-                return fetchMockCourses(semester);
-            }
-
-            return NextResponse.json(data);
-        } else {
-            // Return mock data if no DB
+        if (error) {
+            console.error('Database error:', error);
+            // Fallback to mock data if DB fails
             return fetchMockCourses(semester);
         }
+
+        return NextResponse.json(data);
     } catch (error) {
         console.error('API Error:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        // Fallback to mock data if unexpected error
+        return fetchMockCourses(semester);
     }
 }
 

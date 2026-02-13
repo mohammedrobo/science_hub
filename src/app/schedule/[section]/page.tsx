@@ -95,15 +95,15 @@ export default function SchedulePage() {
                         Schedule - Section {sectionId}
                     </h1>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-4">
                         <ScheduleNotificationToggle sectionId={sectionId} />
                         {canEdit && (
                             <Link
                                 href={`/schedule/${sectionId.toLowerCase()}/edit`}
-                                className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 rounded-lg transition-colors"
+                                className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 rounded-lg transition-colors font-medium shadow-lg shadow-violet-500/20"
                             >
-                                <Pencil size={16} />
-                                <span>Edit</span>
+                                <Pencil size={18} />
+                                <span>Edit Schedule</span>
                             </Link>
                         )}
                     </div>

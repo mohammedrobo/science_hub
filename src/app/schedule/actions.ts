@@ -255,6 +255,35 @@ export async function updateScheduleEntry(entry: ScheduleEntry) {
     return { success: true };
 }
 
+// Delete schedule entries (leaders only)
+export async function deleteScheduleEntries(ids: string[], sectionId: string) {
+    if (!ids.length) return { success: true };
+
+    const session = await getSession();
+    if (!session) return { error: 'Not authenticated' };
+
+    // Check if user can edit this section
+    const canEdit = await isLeaderOfSection(sectionId);
+    if (!canEdit) {
+        return { error: 'You do not have permission to delete entries from this schedule' };
+    }
+
+    const supabase = await createServiceRoleClient();
+
+    const { error } = await supabase
+        .from('schedule_entries')
+        .delete()
+        .in('id', ids);
+
+    if (error) {
+        console.error('Error deleting schedule entries:', error);
+        return { error: error.message };
+    }
+
+    revalidatePath(`/schedule/${sectionId}`);
+    return { success: true };
+}
+
 // Get all sections
 export async function getAllSections() {
     const supabase = await createServiceRoleClient();

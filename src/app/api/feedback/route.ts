@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
-import { createClient } from '@supabase/supabase-js';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 import { rateLimit } from '@/lib/rate-limit';
-
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 // Rate limit: 5 submissions per hour per user
 const feedbackLimiter = rateLimit({
@@ -23,14 +18,16 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
         }
 
+        const supabase = await createServiceRoleClient();
+
         // Rate limiting
         const rateLimitKey = `feedback_${session.username}`;
         const { success, remaining } = await feedbackLimiter.check(rateLimitKey);
-        
+
         if (!success) {
             return NextResponse.json(
                 { error: 'Too many submissions. Please wait before submitting again.' },
-                { 
+                {
                     status: 429,
                     headers: { 'X-RateLimit-Remaining': remaining.toString() }
                 }
@@ -131,6 +128,7 @@ export async function GET(request: NextRequest) {
         }
 
         const isAdmin = session.role === 'admin';
+        const supabase = await createServiceRoleClient();
         const { searchParams } = new URL(request.url);
         const status = searchParams.get('status');
         const type = searchParams.get('type');

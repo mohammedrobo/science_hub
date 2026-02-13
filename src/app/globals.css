@@ -221,40 +221,113 @@
 /* Animation utility classes */
 /* Animation utility classes - Accelerated for performance */
 .animate-accordion-down {
-  animation: accordion-down 0.1s ease-out;
+  animation: accordion-down 0.2s ease-out;
 }
 
 .animate-accordion-up {
-  animation: accordion-up 0.1s ease-out;
+  animation: accordion-up 0.2s ease-out;
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.1s ease-out;
+  animation: fadeIn 0.3s ease-out forwards;
 }
 
 .animate-slide-up {
-  animation: slideUp 0.1s ease-out;
+  animation: slideUp 0.4s ease-out forwards;
 }
 
 .animate-slide-down {
-  animation: slideDown 0.1s ease-out;
+  animation: slideDown 0.3s ease-out forwards;
 }
 
 .animate-scale-in {
-  /* Nearly instant scale in */
-  animation: scaleIn 0.05s ease-out;
+  animation: scaleIn 0.2s ease-out forwards;
+}
+
+/* Stagger delays for list items */
+.delay-100 {
+  animation-delay: 100ms;
+}
+
+.delay-200 {
+  animation-delay: 200ms;
+}
+
+.delay-300 {
+  animation-delay: 300ms;
 }
 
 /* Performance utility classes */
 .gpu-accelerated {
   transform: translateZ(0);
-  will-change: transform;
+  will-change: transform, opacity;
   backface-visibility: hidden;
 }
 
 .smooth-scroll {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+}
+
+/* Global Smooth Scroll - Enforced */
+html {
+  scroll-behavior: smooth !important;
+}
+
+/* GPU-accelerated Atomic Animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  will-change: opacity;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  will-change: transform, opacity;
+}
+
+/* Button Active State for better feedback */
+button:active {
+  transform: scale(0.98);
+  transition: transform 0.05s ease-out;
 }
 
 /* Reduce motion for accessibility */

@@ -1,206 +1,87 @@
 {
-    "tech_stack": [
-        "TypeScript",
-        "Next.js 16.1.4",
-        "React 19",
-        "Tailwind CSS 4",
-        "Supabase",
-        "Framer Motion",
-        "Radix UI",
-        "Zod",
-        "React Hook Form",
-        "Zustand",
-        "KaTeX",
-        "Sonner",
-        "bcryptjs"
-    ],
-    "features": [
-        {
-            "name": "Authentication",
-            "description": "User login, logout, password change, session management with cookie-based auth and rate limiting",
-            "files": [
-                "src/app/login/page.tsx",
-                "src/app/login/actions.ts",
-                "src/app/change-password/page.tsx",
-                "src/app/change-password/actions.ts",
-                "src/lib/auth/session.ts",
-                "src/lib/auth/rate-limit.ts",
-                "src/components/auth/LogoutButton.tsx"
-            ]
-        },
-        {
-            "name": "Dashboard/Home",
-            "description": "Main dashboard showing course grid with semester toggle and progress tracking",
-            "files": [
-                "src/app/(root)/page.tsx",
-                "src/app/(root)/layout.tsx",
-                "src/components/courses/CourseGrid.tsx",
-                "src/components/courses/CourseCard.tsx",
-                "src/components/layout/SemesterToggle.tsx"
-            ]
-        },
-        {
-            "name": "Course Viewer",
-            "description": "Course detail page with video player, lessons accordion, PDF resources, and quizzes",
-            "files": [
-                "src/app/(root)/course/[id]/page.tsx",
-                "src/app/(root)/course/[id]/CourseClient.tsx",
-                "src/app/(root)/course/[id]/actions.ts",
-                "src/components/courses/VideoPlayer.tsx",
-                "src/components/courses/CompleteButton.tsx"
-            ]
-        },
-        {
-            "name": "Quiz System",
-            "description": "Interactive quiz taking with scoring and progress tracking",
-            "files": [
-                "src/app/(root)/quiz/[id]/page.tsx",
-                "src/app/quiz/actions.ts",
-                "src/lib/quiz-data.ts",
-                "src/lib/quiz-parser.ts"
-            ]
-        },
-        {
-            "name": "AI Chat Assistant",
-            "description": "AI-powered chat assistant (Da Vinci) with message history and streaming responses",
-            "files": [
-                "src/app/(root)/ai/page.tsx",
-                "src/components/ai/AIChat.tsx",
-                "src/components/FloatingDaVinci.tsx",
-                "src/components/FloatingDaVinciWrapper.tsx",
-                "src/app/api/chat/route.ts",
-                "src/app/actions/chat.ts"
-            ]
-        },
-        {
-            "name": "GPA Calculator",
-            "description": "GPA calculation tool for faculty of science credit hour system",
-            "files": [
-                "src/app/(root)/tools/gpa/page.tsx",
-                "src/components/tools/GpaCalculator.tsx"
-            ]
-        },
-        {
-            "name": "Profile Management",
-            "description": "User profile page with avatar upload, stats display, and settings",
-            "files": [
-                "src/app/profile/page.tsx",
-                "src/app/profile/actions.ts",
-                "src/app/profile/ProfilePictureUpload.tsx"
-            ]
-        },
-        {
-            "name": "Leaderboard",
-            "description": "Student ranking leaderboard with XP and gamification",
-            "files": [
-                "src/app/leaderboard/page.tsx",
-                "src/lib/gamification.ts"
-            ]
-        },
-        {
-            "name": "Schedule",
-            "description": "Class schedule viewer and editor for different sections",
-            "files": [
-                "src/app/schedule/page.tsx",
-                "src/app/schedule/[section]/page.tsx",
-                "src/app/schedule/[section]/edit/page.tsx",
-                "src/app/schedule/actions.ts",
-                "src/components/schedule/ClassNotification.tsx"
-            ]
-        },
-        {
-            "name": "Admin Dashboard",
-            "description": "Admin panel for managing students, lessons, and content uploads",
-            "files": [
-                "src/app/admin/(dashboard)/page.tsx",
-                "src/app/admin/(dashboard)/AddStudentDialog.tsx",
-                "src/app/admin/(dashboard)/SectionSelector.tsx",
-                "src/app/admin/layout.tsx",
-                "src/app/admin/actions.ts"
-            ]
-        },
-        {
-            "name": "Admin Lesson Management",
-            "description": "Lesson CRUD operations and content management for admins",
-            "files": [
-                "src/app/admin/lessons/page.tsx",
-                "src/app/admin/lessons/[id]/edit/page.tsx",
-                "src/app/admin/upload/page.tsx",
-                "src/components/admin/QuizUploader.tsx"
-            ]
-        },
-        {
-            "name": "Guild System",
-            "description": "Guild hall with quest board and chat for leaders/admins",
-            "files": [
-                "src/app/guild/page.tsx",
-                "src/app/guild/actions.ts",
-                "src/components/guild/QuestBoard.tsx",
-                "src/components/guild/QuestCard.tsx",
-                "src/components/guild/ChatBox.tsx",
-                "src/components/guild/EditNicknameDialog.tsx",
-                "src/components/guild/ManageNicknamesDialog.tsx"
-            ]
-        },
-        {
-            "name": "Leader Dashboard",
-            "description": "Leader-specific dashboard for managing sections",
-            "files": [
-                "src/app/leader/page.tsx"
-            ]
-        },
-        {
-            "name": "Notifications",
-            "description": "Notification system with bell icon and admin notification sending",
-            "files": [
-                "src/app/actions/notifications.ts",
-                "src/components/notifications/NotificationBell.tsx",
-                "src/components/notifications/SendNotificationForm.tsx",
-                "src/components/notifications/ManageNotifications.tsx"
-            ]
-        },
-        {
-            "name": "Onboarding",
-            "description": "First-time user onboarding flow",
-            "files": [
-                "src/app/onboarding/page.tsx",
-                "src/app/onboarding/submit-onboarding.ts"
-            ]
-        },
-        {
-            "name": "Layout Components",
-            "description": "Shared layout components including header, navigation, and mobile menu",
-            "files": [
-                "src/components/layout/Header.tsx",
-                "src/components/layout/UserNav.tsx",
-                "src/components/layout/MobileMenu.tsx",
-                "src/components/layout/SemesterToggle.tsx"
-            ]
-        },
-        {
-            "name": "UI Components",
-            "description": "Reusable UI components based on Radix UI primitives",
-            "files": [
-                "src/components/ui/button.tsx",
-                "src/components/ui/card.tsx",
-                "src/components/ui/dialog.tsx",
-                "src/components/ui/accordion.tsx",
-                "src/components/ui/dropdown-menu.tsx",
-                "src/components/ui/sheet.tsx",
-                "src/components/ui/tabs.tsx",
-                "src/components/ui/select.tsx",
-                "src/components/ui/input.tsx",
-                "src/components/ui/textarea.tsx",
-                "src/components/ui/badge.tsx",
-                "src/components/ui/avatar.tsx",
-                "src/components/ui/popover.tsx",
-                "src/components/ui/scroll-area.tsx",
-                "src/components/ui/skeleton.tsx",
-                "src/components/ui/table.tsx",
-                "src/components/ui/form.tsx",
-                "src/components/ui/label.tsx",
-                "src/components/ui/sonner.tsx"
-            ]
-        }
-    ]
+  "tech_stack": [
+    "TypeScript",
+    "Next.js",
+    "React",
+    "Tailwind CSS",
+    "Supabase",
+    "Google Gemini API",
+    "Upstash Redis"
+  ],
+  "features": [
+    {
+      "name": "Schedule System",
+      "description": "View and manage class schedules, including editing for admins/leaders and notifications.",
+      "files": [
+        "src/app/schedule/page.tsx",
+        "src/app/schedule/[section]/page.tsx",
+        "src/app/schedule/[section]/edit/page.tsx",
+        "src/app/schedule/actions.ts",
+        "src/components/schedule/ScheduleNotificationToggle.tsx",
+        "src/components/schedule/UpcomingClassCard.tsx"
+      ]
+    },
+    {
+      "name": "Authentication",
+      "description": "User login and session management via Supabase Auth.",
+      "files": [
+        "src/app/login/page.tsx",
+        "src/app/login/actions.ts",
+        "src/middleware.ts",
+        "src/components/auth/AuthButton.tsx"
+      ]
+    },
+    {
+      "name": "Admin Dashboard",
+      "description": "Dashboard for administrators to manage the application.",
+      "files": [
+        "src/app/admin/page.tsx",
+        "src/app/admin/layout.tsx",
+        "src/components/admin/AdminSidebar.tsx"
+      ]
+    },
+    {
+      "name": "Gamification",
+      "description": "XP system, levels, and leaderboards to engage students.",
+      "files": [
+        "src/components/gamification/XPNotification.tsx",
+        "src/lib/gamification.ts",
+        "src/app/leaderboard/page.tsx"
+      ]
+    },
+    {
+      "name": "Guild System",
+      "description": "Team-based grouping for students with shared activities.",
+      "files": [
+        "src/app/guild/page.tsx",
+        "src/components/guild/GuildCard.tsx",
+        "src/components/guild/CreateGuildModal.tsx"
+      ]
+    },
+    {
+      "name": "Course Content",
+      "description": "Displaying lessons, chapters, and quizzes.",
+      "files": [
+        "src/app/courses/[subject]/page.tsx",
+        "src/app/courses/[subject]/[chapter]/page.tsx",
+        "src/components/courses/LessonCard.tsx"
+      ]
+    },
+    {
+      "name": "AI Companion",
+      "description": "Chatbot interface for student assistance.",
+      "files": [
+        "src/components/ai/ChatInterface.tsx",
+        "src/app/api/chat/route.ts"
+      ]
+    },
+    {
+      "name": "Onboarding",
+      "description": "User onboarding process for new accounts.",
+      "files": [
+        "src/app/onboarding/page.tsx",
+        "src/app/onboarding/start/page.tsx"
+      ]
+    }
+  ]
 }

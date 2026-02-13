@@ -133,7 +133,7 @@ export async function parseQuizWithAI(rawText: string) {
 // ============ CMS OPERATIONS ============
 
 // ... imports
-import { MOCK_COURSES } from '@/lib/constants';
+import { MOCK_COURSES } from '@/lib/data/mocks';
 
 // ... existing code ...
 

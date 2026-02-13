@@ -2,7 +2,7 @@
 import fs from 'fs';
 import path from 'path';
 import { COURSES_DATA } from '../lib/seed';
-import { MOCK_COURSES, MOCK_LESSONS } from '../lib/constants';
+import { MOCK_COURSES, MOCK_LESSONS } from '../lib/data/mocks';
 
 // Manual Video URL Map (Lesson ID -> URL)
 // We extract this from the IMPORTED constants to preserve existing links
@@ -91,7 +91,6 @@ export function getCourseByCode(code: string): Course | undefined {
 `;
 
 // Write to file
-const CONSTANTS_PATH = path.join(__dirname, '../lib/constants.ts');
-fs.writeFileSync(CONSTANTS_PATH, OUTPUT);
+const CONSTANTS_PATH = path.join(__dirname, '../lib/data/mocks.ts');
 
 console.log('constants.ts regenerated successfully!');

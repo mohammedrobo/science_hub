@@ -9,7 +9,7 @@ export interface LessonProgress {
     quizScore: number | null;
 }
 
-import { MOCK_COURSES } from '@/lib/constants';
+import { MOCK_COURSES } from '@/lib/data/mocks';
 
 export async function getCourseContent(courseDescriptor: string) {
     const supabase = await createClient();
