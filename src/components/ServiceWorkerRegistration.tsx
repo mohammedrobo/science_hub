@@ -1,67 +1,50 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Download, RefreshCw } from 'lucide-react';
 
 export function ServiceWorkerRegistration() {
     const [updateAvailable, setUpdateAvailable] = useState(false);
     const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
+    const [showDialog, setShowDialog] = useState(false);
 
     useEffect(() => {
         if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
             return;
         }
 
-        // Register in both dev (for testing) and production
         const registerSW = async () => {
             try {
-                const reg = await navigator.serviceWorker.register('/sw.js', { 
+                const reg = await navigator.serviceWorker.register('/sw.js', {
                     scope: '/',
-                    updateViaCache: 'none' // Always check for updates
+                    updateViaCache: 'none'
                 });
-                
+
                 setRegistration(reg);
-                console.log('[SW] Registered:', reg.scope);
 
-                // Check for updates immediately
-                reg.update();
+                // Check for updates periodically
+                setInterval(() => reg.update(), 60 * 60 * 1000); // Every hour
 
-                // Check for updates every 5 minutes
-                const updateInterval = setInterval(() => {
-                    reg.update();
-                }, 5 * 60 * 1000);
-
-                // Handle update found
                 reg.addEventListener('updatefound', () => {
                     const newWorker = reg.installing;
                     if (!newWorker) return;
 
                     newWorker.addEventListener('statechange', () => {
                         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            // New version available
                             setUpdateAvailable(true);
-                            toast.info('Update available! Click to refresh.', {
-                                duration: 10000,
-                                action: {
-                                    label: 'Update',
-                                    onClick: () => {
-                                        newWorker.postMessage({ type: 'SKIP_WAITING' });
-                                        window.location.reload();
-                                    }
-                                }
-                            });
+                            setShowDialog(true);
                         }
                     });
                 });
 
-                // Handle controller change (new SW took over)
                 navigator.serviceWorker.addEventListener('controllerchange', () => {
                     if (updateAvailable) {
                         window.location.reload();
                     }
                 });
 
-                return () => clearInterval(updateInterval);
             } catch (error) {
                 console.warn('[SW] Registration failed:', error);
             }
@@ -70,16 +53,48 @@ export function ServiceWorkerRegistration() {
         registerSW();
     }, [updateAvailable]);
 
-    // Force update function (can be triggered manually)
-    useEffect(() => {
-        // @ts-ignore - Add to window for debugging
-        window.__updateSW = async () => {
-            if (registration) {
-                await registration.update();
-                toast.info('Checking for updates...');
-            }
-        };
-    }, [registration]);
+    const handleUpdate = () => {
+        if (!registration || !registration.waiting) {
+            window.location.reload(); // Fallback
+            return;
+        }
+        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        // The controllerchange event will trigger the reload
+    };
 
-    return null;
+    return (
+        <Dialog open={showDialog} onOpenChange={setShowDialog}>
+            <DialogContent className="sm:max-w-md bg-zinc-950 border-zinc-800 text-zinc-100">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-xl text-violet-400">
+                        <Download className="w-6 h-6" />
+                        Update Available
+                    </DialogTitle>
+                    <DialogDescription className="text-zinc-400 pt-2">
+                        A new version of Science Hub is ready to install! This update includes new features and performance improvements.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="flex items-center gap-4 py-4 bg-zinc-900/50 p-4 rounded-lg border border-zinc-800">
+                    <div className="bg-violet-500/20 p-3 rounded-full">
+                        <RefreshCw className="w-6 h-6 text-violet-400 animate-spin-slow" />
+                    </div>
+                    <div>
+                        <h4 className="font-semibold text-white">V17.0 Ready</h4>
+                        <p className="text-xs text-zinc-500">Downloads in background</p>
+                    </div>
+                </div>
+
+                <DialogFooter className="gap-2 sm:gap-0">
+                    <Button variant="ghost" onClick={() => setShowDialog(false)} className="text-zinc-400 hover:text-white">
+                        Update Later
+                    </Button>
+                    <Button onClick={handleUpdate} className="bg-violet-600 hover:bg-violet-500 text-white gap-2">
+                        <RefreshCw className="w-4 h-4" />
+                        Update Now
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
 }
