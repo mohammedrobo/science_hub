@@ -84,14 +84,14 @@ export async function parseQuizWithAI(rawText: string) {
                 let responseText = null;
 
                 try {
-                    // PRIMARY ATTEMPT - Flash is faster and has higher limits
-                    const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' });
+                    // PRIMARY ATTEMPT - gemini-1.5-flash is currently the most stable high-rate-limit model
+                    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
                     const result = await model.generateContent(prompt);
                     responseText = result.response.text();
                 } catch (primaryError: any) {
-                    console.warn(`[QuizAI] Primary model (3-flash-preview) failed: ${primaryError.message}`);
+                    console.warn(`[QuizAI] Primary model (1.5-flash) failed: ${primaryError.message}`);
 
-                    // FALLBACK ATTEMPT
+                    // FALLBACK ATTEMPT - gemini-2.0-flash (Newer, might have lower limits)
                     try {
                         console.log(`[QuizAI] Switching to fallback model: gemini-2.0-flash`);
                         const fallbackModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
@@ -99,6 +99,12 @@ export async function parseQuizWithAI(rawText: string) {
                         responseText = fallbackResult.response.text();
                     } catch (fallbackError: any) {
                         console.error(`[QuizAI] Fallback model (2.0-flash) also failed: ${fallbackError.message}`);
+
+                        // Check for 429 in either error
+                        if (primaryError.message.includes('429') || fallbackError.message.includes('429')) {
+                            throw new Error('AI Usage Limit Exceeded. Please try again in a minute.');
+                        }
+
                         // Throw to outer loop to try next API key
                         throw fallbackError;
                     }
