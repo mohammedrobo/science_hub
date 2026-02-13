@@ -1,0 +1,59 @@
+import { createServiceRoleClient } from '@/lib/supabase/server';
+import { headers } from 'next/headers';
+
+export type ActionType =
+    | 'LOGIN'
+    | 'LOGIN_FAILED'
+    | 'LOGOUT'
+    | 'PROFILE_UPDATE'
+    | 'QUIZ_ATTEMPT'
+    | 'QUIZ_SUBMIT'
+    | 'LESSON_VIEW'
+    | 'REPORT_SUBMITTED'
+    | 'ADMIN_ACTION'
+    | 'PAGE_VIEW';
+
+interface LogEntry {
+    action: ActionType;
+    username: string; // We log the username explicitly in case the user ID changes or is deleted
+    userId?: string;
+    details?: Record<string, any>;
+    severity?: 'INFO' | 'WARNING' | 'CRITICAL';
+}
+
+/**
+ * Logs a user action to the activity_logs table.
+ * Uses Service Role to bypass potential RLS issues (though RLS allows insert).
+ * Fire-and-forget: does not block the main threat.
+ */
+export async function logActivity(entry: LogEntry) {
+    try {
+        const supabase = await createServiceRoleClient();
+        const headersList = await headers();
+
+        // Try to get IP address from various headers
+        const ip = headersList.get('x-forwarded-for')?.split(',')[0] ||
+            headersList.get('x-real-ip') ||
+            'unknown';
+
+        const userAgent = headersList.get('user-agent') || 'unknown';
+
+        // Fire and forget - don't await the result to avoid slowing down the user
+        // But we catch errors to avoid crashing
+        supabase.from('activity_logs').insert({
+            user_id: entry.userId,
+            username: entry.username,
+            action_type: entry.action,
+            details: entry.details || {},
+            ip_address: ip,
+            user_agent: userAgent,
+        }).then(({ error }) => {
+            if (error) {
+                console.error('[SafetyLogger] Failed to write log:', error);
+            }
+        });
+
+    } catch (error) {
+        console.error('[SafetyLogger] Critial error:', error);
+    }
+}

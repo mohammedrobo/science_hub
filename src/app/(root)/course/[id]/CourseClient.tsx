@@ -26,6 +26,8 @@ interface CourseClientProps {
     initialProgress: Record<string, { score: number }>;
 }
 
+import { logLessonView } from '@/app/tracking/actions';
+
 export default function CourseClient({ id, course, initialLessons, initialProgress }: CourseClientProps) {
     // State
     const [lessons] = useState<Lesson[]>(initialLessons);
@@ -47,6 +49,9 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                 pdfUrl: currentLesson.pdf_url,
                 videoUrl: currentLesson.video_url || (currentLesson.video_parts?.[0]?.url || null)
             });
+
+            // Log the view
+            logLessonView(currentLesson.id, currentLesson.title, course.code);
         }
     }, [currentLesson, course.code, setLessonContext]);
 

@@ -3,6 +3,7 @@
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { getSession } from '@/app/login/actions';
 import { MOCK_COURSES } from '@/lib/data/mocks';
+import { logActivity } from '@/lib/safety/logger';
 
 export async function getCourseProgress(): Promise<Record<string, number>> {
     const session = await getSession();
@@ -179,6 +180,19 @@ export async function submitQuizResult(quizId: string, percentage: number) {
             p_xp: xpToAward
         });
     }
+
+    // Log Activity
+    await logActivity({
+        action: 'QUIZ_SUBMIT',
+        username: session.username,
+        details: {
+            quizId,
+            score: percentage,
+            xpEarned: xpToAward,
+            grade,
+            label
+        }
+    });
 
     return { success: true, xpEarned: xpToAward, message: `Quiz Complete! Grade: ${grade} (${label})` };
 }

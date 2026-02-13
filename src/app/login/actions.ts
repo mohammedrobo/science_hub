@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { logActivity } from '@/lib/safety/logger';
 import {
     createSession,
     getSession as getSecureSession,
@@ -27,7 +28,7 @@ function parseDeviceInfo(userAgent: string): {
     isMobile: boolean;
 } {
     const ua = userAgent.toLowerCase();
-    
+
     // Detect browser
     let browser = 'Unknown';
     if (ua.includes('firefox')) browser = 'Firefox';
@@ -133,7 +134,7 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
 
     // Save token + device info to DB (invalidates other sessions)
     try {
-        await supabase.from('allowed_users').update({ 
+        await supabase.from('allowed_users').update({
             session_token: sessionToken,
             device_info: deviceInfo,
             last_login_at: new Date().toISOString(),
@@ -158,12 +159,15 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     }
 
     // Log successful login
-    await logSecurityEvent({
-        type: 'LOGIN_SUCCESS',
+    await logActivity({
+        action: 'LOGIN',
         username: user.username,
-        ip,
-        userAgent,
-        details: `Role: ${user.access_role}, Device: ${deviceInfo.device || 'Unknown'}`
+        userId: user.id || undefined, // allowed_users might not have UUID in strict type, but usually does in Supabase
+        details: {
+            role: user.access_role,
+            device: deviceInfo.device,
+            ip: ip
+        }
     });
 
     await createSession({
@@ -193,6 +197,18 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
 }
 
 export async function signout() {
+    // Get session before destroying it to log who is logging out
+    const session = await getSecureSession();
+    if (session) {
+        await logActivity({
+            action: 'LOGOUT',
+            username: session.username,
+            details: {
+                role: session.role
+            }
+        });
+    }
+
     await destroySession();
     revalidatePath('/', 'layout');
     redirect('/login');

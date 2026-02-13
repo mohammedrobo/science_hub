@@ -51,6 +51,7 @@ import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistratio
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { FeedbackButton } from "@/components/FeedbackButton";
 import { WhatsNewDialog } from "@/components/WhatsNewDialog";
+import { PageTracker } from "@/components/safety/PageTracker";
 
 export default function RootLayout({
   children,
@@ -64,6 +65,7 @@ export default function RootLayout({
         suppressHydrationWarning={true}
       >
         <div className="relative w-full overflow-x-hidden min-h-[100dvh] flex flex-col">
+          <PageTracker />
           {children}
 
           <FeedbackButton />

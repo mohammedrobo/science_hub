@@ -3,6 +3,7 @@
 import { getSession } from '@/app/login/actions';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { logActivity } from '@/lib/safety/logger';
 
 export async function updateProfilePicture(formData: FormData) {
     const session = await getSession();
@@ -72,5 +73,13 @@ export async function updateProfilePicture(formData: FormData) {
     }
 
     revalidatePath('/profile');
+
+    // Log Activity
+    await logActivity({
+        action: 'PROFILE_UPDATE',
+        username: session.username,
+        details: { type: 'picture_update', url: publicUrl }
+    });
+
     return { success: true, url: publicUrl };
 }

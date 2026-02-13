@@ -17,7 +17,16 @@ export function InstallPrompt() {
         }
 
         // Check for iOS
-        const isIosDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+        const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+        const isIosDevice = /iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream;
+        const isAndroid = /android/i.test(userAgent);
+        const isMobile = isIosDevice || isAndroid;
+
+        // If NOT mobile/tablet, do not show
+        if (!isMobile) {
+            return;
+        }
+
         setIsIOS(isIosDevice);
 
         if (isIosDevice) {
@@ -32,6 +41,9 @@ export function InstallPrompt() {
 
         const handler = (e: any) => {
             e.preventDefault();
+            // Double check strict mobile if the event fires on desktop
+            if (!isMobile) return;
+
             setDeferredPrompt(e);
             setIsVisible(true);
         };

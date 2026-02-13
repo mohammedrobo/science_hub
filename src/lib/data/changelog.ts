@@ -8,7 +8,7 @@ export interface ChangeLogEntry {
 export const CHANGELOG: ChangeLogEntry[] = [
     {
         version: '1.2.0',
-        date: new Date().toISOString().split('T')[0],
+        date: '2024-02-13',
         title: 'Performance & Offline Update',
         changes: [
             '🚀 3x Faster Page Loads: Removed heavy animations and optimized resources.',
