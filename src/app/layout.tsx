@@ -70,7 +70,7 @@ export default function RootLayout({
           <Toaster />
         </div>
         <ServiceWorkerRegistration />
-        <ServiceWorkerRegistration />
+
         <InstallPrompt />
         <WhatsNewDialog />
       </body>

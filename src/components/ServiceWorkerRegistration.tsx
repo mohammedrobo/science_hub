@@ -25,25 +25,39 @@ export function ServiceWorkerRegistration() {
                 setRegistration(reg);
 
                 // Check for updates periodically
-                setInterval(() => reg.update(), 60 * 60 * 1000); // Every hour
+                const intervalId = setInterval(() => {
+                    reg.update();
+                }, 60 * 60 * 1000); // Every hour
 
+                // Listen for new workers installing
                 reg.addEventListener('updatefound', () => {
                     const newWorker = reg.installing;
                     if (!newWorker) return;
 
                     newWorker.addEventListener('statechange', () => {
+                        // If we have a controller (meaning it's an update, not first install)
+                        // AND the new worker is installed (waiting)
                         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+
+                            // CHECK SNOOZE
+                            const snoozeUntil = localStorage.getItem('update_snooze_until');
+                            if (snoozeUntil && Date.now() < parseInt(snoozeUntil)) {
+                                console.log('[SW] Update snoozed until', new Date(parseInt(snoozeUntil)));
+                                return;
+                            }
+
                             setUpdateAvailable(true);
                             setShowDialog(true);
                         }
                     });
                 });
 
+                // Force reload when the new worker takes over
                 navigator.serviceWorker.addEventListener('controllerchange', () => {
-                    if (updateAvailable) {
-                        window.location.reload();
-                    }
+                    window.location.reload();
                 });
+
+                return () => clearInterval(intervalId);
 
             } catch (error) {
                 console.warn('[SW] Registration failed:', error);
@@ -51,7 +65,8 @@ export function ServiceWorkerRegistration() {
         };
 
         registerSW();
-    }, [updateAvailable]);
+        // Dependency array should be empty to run once on mount
+    }, []);
 
     const handleUpdate = () => {
         if (!registration || !registration.waiting) {
