@@ -101,18 +101,18 @@ export function QuizUploader({ onQuizDataChange }: QuizUploaderProps) {
                     </Button>
                 </div>
                 <p className="text-xs text-zinc-500">
-                    Paste your quiz below. The system will try to auto-detect the format. If it fails, click "Magic Parse".
+                    Paste your quiz below (PDF copy-paste, Word doc, or raw text). The AI will auto-format it.
                 </p>
                 <Textarea
                     value={rawText}
                     onChange={(e) => setRawText(e.target.value)}
-                    placeholder={`Paste any quiz format here...
+                    placeholder={`Paste quiz text here (PDF copy-paste, Word doc, etc)...
 Example:
-1. What is the capital of France?
-A. London
-B. Paris
-C. Berlin
-...`}
+1. What is the speed of light?
+a) 300,000 km/s
+b) 150,000 km/s
+...
+Answer: A`}
                     className="bg-zinc-900 border-zinc-800 text-zinc-100 font-mono text-sm h-64 focus:ring-violet-500/50"
                 />
             </div>

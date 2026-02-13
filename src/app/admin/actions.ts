@@ -44,26 +44,31 @@ export async function parseQuizWithAI(rawText: string) {
         let lastError = null;
 
         const prompt = `
-            You are a Quiz Parsing Engine. Your job is to extract quiz questions from the user's raw text and format them as strict JSON.
-            
+            You are an advanced Quiz Extraction Engine. Your goal is to extract exam questions from raw, messy, or unstructured text and convert them into strict JSON.
+
             INPUT TEXT:
             """
             ${rawText}
             """
 
             INSTRUCTIONS:
-            1. Extract all questions, options, and the correct answer.
-            2. If no correct answer is explicitly marked, try to infer it from an "Answer Key" section. If you cannot find any answer, set "correctAnswerIndex" to -1.
-            3. For MATH/PHYSICS formulas: Use strict LaTeX formatting enclosed in single dollar signs for inline math (e.g. $E=mc^2$) and double dollar signs for block math (e.g. $$ \int x dx $$).
-            4. Return ONLY a valid JSON array of objects. No markdown formatting (\`\`\`json), no preamble.
-            
-            REQUIRED JSON FORMAT:
+            1. **Input Handling**: The input may be a raw copy-paste from a PDF, Word doc, or website. It might contain page numbers ("Page 1 of 5"), headers/footers, watermarks, or random line breaks. **IGNORE all such noise.**
+            2. **Question Recognition**: Identify questions even if they don't start with numbers (e.g., just text followed by options).
+            3. **Option Recognition**: Identify options even if they lack "A/B/C" labels. (e.g., a list of 4 short lines below a question).
+            4. **Correct Answer**: 
+               - Look for explicit markers like "(Correct)", "*", or bold text.
+               - Look for an "Answer Key" section at the end.
+               - If NO answer is found, set "correctAnswerIndex" to -1.
+            5. **Math/Physics**: Detect formulas and convert them to LaTeX using $...$ for inline and $$...$$ for block.
+            6. **Output Format**: Return ONLY a valid JSON array. Do not wrap in markdown code blocks.
+
+            REQUIRED JSON STRUCTURE:
             [
               {
                 "id": 1,
-                "text": "Question text here...",
-                "options": ["Option A", "Option B", "Option C", "Option D"],
-                "correctAnswerIndex": 0 // 0 for A, 1 for B, etc.
+                "text": "The question text, cleaned of typos/extra spaces...",
+                "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+                "correctAnswerIndex": 0 // Index of the correct option (0-3). -1 if unknown.
               }
             ]
         `;

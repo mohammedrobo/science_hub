@@ -1,4 +1,4 @@
-const CACHE_NAME = 'science-hub-v11';
+const CACHE_NAME = 'science-hub-v1770954664263';
 const PRECACHE_ASSETS = [
     '/',
     '/icon.png',
@@ -22,7 +22,7 @@ const MAX_IMAGE_ENTRIES = 100;
 
 self.addEventListener('push', (event) => {
     console.log('[SW] Push received:', event);
-    
+
     if (!event.data) {
         console.log('[SW] No data in push');
         return;
@@ -64,7 +64,7 @@ self.addEventListener('notificationclick', (event) => {
 
     // Open or focus the app
     const urlToOpen = event.notification.data?.url || '/schedule';
-    
+
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true })
             .then(clientList => {
@@ -264,7 +264,7 @@ async function syncFeedback() {
     try {
         const cache = await caches.open('pending-feedback');
         const requests = await cache.keys();
-        
+
         for (const request of requests) {
             const response = await cache.match(request);
             if (response) {

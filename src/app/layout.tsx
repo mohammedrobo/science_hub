@@ -48,7 +48,9 @@ export const viewport: Viewport = {
 
 import { Toaster } from "@/components/ui/sonner";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import { FeedbackButton } from "@/components/FeedbackButton";
+import { WhatsNewDialog } from "@/components/WhatsNewDialog";
 
 export default function RootLayout({
   children,
@@ -68,6 +70,9 @@ export default function RootLayout({
           <Toaster />
         </div>
         <ServiceWorkerRegistration />
+        <ServiceWorkerRegistration />
+        <InstallPrompt />
+        <WhatsNewDialog />
       </body>
     </html>
   );
