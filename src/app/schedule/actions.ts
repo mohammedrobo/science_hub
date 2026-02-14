@@ -129,7 +129,10 @@ export async function isLeaderOfSection(sectionId: string): Promise<boolean> {
     const username = session.username;
     const role = session.role;
 
-    // Admins can edit any section
+    // Super Admins can edit any section
+    if (role === 'super_admin') return true;
+
+    // Admins can also edit any section
     if (role === 'admin') return true;
 
     // Leaders can only edit their own section
@@ -151,8 +154,8 @@ export async function canAccessSection(sectionId: string): Promise<boolean> {
 
     const role = session.role;
 
-    // Admins can view any section
-    if (role === 'admin') return true;
+    // Super Admins and Admins can view any section
+    if (role === 'super_admin' || role === 'admin') return true;
 
     // Extract user's section from username
     const match = session.username.match(/^[A-D]_([A-D]\d)/i);
@@ -183,14 +186,14 @@ export async function getSchedulePageData(sectionId: string) {
     const userSection = match ? match[1].toUpperCase() : null;
 
     // Check access
-    const canAccess = role === 'admin' || userSection === validSection;
+    const canAccess = role === 'super_admin' || role === 'admin' || userSection === validSection;
     if (!canAccess) {
         return { schedule: {}, canEdit: false, canAccess: false };
     }
 
     // Check edit permission
     let canEdit = false;
-    if (role === 'admin') {
+    if (role === 'super_admin' || role === 'admin') {
         canEdit = true;
     } else if (role === 'leader' && userSection === validSection) {
         canEdit = true;

@@ -21,8 +21,8 @@ async function demoteAdmin() {
     const user = users[0];
     console.log(`Found User: ${user.full_name} (@${user.username}) - Role: ${user.access_role}`);
 
-    if (user.access_role !== 'admin') {
-        console.log("User is not an Admin.");
+    if (user.access_role !== 'admin' && user.access_role !== 'super_admin') {
+        console.log("User is not an Admin or Super Admin.");
         return;
     }
 

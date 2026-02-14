@@ -8,16 +8,16 @@ import { ArrowLeft, Shield, Clock, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { notFound, redirect } from 'next/navigation';
-import { getSession } from '@/app/login/actions';
+import { readSession } from '@/lib/auth/session-read';
 
 interface PageProps {
     params: Promise<{ username: string }>;
 }
 
 export default async function UserAuditPage({ params }: PageProps) {
-    // Auth check — admin only
-    const session = await getSession();
-    if (!session || session.role !== 'admin') redirect('/');
+    // Auth check — super_admin only
+    const session = await readSession();
+    if (!session || session.role !== 'super_admin') redirect('/');
 
     const { username } = await params;
     const decodedUsername = decodeURIComponent(username);
@@ -85,8 +85,8 @@ export default async function UserAuditPage({ params }: PageProps) {
                                     <Badge variant="outline" className="border-zinc-700 text-zinc-400">
                                         XP: {user.total_xp}
                                     </Badge>
-                                    <Badge className={allowedUser?.access_role === 'admin' ? 'bg-red-500/20 text-red-300' : 'bg-blue-500/20 text-blue-300'}>
-                                        {allowedUser?.access_role || 'student'}
+                                    <Badge className={allowedUser?.access_role === 'super_admin' ? 'bg-red-500/20 text-red-300' : allowedUser?.access_role === 'admin' ? 'bg-orange-500/20 text-orange-300' : 'bg-blue-500/20 text-blue-300'}>
+                                        {allowedUser?.access_role === 'super_admin' ? 'Super Admin' : allowedUser?.access_role || 'student'}
                                     </Badge>
                                 </div>
                             </div>

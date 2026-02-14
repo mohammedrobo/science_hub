@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "tsx src/scripts/bump-sw.ts && next build",
+    "build": "node src/scripts/bump-sw.mjs && next build",
     "start": "next start",
     "lint": "eslint",
     "analyze": "ANALYZE=true next build"

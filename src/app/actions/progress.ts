@@ -102,6 +102,13 @@ export async function markContentAsCompleted(contentId: string, contentType: 'le
         return { error: 'Failed to update progress' };
     }
 
+    // Log completion silently
+    logActivity({
+        action: 'LESSON_COMPLETE',
+        username: session.username,
+        details: { contentId, contentType, xpEarned: xp },
+    });
+
     // Award XP
     if (xp > 0) {
         const { error: xpError } = await supabase.rpc('award_xp', {

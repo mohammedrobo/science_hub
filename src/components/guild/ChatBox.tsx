@@ -276,7 +276,7 @@ export function ChatBox({ initialMessages, currentUser, userRole, userMap: initi
                                     </div>
 
                                     {/* Action Menu for Admin deleting others */}
-                                    {!isMe && userRole === 'admin' && (
+                                    {!isMe && userRole === 'super_admin' && (
                                         <div className="opacity-0 group-hover/bubble:opacity-100 transition-opacity">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>

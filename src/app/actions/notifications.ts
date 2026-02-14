@@ -28,8 +28,8 @@ export async function sendNotification(
     const { username, role } = session;
 
     // Permission Check
-    if (role === 'admin') {
-        // Admin can send to anyone (NULL or specific)
+    if (role === 'super_admin' || role === 'admin') {
+        // Admin / Super Admin can send to anyone (NULL, group, or specific section)
     } else if (role === 'leader') {
         // Leader MUST have a target section, and it MUST match their own section
         const userSectionMatch = username.match(/^[A-D]_([A-D]\d)/i);
@@ -49,23 +49,50 @@ export async function sendNotification(
     }
 
     const supabase = await createClient();
-    const { error } = await supabase
-        .from('notifications')
-        .insert({
+    const now = new Date().toISOString();
+
+    // Handle group-level targeting: group_A → insert for A1, A2, A3, A4
+    const groupMatch = targetSection?.match(/^group_([A-D])$/i);
+    if (groupMatch) {
+        const group = groupMatch[1].toUpperCase();
+        const sections = [`${group}1`, `${group}2`, `${group}3`, `${group}4`];
+        const inserts = sections.map(sec => ({
             sender_username: username,
-            target_section: targetSection ? targetSection.toUpperCase() : null,
+            target_section: sec,
             title,
             message,
-            created_at: new Date().toISOString()
-        });
+            created_at: now
+        }));
 
-    if (error) {
-        console.error("Send Notification Error:", error);
-        // Check if table doesn't exist
-        if (error.message?.includes('schema cache') || error.code === '42P01') {
-            return { error: "Notifications table not set up. Run database/schema_notifications.sql" };
+        const { error } = await supabase
+            .from('notifications')
+            .insert(inserts);
+
+        if (error) {
+            console.error("Send Group Notification Error:", error);
+            if (error.message?.includes('schema cache') || error.code === '42P01') {
+                return { error: "Notifications table not set up. Run database/schema_notifications.sql" };
+            }
+            return { error: "Failed to send group notification." };
         }
-        return { error: "Failed to send notification." };
+    } else {
+        const { error } = await supabase
+            .from('notifications')
+            .insert({
+                sender_username: username,
+                target_section: targetSection ? targetSection.toUpperCase() : null,
+                title,
+                message,
+                created_at: now
+            });
+
+        if (error) {
+            console.error("Send Notification Error:", error);
+            if (error.message?.includes('schema cache') || error.code === '42P01') {
+                return { error: "Notifications table not set up. Run database/schema_notifications.sql" };
+            }
+            return { error: "Failed to send notification." };
+        }
     }
 
     revalidatePath('/');
@@ -97,11 +124,11 @@ export async function getNotifications() {
             .order('created_at', { ascending: false })
             .limit(50);
 
-    // Admin sees ALL notifications to review them
+    // Admin / Super Admin sees ALL notifications to review them
     // Leader sees their section + global
     // Student sees their section + global
-    if (role === 'admin') {
-        // No filter - admin sees everything
+    if (role === 'super_admin' || role === 'admin') {
+        // No filter - admin/super_admin sees everything
     } else if (userSection) {
         query = query.or(`target_section.is.null,target_section.eq.${userSection}`);
     } else {
@@ -166,8 +193,8 @@ export async function deleteNotification(id: string) {
     }
 
     // Permission Check
-    if (role === 'admin') {
-        // Admin can delete anything
+    if (role === 'super_admin' || role === 'admin') {
+        // Admin / Super Admin can delete anything
     } else if (role === 'leader') {
         // Leader can only delete their own
         if (notification.sender_username !== username) {
@@ -211,8 +238,8 @@ export async function updateNotification(id: string, title: string, message: str
     }
 
     // Permission Check
-    if (role === 'admin') {
-        // Admin can edit anything
+    if (role === 'super_admin' || role === 'admin') {
+        // Admin / Super Admin can edit anything
     } else if (role === 'leader') {
         if (notification.sender_username !== username) {
             return { error: "You can only edit your own notifications." };
@@ -242,14 +269,14 @@ export async function clearAllNotifications() {
 
     const { username, role } = session;
 
-    if (role !== 'admin' && role !== 'leader') {
+    if (role !== 'super_admin' && role !== 'admin' && role !== 'leader') {
         return { error: "Only admins and leaders can clear notifications." };
     }
 
     // Use service role client to bypass RLS for delete operations
     const supabase = await createServiceRoleClient();
     
-    if (role === 'admin') {
+    if (role === 'super_admin' || role === 'admin') {
         // Admin clears ALL notifications
         const { error } = await supabase
             .from('notifications')
@@ -283,5 +310,5 @@ export async function clearAllNotifications() {
 
     revalidatePath('/');
     revalidatePath('/schedule');
-    return { success: true, message: role === 'admin' ? 'All notifications cleared' : 'Section notifications cleared' };
+    return { success: true, message: (role === 'super_admin' || role === 'admin') ? 'All notifications cleared' : 'Section notifications cleared' };
 }

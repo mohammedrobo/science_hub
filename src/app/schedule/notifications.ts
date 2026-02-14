@@ -235,7 +235,7 @@ export async function sendTestClassNotification(sectionId: string) {
         .eq('id', session.user_id)
         .single();
     
-    if (!user || user.role !== 'admin') {
+    if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
         console.warn(`[SECURITY] Non-admin attempted test notification: ${session.user_id}`);
         return { error: 'Admin access required' };
     }

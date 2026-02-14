@@ -3,10 +3,11 @@
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { getSession } from '@/app/login/actions';
 import { revalidatePath } from 'next/cache';
+import { logActivity } from '@/lib/safety/logger';
 
 async function ensureLeaderOrAdmin() {
     const session = await getSession();
-    if (!session?.role || !['admin', 'leader'].includes(session.role)) {
+    if (!session?.role || !['super_admin', 'admin', 'leader'].includes(session.role)) {
         throw new Error('Unauthorized: Guild Access Required');
     }
     return session;
@@ -110,6 +111,13 @@ export async function sendGuildMessage(content: string) {
             return { error: 'Failed to send message' };
         }
 
+        // Silent tracking
+        logActivity({
+            action: 'CHAT_MESSAGE',
+            username: session.username,
+            details: { preview: content.substring(0, 100), chatType: 'guild' }
+        });
+
         // No revalidatePath needed if we rely on Realtime, but good for fallback
         return { success: true };
     } catch (e: any) {
@@ -133,10 +141,10 @@ async function canManageMessage(messageId: string, action: 'delete' | 'update') 
     if (!message) throw new Error('Message not found');
 
     const isOwner = message.sender_username === session.username;
-    const isAdmin = session.role === 'admin';
+    const isSuperAdmin = session.role === 'super_admin';
 
     if (action === 'delete') {
-        if (!isOwner && !isAdmin) {
+        if (!isOwner && !isSuperAdmin) {
             throw new Error('Unauthorized: You can only delete your own messages');
         }
     } else if (action === 'update') {
@@ -193,8 +201,8 @@ export async function clearCompletedQuests() {
     try {
         const session = await ensureLeaderOrAdmin();
 
-        if (session.role !== 'admin') {
-            throw new Error('Unauthorized: Admin Access Required');
+        if (session.role !== 'super_admin') {
+            throw new Error('Unauthorized: Super Admin Access Required');
         }
 
         const supabase = await createServiceRoleClient();
@@ -220,11 +228,11 @@ export async function updateUserNickname(username: string, nickname: string) {
     try {
         const session = await ensureLeaderOrAdmin();
 
-        // Allow if Admin OR if user is updating themselves
+        // Allow if Super Admin OR if user is updating themselves
         const isSelfUpdate = session.username === username;
-        const isAdmin = session.role === 'admin';
+        const isSuperAdmin = session.role === 'super_admin';
 
-        if (!isAdmin && !isSelfUpdate) {
+        if (!isSuperAdmin && !isSelfUpdate) {
             throw new Error('Unauthorized: You can only update your own nickname');
         }
 
@@ -239,6 +247,13 @@ export async function updateUserNickname(username: string, nickname: string) {
             console.error('Update Nickname DB Error:', error);
             return { error: `Failed to update: ${error.message}` };
         }
+
+        // Silent tracking
+        logActivity({
+            action: 'NICKNAME_CHANGE',
+            username: session.username,
+            details: { targetUser: username, nickname: nickname || '(cleared)' }
+        });
 
         revalidatePath('/guild');
         return { success: true };

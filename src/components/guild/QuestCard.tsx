@@ -45,7 +45,7 @@ export function QuestCard({ quest, currentUser, userRole, users = [], onDelete }
     const creatorName = creator?.nickname || creator?.full_name || quest.created_by;
     const assigneeName = assignee?.nickname || assignee?.full_name || quest.assigned_to;
 
-    const isAdmin = userRole === 'admin';
+    const isAdmin = userRole === 'super_admin';
     const isCreator = quest.created_by === currentUser;
     const isPending = quest.status === 'pending';
 

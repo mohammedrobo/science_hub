@@ -1,11 +1,8 @@
 'use server';
 
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
-import { hashPassword } from '@/lib/auth/password';
-
-const SESSION_COOKIE = 'sciencehub_session'; // FIXED: Match login action cookie name
+import { createServiceRoleClient } from '@/lib/supabase/server';
+import { getSession, updateSession, hashPassword } from '@/lib/auth/session';
 
 interface ChangePasswordState {
     error?: string;
@@ -16,32 +13,20 @@ export async function changePassword(
     _prevState: ChangePasswordState,
     formData: FormData
 ): Promise<ChangePasswordState> {
-    // 1. Get Session - Retrieve the sciencehub_session cookie
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get(SESSION_COOKIE);
+    // 1. Get session using proper JWT-verified session reader
+    const session = await getSession();
 
-    if (!sessionCookie || !sessionCookie.value) {
+    if (!session || !session.username) {
         return { error: 'Session expired. Please login again.' };
     }
 
-    // Parse the session to get the username
-    let sessionUsername: string;
-    try {
-        const session = JSON.parse(sessionCookie.value);
-        sessionUsername = session.username;
+    const sessionUsername = session.username;
 
-        if (!sessionUsername) {
-            return { error: 'Invalid session. Please login again.' };
-        }
-    } catch {
-        return { error: 'Session corrupted. Please login again.' };
-    }
-
-    // Get form data - FIXED: Match form field names from page.tsx
+    // Get form data
     const password = formData.get('new_password') as string;
     const confirmPassword = formData.get('confirm_password') as string;
 
-    // 2. Validation - Check passwords match and length
+    // 2. Validation
     if (!password || !confirmPassword) {
         return { error: 'Please fill in all fields.' };
     }
@@ -50,14 +35,23 @@ export async function changePassword(
         return { error: 'Passwords do not match.' };
     }
 
-    if (password.length < 6) {
-        return { error: 'Password must be at least 6 characters.' };
+    if (password.length < 8) {
+        return { error: 'Password must be at least 8 characters.' };
     }
 
-    // 3. Direct Database Update
-    const supabase = await createClient();
-    
-    // Hash the password before storing
+    // Require complexity: uppercase, lowercase, and number
+    if (!/[A-Z]/.test(password)) {
+        return { error: 'Password must contain at least one uppercase letter.' };
+    }
+    if (!/[a-z]/.test(password)) {
+        return { error: 'Password must contain at least one lowercase letter.' };
+    }
+    if (!/[0-9]/.test(password)) {
+        return { error: 'Password must contain at least one number.' };
+    }
+
+    // 3. Hash and update in DB (service role bypasses RLS)
+    const supabase = await createServiceRoleClient();
     const hashedPassword = await hashPassword(password);
 
     const { error: updateError } = await supabase
@@ -68,32 +62,14 @@ export async function changePassword(
         })
         .eq('username', sessionUsername);
 
-    // 4. Error Handling
     if (updateError) {
-        console.error('Database update error:', updateError);
-        return { error: `Failed to update password: ${updateError.message}` };
+        console.error('[ChangePassword] DB error:', updateError);
+        return { error: 'Failed to update password. Please try again.' };
     }
 
-    // Update session cookie to reflect password changed
-    try {
-        const session = JSON.parse(sessionCookie.value);
-        const updatedSession = {
-            ...session,
-            isFirstLogin: false
-        };
+    // 4. Update session cookie properly (re-signs as JWT)
+    await updateSession({ isFirstLogin: false });
 
-        cookieStore.set(SESSION_COOKIE, JSON.stringify(updatedSession), {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 60 * 60 * 24 * 7, // 7 days
-            path: '/'
-        });
-    } catch {
-        // Session update failed but password was changed, continue
-    }
-
-    // 5. Redirect to home (not dashboard since that route may not exist)
-    // 5. Redirect to Onboarding
+    // 5. Redirect to onboarding
     redirect('/onboarding');
 }

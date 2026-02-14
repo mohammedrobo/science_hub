@@ -27,12 +27,12 @@ export function WatchlistTable() {
     }, []);
 
     const handleUnpin = async (username: string) => {
-        const res = await toggleWatchlist(username);
-        if (res.error) {
-            toast.error(res.error);
-        } else {
+        try {
+            await toggleWatchlist(username);
             toast.success('Removed from watchlist');
             setWatchlist(watchlist.filter(w => w.student_username !== username));
+        } catch {
+            toast.error('Failed to remove from watchlist');
         }
     };
 

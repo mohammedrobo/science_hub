@@ -6,7 +6,7 @@ import { Send, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface SendNotificationFormProps {
-    role: 'admin' | 'leader';
+    role: 'super_admin' | 'admin' | 'leader';
     userSection?: string | null; // Required for leader
 }
 
@@ -22,8 +22,8 @@ export function SendNotificationForm({ role, userSection }: SendNotificationForm
 
         setSending(true);
 
-        const targetSection = role === 'admin'
-            ? (target === 'all' ? null : target) // Admin can pick
+        const targetSection = (role === 'super_admin' || role === 'admin')
+            ? (target === 'all' ? null : target) // Admin/Super Admin can pick
             : userSection; // Leader forces their section
 
         const result = await sendNotification(title, message, targetSection || null);
@@ -48,8 +48,8 @@ export function SendNotificationForm({ role, userSection }: SendNotificationForm
             </h3>
 
             <div className="space-y-3">
-                {/* Target Selector (Admin Only) */}
-                {role === 'admin' && (
+                {/* Target Selector (Admin / Super Admin) */}
+                {(role === 'super_admin' || role === 'admin') && (
                     <div className="space-y-1">
                         <label className="text-xs text-zinc-400">Target Audience</label>
                         <select
@@ -58,25 +58,31 @@ export function SendNotificationForm({ role, userSection }: SendNotificationForm
                             className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white"
                         >
                             <option value="all">Everyone (All Batch)</option>
-                            <optgroup label="Group A">
+                            <optgroup label="Groups">
+                                <option value="group_A">Group A (All A Sections)</option>
+                                <option value="group_B">Group B (All B Sections)</option>
+                                <option value="group_C">Group C (All C Sections)</option>
+                                <option value="group_D">Group D (All D Sections)</option>
+                            </optgroup>
+                            <optgroup label="Group A Sections">
                                 <option value="A1">Section A1</option>
                                 <option value="A2">Section A2</option>
                                 <option value="A3">Section A3</option>
                                 <option value="A4">Section A4</option>
                             </optgroup>
-                            <optgroup label="Group B">
+                            <optgroup label="Group B Sections">
                                 <option value="B1">Section B1</option>
                                 <option value="B2">Section B2</option>
                                 <option value="B3">Section B3</option>
                                 <option value="B4">Section B4</option>
                             </optgroup>
-                            <optgroup label="Group C">
+                            <optgroup label="Group C Sections">
                                 <option value="C1">Section C1</option>
                                 <option value="C2">Section C2</option>
                                 <option value="C3">Section C3</option>
                                 <option value="C4">Section C4</option>
                             </optgroup>
-                            <optgroup label="Group D">
+                            <optgroup label="Group D Sections">
                                 <option value="D1">Section D1</option>
                                 <option value="D2">Section D2</option>
                                 <option value="D3">Section D3</option>

@@ -121,7 +121,7 @@ export async function UserNav() {
                     </Link>
                 </DropdownMenuItem>
 
-                {['admin', 'leader'].includes(session.role) && (
+                {['super_admin', 'admin', 'leader'].includes(session.role) && (
                     <DropdownMenuItem asChild className="focus:bg-zinc-800 focus:text-white cursor-pointer">
                         <Link href="/leader" className="flex items-center">
                             <Shield className="mr-2 h-4 w-4 text-violet-400" />

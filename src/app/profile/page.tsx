@@ -1,4 +1,4 @@
-import { getSession } from '@/app/login/actions';
+import { readSession } from '@/lib/auth/session-read';
 import { getUserStats, getSubjectPerformance, getXPHistory, SubjectPerformance } from '@/lib/gamification';
 import { redirect } from 'next/navigation';
 import { ProfileCharts } from './ProfileCharts';
@@ -39,7 +39,7 @@ function getNextRankXP(rank: string): { nextRank: string; xpRequired: number } {
 }
 
 export default async function ProfilePage() {
-    const session = await getSession();
+    const session = await readSession();
 
     if (!session) {
         redirect('/login');

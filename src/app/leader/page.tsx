@@ -1,4 +1,4 @@
-import { getSession } from '@/app/login/actions';
+import { readSession } from '@/lib/auth/session-read';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -8,8 +8,8 @@ import { ManageNotifications } from '@/components/notifications/ManageNotificati
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default async function LeaderDashboard() {
-    const session = await getSession();
-    if (!session || !['admin', 'leader'].includes(session.role)) {
+    const session = await readSession();
+    if (!session || !['super_admin', 'admin', 'leader'].includes(session.role)) {
         redirect('/');
     }
 

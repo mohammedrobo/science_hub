@@ -1,13 +1,13 @@
 import { Header } from '@/components/layout/Header';
 import { SessionGuard } from '@/components/auth/SessionGuard';
-import { getSession } from '@/app/login/actions';
+import { readSession } from '@/lib/auth/session-read';
 
 export default async function MainLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    const session = await getSession();
+    const session = await readSession();
     
     return (
         <SessionGuard sessionToken={session?.sessionToken}>

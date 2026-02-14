@@ -130,7 +130,7 @@ export function MobileMenu({ isAdmin, session, userNameInitial, profilePictureUr
                         )}
 
                         {/* Leader Link */}
-                        {['admin', 'leader'].includes(userRole || '') && (
+                        {['super_admin', 'admin', 'leader'].includes(userRole || '') && (
                             <Link
                                 href="/leader"
                                 onClick={closeMenu}

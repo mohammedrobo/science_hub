@@ -1,26 +1,29 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useCallback, Suspense } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface SectionSelectorProps {
     sections: string[];
+    currentSection?: string;
 }
 
-export function SectionSelector({ sections }: SectionSelectorProps) {
+function SectionSelectorInner({ sections, currentSection: propSection }: SectionSelectorProps) {
     const router = useRouter();
+    const pathname = usePathname();
     const searchParams = useSearchParams();
-    const currentSection = searchParams.get('section') || '';
+    const currentSection = propSection || searchParams.get('section') || '';
 
-    const handleValueChange = (value: string) => {
-        const params = new URLSearchParams(searchParams);
+    const handleValueChange = useCallback((value: string) => {
+        const params = new URLSearchParams(searchParams.toString());
         if (value) {
             params.set('section', value);
         } else {
             params.delete('section');
         }
-        router.push(`/admin?${params.toString()}`);
-    };
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    }, [router, pathname, searchParams]);
 
     return (
         <div className="w-[200px]">
@@ -37,5 +40,17 @@ export function SectionSelector({ sections }: SectionSelectorProps) {
                 </SelectContent>
             </Select>
         </div>
+    );
+}
+
+export function SectionSelector({ sections, currentSection }: SectionSelectorProps) {
+    return (
+        <Suspense fallback={
+            <div className="w-[200px]">
+                <div className="h-9 bg-zinc-900 border border-zinc-700 rounded-md animate-pulse" />
+            </div>
+        }>
+            <SectionSelectorInner sections={sections} currentSection={currentSection} />
+        </Suspense>
     );
 }

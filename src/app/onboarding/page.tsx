@@ -209,8 +209,8 @@ const ONBOARDING_STEPS = [
                         <Brain className="w-5 h-5 text-violet-400" />
                     </div>
                     <div>
-                        <p className="font-medium text-white">AI Assistant (Da Vinci)</p>
-                        <p className="text-sm text-zinc-400">Ask questions about your courses, get study help 24/7</p>
+                        <p className="font-medium text-white">Interactive Quizzes</p>
+                        <p className="text-sm text-zinc-400">Test your knowledge with quizzes for every course</p>
                     </div>
                 </div>
                 <div className="flex items-start gap-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">

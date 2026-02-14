@@ -37,10 +37,11 @@ export default function ChangePasswordPage() {
                             name="new_password"
                             type="password"
                             required
-                            minLength={6}
+                            minLength={8}
                             placeholder="Enter new secure password"
                             className="bg-black/40 border-zinc-700"
                         />
+                        <p className="text-[11px] text-zinc-500">Min 8 characters · uppercase · lowercase · number</p>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="confirm_password">Confirm Password</Label>
@@ -49,7 +50,7 @@ export default function ChangePasswordPage() {
                             name="confirm_password"
                             type="password"
                             required
-                            minLength={6}
+                            minLength={8}
                             placeholder="Repeat password"
                             className="bg-black/40 border-zinc-700"
                         />

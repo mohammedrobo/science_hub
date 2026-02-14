@@ -9,9 +9,19 @@ export type ActionType =
     | 'QUIZ_ATTEMPT'
     | 'QUIZ_SUBMIT'
     | 'LESSON_VIEW'
+    | 'LESSON_COMPLETE'
     | 'REPORT_SUBMITTED'
     | 'ADMIN_ACTION'
-    | 'PAGE_VIEW';
+    | 'PAGE_VIEW'
+    | 'CHAT_MESSAGE'
+    | 'CHAT_AI'
+    | 'SCHEDULE_VIEW'
+    | 'PASSWORD_CHANGE'
+    | 'PROFILE_PIC_CHANGE'
+    | 'COURSE_VIEW'
+    | 'CONTENT_DOWNLOAD'
+    | 'GUILD_ACTION'
+    | 'NICKNAME_CHANGE';
 
 interface LogEntry {
     action: ActionType;

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth/session';
+import { readSession } from '@/lib/auth/session-read';
 import { createClient } from '@supabase/supabase-js';
 import { getVapidPublicKey, isPushConfigured } from '@/lib/push-notifications';
 
@@ -26,7 +26,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
     try {
         // Verify user session
-        const session = await getSession();
+        const session = await readSession();
         if (!session) {
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
         }
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
 // DELETE - Unsubscribe from push notifications
 export async function DELETE(request: NextRequest) {
     try {
-        const session = await getSession();
+        const session = await readSession();
         if (!session) {
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
         }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, verifySessionWithDB } from '@/lib/auth/session';
+import { readSession, type SessionData } from '@/lib/auth/session-read';
+import { verifySessionWithDB } from '@/lib/auth/session';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -13,15 +14,15 @@ export async function PATCH(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const session = await getSession();
+        const session = await readSession();
         if (!session) {
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
         }
 
-        // Verify admin role with DB check
+        // Verify super_admin role with DB check
         const verified = await verifySessionWithDB();
-        if (!verified || verified.role !== 'admin') {
-            return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+        if (!verified || verified.role !== 'super_admin') {
+            return NextResponse.json({ error: 'Super Admin access required' }, { status: 403 });
         }
 
         const { id } = await params;
@@ -65,14 +66,14 @@ export async function DELETE(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const session = await getSession();
+        const session = await readSession();
         if (!session) {
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
         }
 
         const verified = await verifySessionWithDB();
-        if (!verified || verified.role !== 'admin') {
-            return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+        if (!verified || verified.role !== 'super_admin') {
+            return NextResponse.json({ error: 'Super Admin access required' }, { status: 403 });
         }
 
         const { id } = await params;

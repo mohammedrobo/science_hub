@@ -40,15 +40,15 @@ async function promoteAdmins() {
         const user = users[0];
         console.log(`Found User: ${user.full_name} (@${user.username}) - Role: ${user.access_role}`);
 
-        if (user.access_role === 'admin') {
-            console.log("User is already Admin.");
+        if (user.access_role === 'super_admin') {
+            console.log("User is already Super Admin.");
             continue;
         }
 
         // Update
         const { error: updateError } = await supabase
             .from('allowed_users')
-            .update({ access_role: 'admin' })
+            .update({ access_role: 'super_admin' })
             .eq('username', user.username);
 
         if (updateError) {

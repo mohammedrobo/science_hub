@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Calendar, Users, Lock, ArrowLeft } from 'lucide-react';
-import { getSession } from '@/app/login/actions';
+import { readSession } from '@/lib/auth/session-read';
 
 const SECTIONS = [
     { group: 'A', sections: ['A1', 'A2', 'A3', 'A4'], color: 'from-blue-500 to-blue-600' },
@@ -17,13 +17,13 @@ function getUserSection(username: string): string | null {
 }
 
 export default async function ScheduleIndexPage() {
-    const session = await getSession();
+    const session = await readSession();
 
     if (!session) {
         redirect('/login');
     }
 
-    const isAdmin = session.role === 'admin';
+    const isAdmin = session.role === 'super_admin' || session.role === 'admin';
     const userSection = getUserSection(session.username);
 
     // Non-admins: redirect directly to their section (no grid view)

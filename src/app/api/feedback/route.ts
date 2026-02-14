@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth/session';
+import { readSession } from '@/lib/auth/session-read';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -13,7 +13,7 @@ const feedbackLimiter = rateLimit({
 export async function POST(request: NextRequest) {
     try {
         // Check authentication
-        const session = await getSession();
+        const session = await readSession();
         if (!session) {
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
         }
@@ -122,12 +122,12 @@ export async function POST(request: NextRequest) {
 // GET - Get user's own feedback (or all for admins)
 export async function GET(request: NextRequest) {
     try {
-        const session = await getSession();
+        const session = await readSession();
         if (!session) {
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
         }
 
-        const isAdmin = session.role === 'admin';
+        const isAdmin = session.role === 'super_admin';
         const supabase = await createServiceRoleClient();
         const { searchParams } = new URL(request.url);
         const status = searchParams.get('status');

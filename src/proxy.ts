@@ -2,8 +2,11 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
 const SESSION_COOKIE = 'sciencehub_session';
+if (!process.env.SESSION_SECRET && process.env.NODE_ENV === 'production') {
+    throw new Error('SESSION_SECRET environment variable is required in production');
+}
 const SESSION_SECRET = new TextEncoder().encode(
-    process.env.SESSION_SECRET || 'dev-only-secret-change-in-production-32chars!'
+    process.env.SESSION_SECRET || 'dev-only-secret-do-not-use-in-production-32!'
 );
 
 interface SessionPayload {
@@ -18,23 +21,13 @@ interface SessionPayload {
  * Supports new JWT format and legacy unsigned JSON (during migration).
  */
 async function decodeSession(cookieValue: string): Promise<SessionPayload | null> {
-    // Try JWT first (new signed format)
+    // Only accept signed JWT sessions — unsigned cookies are rejected
     try {
         const { payload } = await jwtVerify(cookieValue, SESSION_SECRET);
         return payload as unknown as SessionPayload;
     } catch {
-        // Not a valid JWT — fall through to legacy
+        return null;
     }
-
-    // Fallback: legacy unsigned JSON
-    try {
-        const parsed = JSON.parse(cookieValue) as SessionPayload;
-        if (parsed.username && parsed.role) return parsed;
-    } catch {
-        // Not valid JSON either
-    }
-
-    return null;
 }
 
 export async function proxy(request: NextRequest) {
@@ -89,8 +82,8 @@ export async function proxy(request: NextRequest) {
         }
 
         // Onboarding check: if user hasn't completed onboarding and is not on /onboarding, redirect there
-        // Skip for admin users since they may not need onboarding
-        if (!session.isFirstLogin && session.hasOnboarded === false && session.role !== 'admin') {
+        // Skip for super_admin/admin users since they may not need onboarding
+        if (!session.isFirstLogin && session.hasOnboarded === false && !['super_admin', 'admin'].includes(session.role)) {
             if (!pathname.startsWith('/onboarding')) {
                 const onboardingUrl = new URL('/onboarding', request.url);
                 return NextResponse.redirect(onboardingUrl);
@@ -104,7 +97,7 @@ export async function proxy(request: NextRequest) {
         }
 
         // Admin/Leader Route Protection
-        if ((pathname.startsWith('/admin') || pathname.startsWith('/leader')) && !['admin', 'leader'].includes(session.role)) {
+        if ((pathname.startsWith('/admin') || pathname.startsWith('/leader')) && !['super_admin', 'admin', 'leader'].includes(session.role)) {
             const homeUrl = new URL('/', request.url);
             return NextResponse.redirect(homeUrl);
         }

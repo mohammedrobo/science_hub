@@ -3,9 +3,22 @@
 import { CHANGELOG } from '@/lib/data/changelog';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle2, Rocket, Calendar, ArrowLeft } from 'lucide-react';
+import { CheckCircle2, Rocket, Calendar, ArrowLeft, Clock, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+
+function timeAgo(dateStr: string): string {
+    const now = new Date();
+    const then = new Date(dateStr);
+    const diff = now.getTime() - then.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(hours / 24);
+    if (hours < 1) return 'Just now';
+    if (hours < 24) return `${hours}h ago`;
+    if (days < 7) return `${days}d ago`;
+    if (days < 30) return `${Math.floor(days / 7)}w ago`;
+    return `${Math.floor(days / 30)}mo ago`;
+}
 
 export default function UpdatesPage() {
     return (
@@ -19,14 +32,19 @@ export default function UpdatesPage() {
                         </Button>
                     </Link>
                     <h1 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">
-                        What's New
+                        What&apos;s New
                     </h1>
+                    <Badge variant="secondary" className="ml-auto bg-zinc-900 text-zinc-400 border-zinc-800 text-[10px]">
+                        {CHANGELOG.length} releases
+                    </Badge>
                 </div>
             </div>
 
             <div className="container mx-auto px-4 py-8 max-w-2xl space-y-8">
                 {CHANGELOG.map((entry, index) => {
                     const isLatest = index === 0;
+                    const deployedAt = entry.deployedAt;
+                    const isRecent = deployedAt && (Date.now() - new Date(deployedAt).getTime()) < 24 * 60 * 60 * 1000;
 
                     return (
                         <div key={entry.version} className="relative pl-6 sm:pl-8">
@@ -40,7 +58,7 @@ export default function UpdatesPage() {
                                 absolute left-0 top-1.5 w-6 h-6 sm:w-8 sm:h-8 rounded-full border-4 border-zinc-950 flex items-center justify-center
                                 ${isLatest ? 'bg-violet-500 shadow-[0_0_15px_rgba(139,92,246,0.5)]' : 'bg-zinc-800'}
                             `}>
-                                {isLatest && <Rocket className="w-3 h-3 sm:w-4 sm:h-4 text-white" />}
+                                {isLatest ? <Rocket className="w-3 h-3 sm:w-4 sm:h-4 text-white" /> : <Zap className="w-2.5 h-2.5 text-zinc-500" />}
                             </div>
 
                             {/* Content Card */}
@@ -51,19 +69,32 @@ export default function UpdatesPage() {
                                 <CardContent className="p-5 sm:p-6 space-y-4">
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                         <div className="space-y-1">
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-2 flex-wrap">
                                                 <h2 className={`text-lg font-bold ${isLatest ? 'text-white' : 'text-zinc-300'}`}>
                                                     v{entry.version}
                                                 </h2>
-                                                {isLatest && (
+                                                {isLatest && isRecent && (
+                                                    <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-300 border-emerald-500/20 text-[10px] px-2 h-5 animate-pulse">
+                                                        🔥 JUST DEPLOYED
+                                                    </Badge>
+                                                )}
+                                                {isLatest && !isRecent && (
                                                     <Badge variant="secondary" className="bg-violet-500/10 text-violet-300 border-violet-500/20 text-[10px] px-2 h-5">
                                                         LATEST
                                                     </Badge>
                                                 )}
                                             </div>
-                                            <div className="flex items-center gap-2 text-xs text-zinc-500">
-                                                <Calendar className="w-3 h-3" />
-                                                <span>{entry.date}</span>
+                                            <div className="flex items-center gap-3 text-xs text-zinc-500">
+                                                <span className="flex items-center gap-1">
+                                                    <Calendar className="w-3 h-3" />
+                                                    {entry.date}
+                                                </span>
+                                                {deployedAt && (
+                                                    <span className="flex items-center gap-1">
+                                                        <Clock className="w-3 h-3" />
+                                                        {timeAgo(deployedAt)}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

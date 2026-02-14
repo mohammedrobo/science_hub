@@ -1,6 +1,6 @@
 # Exclude sensitive credential files from deployment
 secure_data/
-scripts/
+/scripts/
 database/
 
 # Test files

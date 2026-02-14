@@ -188,7 +188,7 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     }
 
     // 6. Check if needs onboarding - redirect to onboarding
-    if (!hasOnboarded && user.access_role !== 'admin') {
+    if (!hasOnboarded && !['admin', 'super_admin'].includes(user.access_role)) {
         redirect('/onboarding');
     }
 
@@ -274,6 +274,13 @@ export async function changePassword(_prevState: ChangePasswordState, formData: 
 
     // Update session
     await updateSession({ isFirstLogin: false });
+
+    // Silent tracking
+    logActivity({
+        action: 'PASSWORD_CHANGE',
+        username: session.username,
+        details: { role: session.role }
+    });
 
     revalidatePath('/', 'layout');
     redirect('/');

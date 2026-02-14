@@ -9,7 +9,7 @@ import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 export async function Header() {
     const session = await getSession();
-    const isAdmin = session?.role === 'admin';
+    const isAdmin = session?.role === 'super_admin' || session?.role === 'admin';
 
     let profilePictureUrl: string | undefined;
     let userNameInitial = "U";
@@ -71,7 +71,7 @@ export async function Header() {
                         <SemesterToggle />
                     </div>
                     <div className="shrink-0">
-                        <NotificationBell userRole={session?.role as 'admin' | 'leader' | 'student'} />
+                        <NotificationBell userRole={session?.role as 'super_admin' | 'admin' | 'leader' | 'student'} />
                     </div>
                     <div className="shrink-0 hidden md:block">
                         <UserNav />

@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server';
 import { cookies, headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
+import { jwtVerify } from 'jose';
 
 const SESSION_COOKIE = 'sciencehub_session';
+if (!process.env.SESSION_SECRET && process.env.NODE_ENV === 'production') {
+    throw new Error('SESSION_SECRET environment variable is required in production');
+}
+const SESSION_SECRET = new TextEncoder().encode(
+    process.env.SESSION_SECRET || 'dev-only-secret-do-not-use-in-production-32!'
+);
 
 // Rate limiting for session checks (in-memory, resets on restart)
 const checkAttempts = new Map<string, { count: number; resetAt: number }>();
@@ -44,7 +51,7 @@ export async function POST(request: Request) {
             }
         }
         
-        // Get session from cookie
+        // Get session from cookie and verify JWT
         const cookieStore = await cookies();
         const sessionCookie = cookieStore.get(SESSION_COOKIE);
         
@@ -52,9 +59,18 @@ export async function POST(request: Request) {
             return NextResponse.json({ valid: false, reason: 'no_session' });
         }
         
-        const session: SessionData = JSON.parse(sessionCookie.value);
+        // Verify JWT signature — only signed sessions accepted
+        let session: SessionData | null = null;
+        try {
+            const { payload } = await jwtVerify(sessionCookie.value, SESSION_SECRET);
+            session = payload as unknown as SessionData;
+        } catch {
+            // Invalid/unsigned cookie — reject
+            cookieStore.delete(SESSION_COOKIE);
+            return NextResponse.json({ valid: false, reason: 'invalid_session' });
+        }
         
-        if (!session.username || !session.sessionToken) {
+        if (!session?.username || !session?.sessionToken) {
             return NextResponse.json({ valid: false, reason: 'invalid_session' });
         }
         

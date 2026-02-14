@@ -67,7 +67,7 @@ export function SafetyStats({ stats, chartData }: SafetyStatsProps) {
                 </CardHeader>
                 <CardContent className="px-2 sm:px-6">
                     <div className="h-[200px] sm:h-[300px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                             <LineChart data={chartData}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#333" />
                                 <XAxis dataKey="date" stroke="#666" fontSize={10} tickLine={false} axisLine={false} />

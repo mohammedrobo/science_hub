@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# sensitive data (plaintext credentials, access keys)
+secure_data/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

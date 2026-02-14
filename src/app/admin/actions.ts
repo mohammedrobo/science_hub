@@ -1,22 +1,32 @@
 'use server';
 
 import { createServiceRoleClient } from '@/lib/supabase/server';
-import { getSession } from '@/app/login/actions';
+import { getSession } from '@/lib/auth/session';
 import { revalidatePath, updateTag } from 'next/cache';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Middleware should block non-admins, but we double-check here for safety.
-async function ensureAdmin() {
+// Super admin = full power (old admin). New admin = limited admin.
+async function ensureSuperAdmin() {
     const session = await getSession();
-    if (session?.role !== 'admin') {
-        throw new Error('Unauthorized: Admin access required');
+    if (session?.role !== 'super_admin') {
+        throw new Error('Unauthorized: Super Admin access required');
     }
+    return session;
 }
 
-// Allow both admin and leader roles for CMS operations
+// Allow super_admin or admin
+async function ensureAnyAdmin() {
+    const session = await getSession();
+    if (!session?.role || !['super_admin', 'admin'].includes(session.role)) {
+        throw new Error('Unauthorized: Admin access required');
+    }
+    return session;
+}
+
+// Allow super_admin, admin, and leader roles for CMS operations
 async function ensureLeaderOrAdmin() {
     const session = await getSession();
-    if (!session?.role || !['admin', 'leader'].includes(session.role)) {
+    if (!session?.role || !['super_admin', 'admin', 'leader'].includes(session.role)) {
         throw new Error('Unauthorized: Leader or Admin access required');
     }
     return session;
@@ -368,8 +378,20 @@ export async function getSignedUploadUrl(path: string) {
 
 export async function deleteUser(username: string) {
     try {
-        await ensureAdmin();
+        const session = await ensureAnyAdmin();
         const supabase = await createServiceRoleClient();
+
+        // Non-super admins can only delete students/leaders
+        if (session.role !== 'super_admin') {
+            const { data: target } = await supabase
+                .from('allowed_users')
+                .select('access_role')
+                .eq('username', username)
+                .single();
+            if (target && (target.access_role === 'admin' || target.access_role === 'super_admin')) {
+                return { error: 'Only Super Admins can delete admin accounts' };
+            }
+        }
 
         // 1. Clean up Guild Data (Avoids FK violations or orphaned data)
         await supabase.from('guild_messages').delete().eq('sender_username', username);
@@ -399,7 +421,7 @@ export async function deleteUser(username: string) {
 }
 
 export async function resetUserProgress(username: string) {
-    await ensureAdmin();
+    await ensureSuperAdmin();
     const supabase = await createServiceRoleClient();
 
     // 1. Wipe progress
@@ -423,7 +445,7 @@ export async function resetUserProgress(username: string) {
 }
 
 export async function removeProfilePicture(username: string) {
-    await ensureAdmin();
+    await ensureSuperAdmin();
     const supabase = await createServiceRoleClient();
 
     const { error } = await supabase
@@ -438,7 +460,7 @@ export async function removeProfilePicture(username: string) {
 }
 
 export async function createUser(data: { username: string; full_name: string; group: string; section: string }) {
-    await ensureAdmin();
+    await ensureAnyAdmin();
     const supabase = await createServiceRoleClient();
 
     const { hashPassword } = await import('@/lib/auth/password');
@@ -474,7 +496,7 @@ export async function createUser(data: { username: string; full_name: string; gr
  * - Clears onboarding status
  */
 export async function resetFullAccount(username: string) {
-    await ensureAdmin();
+    await ensureSuperAdmin();
     const supabase = await createServiceRoleClient();
 
     // 1. Lookup original password from access_keys.json
@@ -534,10 +556,10 @@ export async function resetFullAccount(username: string) {
 
     // 2. Reset user flags and password
 
-    // Check current role to preserve Admin status if needed
+    // Check current role to preserve Admin/Super Admin status if needed
     const { data: currentUser } = await supabase.from('allowed_users').select('access_role').eq('username', username).single();
-    const shouldKeepAdmin = currentUser?.access_role === 'admin';
-    const newRole = shouldKeepAdmin ? 'admin' : 'student';
+    const shouldKeepRole = currentUser?.access_role && ['admin', 'super_admin'].includes(currentUser.access_role);
+    const newRole = shouldKeepRole ? currentUser.access_role : 'student';
 
     const { error: userError } = await supabase
         .from('allowed_users')
@@ -612,15 +634,43 @@ export async function resetFullAccount(username: string) {
 }
 
 
-export async function updateUserRole(username: string, role: 'student' | 'leader' | 'admin') {
-    await ensureAdmin();
-    const supabase = await createServiceRoleClient();
-
-    // Prevent changing own role or other admins to avoid lockout (basic safety)
+export async function updateUserRole(username: string, role: 'student' | 'leader' | 'admin' | 'super_admin') {
     const session = await getSession();
-    if (session?.username === username) {
+    if (!session?.role || !['super_admin', 'admin'].includes(session.role)) {
+        throw new Error('Unauthorized');
+    }
+
+    // Prevent changing own role
+    if (session.username === username) {
         return { error: 'Cannot change your own role' };
     }
+
+    // Admin (limited) can only toggle between student ↔ leader
+    if (session.role === 'admin') {
+        if (!['student', 'leader'].includes(role)) {
+            return { error: 'You can only promote students to leader or demote leaders to student' };
+        }
+        // Admin cannot touch other admins or super_admins
+        const supabase = await createServiceRoleClient();
+        const { data: target } = await supabase
+            .from('allowed_users')
+            .select('access_role')
+            .eq('username', username)
+            .single();
+        if (target && ['admin', 'super_admin'].includes(target.access_role)) {
+            return { error: 'You cannot modify another admin\'s role' };
+        }
+        const { error } = await supabase
+            .from('allowed_users')
+            .update({ access_role: role })
+            .eq('username', username);
+        if (error) return { error: 'Failed to update user role' };
+        revalidatePath('/admin');
+        return { success: true };
+    }
+
+    // Super admin can change any role
+    const supabase = await createServiceRoleClient();
 
     const { error } = await supabase
         .from('allowed_users')

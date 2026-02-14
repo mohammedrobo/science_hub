@@ -223,7 +223,7 @@ export function QuestBoard({ initialQuests, currentUser, userRole, users: initia
 
                     {activeTab === 'completed' && (
                         <div className="space-y-3">
-                            {userRole === 'admin' && completed.length > 0 && (
+                            {userRole === 'super_admin' && completed.length > 0 && (
                                 <Button
                                     variant="destructive"
                                     size="sm"

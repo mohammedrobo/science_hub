@@ -3,12 +3,14 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { useEffect, useState } from 'react';
 import { getStudentProfile, toggleWatchlist, getWatchlistStatus } from '../actions';
-import { Loader2, ShieldAlert, ShieldCheck, Shield, Clock, Calendar, AlertTriangle, Pin } from 'lucide-react';
+import { Loader2, ShieldAlert, ShieldCheck, Shield, Clock, Calendar, AlertTriangle, Pin, ExternalLink } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import { EngagementScoreGauge } from './EngagementScoreGauge';
+import Link from 'next/link';
 
 interface StudentProfileSheetProps {
     username: string | null;
@@ -46,12 +48,8 @@ export function StudentProfileSheet({ username, open, onOpenChange }: StudentPro
         setWatchLoading(true);
         try {
             const res = await toggleWatchlist(username);
-            if (res.error) {
-                toast.error(res.error);
-            } else {
-                setIsWatched(res.watching!);
-                toast.success(res.watching ? 'Added to watchlist' : 'Removed from watchlist');
-            }
+            setIsWatched(res.watching);
+            toast.success(res.watching ? 'Added to watchlist' : 'Removed from watchlist');
         } catch (error) {
             toast.error('Failed to update watchlist');
         } finally {
@@ -75,9 +73,9 @@ export function StudentProfileSheet({ username, open, onOpenChange }: StudentPro
                         <div>
                             <SheetTitle className="text-2xl font-bold flex items-center gap-3">
                                 {username}
-                                {data?.profile?.riskLevel && (
-                                    <Badge variant="outline" className={getRiskColor(data.profile.riskLevel)}>
-                                        {data.profile.riskLevel} Risk
+                                {data?.profile?.engagement && (
+                                    <Badge variant="outline" className={getRiskColor(data.profile.engagement.riskScore > 30 ? 'High' : data.profile.engagement.riskScore > 15 ? 'Medium' : 'Low')}>
+                                        {data.profile.engagement.riskScore > 30 ? 'High' : data.profile.engagement.riskScore > 15 ? 'Medium' : 'Low'} Risk
                                     </Badge>
                                 )}
                             </SheetTitle>
@@ -86,19 +84,27 @@ export function StudentProfileSheet({ username, open, onOpenChange }: StudentPro
                             </SheetDescription>
                         </div>
                         {data && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={watchLoading}
-                                onClick={handleToggleWatchlist}
-                                className={`
-                                    border-zinc-800 
-                                    ${isWatched ? 'bg-primary/20 text-primary border-primary/50' : 'bg-transparent text-zinc-400 hover:text-white'}
-                                `}
-                            >
-                                <Pin className={`w-4 h-4 mr-2 ${isWatched ? 'fill-current' : ''}`} />
-                                {isWatched ? 'Pinned' : 'Pin Profile'}
-                            </Button>
+                            <div className="flex items-center gap-2">
+                                <Link href={`/admin/safety/student/${username}`}>
+                                    <Button variant="outline" size="sm" className="border-zinc-800 bg-transparent text-zinc-400 hover:text-white">
+                                        <ExternalLink className="w-4 h-4 mr-2" />
+                                        Full Profile
+                                    </Button>
+                                </Link>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={watchLoading}
+                                    onClick={handleToggleWatchlist}
+                                    className={`
+                                        border-zinc-800 
+                                        ${isWatched ? 'bg-primary/20 text-primary border-primary/50' : 'bg-transparent text-zinc-400 hover:text-white'}
+                                    `}
+                                >
+                                    <Pin className={`w-4 h-4 mr-2 ${isWatched ? 'fill-current' : ''}`} />
+                                    {isWatched ? 'Pinned' : 'Pin Profile'}
+                                </Button>
+                            </div>
                         )}
                     </div>
                 </SheetHeader>
@@ -109,6 +115,20 @@ export function StudentProfileSheet({ username, open, onOpenChange }: StudentPro
                     </div>
                 ) : data ? (
                     <div className="space-y-8">
+                        {/* Engagement Score */}
+                        {data.profile.engagement && (
+                            <div className="flex items-center gap-4">
+                                <EngagementScoreGauge score={data.profile.engagement.score} size="md" />
+                                <div>
+                                    <div className="text-sm text-zinc-400">Engagement Score</div>
+                                    <div className="text-xl font-bold text-white">{data.profile.engagement.score}/100</div>
+                                    <div className="text-xs text-zinc-500 mt-1">
+                                        {data.profile.engagement.level} · Risk Score {data.profile.engagement.riskScore}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Key Stats Grid */}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="p-4 rounded-lg bg-zinc-900/50 border border-zinc-800">
@@ -116,15 +136,15 @@ export function StudentProfileSheet({ username, open, onOpenChange }: StudentPro
                                     <Shield className="w-4 h-4" /> Reports
                                 </div>
                                 <div className="text-2xl font-bold text-white">
-                                    {data.profile.reportCount}
+                                    {data.reports?.length || 0}
                                 </div>
                             </div>
                             <div className="p-4 rounded-lg bg-zinc-900/50 border border-zinc-800">
                                 <div className="text-sm text-zinc-500 mb-1 flex items-center gap-2">
-                                    <AlertTriangle className="w-4 h-4" /> Risk Score
+                                    <AlertTriangle className="w-4 h-4" /> XP / Rank
                                 </div>
-                                <div className="text-2xl font-bold text-white">
-                                    {data.profile.riskScore}
+                                <div className="text-lg font-bold text-white">
+                                    {data.profile.xp} · {data.profile.rank}
                                 </div>
                             </div>
                             <div className="p-4 rounded-lg bg-zinc-900/50 border border-zinc-800">
@@ -137,10 +157,10 @@ export function StudentProfileSheet({ username, open, onOpenChange }: StudentPro
                             </div>
                             <div className="p-4 rounded-lg bg-zinc-900/50 border border-zinc-800">
                                 <div className="text-sm text-zinc-500 mb-1 flex items-center gap-2">
-                                    <Calendar className="w-4 h-4" /> Joined
+                                    <Calendar className="w-4 h-4" /> Section · Group
                                 </div>
                                 <div className="text-sm font-medium text-white">
-                                    {new Date(data.profile.created_at).toLocaleDateString()}
+                                    {data.profile.original_section || '—'} · {data.profile.original_group || '—'}
                                 </div>
                             </div>
                         </div>

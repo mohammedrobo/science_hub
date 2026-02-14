@@ -1,5 +1,5 @@
 import { createServiceRoleClient } from '@/lib/supabase/server';
-import { getSession } from '@/app/login/actions';
+import { readSession } from '@/lib/auth/session-read';
 import { QuestBoard } from '@/components/guild/QuestBoard';
 import { ChatBox } from '@/components/guild/ChatBox';
 import { Sword, LayoutDashboard, Home } from 'lucide-react';
@@ -9,8 +9,8 @@ import { redirect } from 'next/navigation';
 import { EditNicknameDialog } from '@/components/guild/EditNicknameDialog';
 
 export default async function GuildPage() {
-    const session = await getSession();
-    if (!session || !['admin', 'leader'].includes(session.role)) {
+    const session = await readSession();
+    if (!session || !['super_admin', 'admin', 'leader'].includes(session.role)) {
         redirect('/');
     }
 
@@ -54,8 +54,8 @@ export default async function GuildPage() {
         return acc;
     }, {} as Record<string, any>);
 
-    // Filter users for the Quest Board (only Admins and Leaders)
-    const leaderUsers = Object.values(userMap).filter((u: any) => ['admin', 'leader'].includes(u.access_role));
+    // Filter users for the Quest Board (Super Admins, Admins and Leaders)
+    const leaderUsers = Object.values(userMap).filter((u: any) => ['super_admin', 'admin', 'leader'].includes(u.access_role));
 
     return (
         <div className="min-h-screen bg-zinc-950 text-zinc-100 selection:bg-violet-900/30">

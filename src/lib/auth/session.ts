@@ -5,9 +5,12 @@ import { SignJWT, jwtVerify } from 'jose';
 
 const SESSION_COOKIE = 'sciencehub_session';
 
-// HMAC secret for signing session cookies — falls back to a dev-only key
+// HMAC secret for signing session cookies
+if (!process.env.SESSION_SECRET && process.env.NODE_ENV === 'production') {
+    throw new Error('SESSION_SECRET environment variable is required in production');
+}
 const SESSION_SECRET = new TextEncoder().encode(
-    process.env.SESSION_SECRET || 'dev-only-secret-change-in-production-32chars!'
+    process.env.SESSION_SECRET || 'dev-only-secret-do-not-use-in-production-32!'
 );
 
 // Cache for DB verification to avoid checking on every request
@@ -84,21 +87,8 @@ export async function getSession(): Promise<SessionData | null> {
 
     if (!sessionCookie) return null;
 
-    // Try JWT verification first (new signed format)
-    const session = await verifySignedSession(sessionCookie.value);
-    if (session) return session;
-
-    // Fallback: try legacy unsigned JSON (for existing sessions during migration)
-    try {
-        const legacy = JSON.parse(sessionCookie.value) as SessionData;
-        if (legacy.username && legacy.role) {
-            return legacy;
-        }
-    } catch {
-        // Neither JWT nor JSON — invalid cookie
-    }
-
-    return null;
+    // Verify JWT signature — only signed sessions are accepted
+    return verifySignedSession(sessionCookie.value);
 }
 
 /**

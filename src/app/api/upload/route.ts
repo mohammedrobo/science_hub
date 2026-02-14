@@ -1,5 +1,5 @@
 import { createServiceRoleClient } from '@/lib/supabase/server';
-import { getSession } from '@/app/login/actions';
+import { readSession } from '@/lib/auth/session-read';
 import { NextRequest, NextResponse } from 'next/server';
 
 const ALLOWED_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp']);
@@ -8,7 +8,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 export async function POST(req: NextRequest) {
     try {
         // Use app's session auth instead of broken Supabase Auth
-        const session = await getSession();
+        const session = await readSession();
         if (!session) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
