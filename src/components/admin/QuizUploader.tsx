@@ -20,6 +20,7 @@ export function QuizUploader({ onQuizDataChange, onParsingChange }: QuizUploader
     const [parsedQuestions, setParsedQuestions] = useState<QuizQuestion[]>([]);
     const [errors, setErrors] = useState<string[]>([]);
     const [isAiParsing, setIsAiParsing] = useState(false);
+    const [aiError, setAiError] = useState<string | null>(null);
 
     // Use ref to avoid dependency loop
     const onChangeRef = useRef(onQuizDataChange);
@@ -73,30 +74,36 @@ export function QuizUploader({ onQuizDataChange, onParsingChange }: QuizUploader
 
             // If standard format failed, TRIGGER AI
             setIsAiParsing(true);
+            setAiError(null);
             onParsingChange?.(true); // Notify parent
 
             try {
                 const result = await parseQuizWithAI(rawText);
                 if ('error' in result) {
-                    console.log("AI Parse failed/skipped:", result.error);
-                } else if (result.questions) {
-                    setParsedQuestions(result.questions);
-                    setErrors(result.warnings || []);
-                    onChangeRef.current({ questions: result.questions });
-                    const warningCount = result.warnings?.length || 0;
+                    const errMsg = result.error as string;
+                    console.warn("AI Parse failed:", errMsg);
+                    setAiError(errMsg);
+                    toast.error('AI Parse Failed: ' + errMsg);
+                } else if (result.questions && (result.questions as QuizQuestion[]).length > 0) {
+                    setParsedQuestions(result.questions as QuizQuestion[]);
+                    setErrors((result as { warnings?: string[] }).warnings || []);
+                    onChangeRef.current({ questions: result.questions as QuizQuestion[] });
+                    setAiError(null);
+                    const warningCount = (result as { warnings?: string[] }).warnings?.length || 0;
                     toast.success(
                         warningCount > 0
-                            ? `AI parsed ${result.questions.length} questions (${warningCount} warnings)`
-                            : `AI successfully parsed ${result.questions.length} questions!`
+                            ? `AI parsed ${(result.questions as QuizQuestion[]).length} questions (${warningCount} warnings)`
+                            : `AI successfully parsed ${(result.questions as QuizQuestion[]).length} questions!`
                     );
                 } else {
-                    // Don't show error toast on auto-type, it's annoying. 
-                    // Just show standard regex errors if AI fails?
-                    // Or keep silent.
-                    console.log("AI Parse returned no questions");
+                    setAiError('AI could not extract any questions from the text. Try reformatting.');
+                    toast.error('AI could not extract questions. Try reformatting the text.');
                 }
-            } catch (e) {
-                console.error(e);
+            } catch (e: unknown) {
+                const msg = e instanceof Error ? e.message : 'Unknown error';
+                console.error('AI Parse error:', e);
+                setAiError(msg);
+                toast.error('AI Parse Error: ' + msg);
             } finally {
                 setIsAiParsing(false);
                 onParsingChange?.(false);
@@ -107,8 +114,33 @@ export function QuizUploader({ onQuizDataChange, onParsingChange }: QuizUploader
     }, [rawText, onParsingChange]);
 
     const handleAiParse = async () => {
-        // Kept as fallback/internal if needed, or we can remove.
-        // Logic moved to useEffect.
+        if (!rawText.trim() || isAiParsing) return;
+        setIsAiParsing(true);
+        setAiError(null);
+        onParsingChange?.(true);
+        try {
+            const result = await parseQuizWithAI(rawText);
+            if ('error' in result) {
+                setAiError(result.error as string);
+                toast.error('AI Parse Failed: ' + result.error);
+            } else if (result.questions && (result.questions as QuizQuestion[]).length > 0) {
+                setParsedQuestions(result.questions as QuizQuestion[]);
+                setErrors((result as { warnings?: string[] }).warnings || []);
+                onChangeRef.current({ questions: result.questions as QuizQuestion[] });
+                setAiError(null);
+                toast.success(`AI parsed ${(result.questions as QuizQuestion[]).length} questions!`);
+            } else {
+                setAiError('AI returned no questions.');
+                toast.error('No questions extracted.');
+            }
+        } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : 'Unknown error';
+            setAiError(msg);
+            toast.error('AI error: ' + msg);
+        } finally {
+            setIsAiParsing(false);
+            onParsingChange?.(false);
+        }
     };
 
     return (
@@ -121,17 +153,30 @@ export function QuizUploader({ onQuizDataChange, onParsingChange }: QuizUploader
                     </label>
 
                     {/* Status Indicator */}
-                    {isAiParsing ? (
-                        <div className="flex items-center gap-2 text-xs text-violet-300 bg-violet-500/10 px-3 py-1.5 rounded-full border border-violet-500/20">
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                            <span>AI Parsing in progress...</span>
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-2 text-xs text-zinc-500 bg-zinc-800/50 px-3 py-1.5 rounded-full border border-zinc-800">
-                            <Sparkles className="w-3 h-3 text-violet-400" />
-                            <span>Auto-Magic Parse Enabled</span>
-                        </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                        {isAiParsing ? (
+                            <div className="flex items-center gap-2 text-xs text-violet-300 bg-violet-500/10 px-3 py-1.5 rounded-full border border-violet-500/20">
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                <span>AI Parsing...</span>
+                            </div>
+                        ) : aiError ? (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleAiParse}
+                                className="h-7 text-xs text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 px-3 rounded-full"
+                            >
+                                <Sparkles className="w-3 h-3 mr-1" />
+                                Retry AI Parse
+                            </Button>
+                        ) : (
+                            <div className="flex items-center gap-2 text-xs text-zinc-500 bg-zinc-800/50 px-3 py-1.5 rounded-full border border-zinc-800">
+                                <Sparkles className="w-3 h-3 text-violet-400" />
+                                <span>Auto-Magic Parse</span>
+                            </div>
+                        )}
+                    </div>
                 </div>
                 <p className="text-xs text-zinc-500">
                     Paste the AI-generated markdown exam here (ChatGPT, Gemini, Claude). The parser auto-strips conversational text.
@@ -154,15 +199,50 @@ d) 100,000 km/s`}
                 />
             </div>
 
-            {/* ERROR DISPLAY */}
-            {errors.length > 0 && (
+            {/* AI ERROR DISPLAY */}
+            {aiError && (
+                <div className="p-4 bg-amber-900/20 border border-amber-900/50 rounded-lg space-y-2">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-amber-400 font-medium">
+                            <AlertCircle className="w-4 h-4" />
+                            <span>AI Parse Failed</span>
+                        </div>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleAiParse}
+                            disabled={isAiParsing}
+                            className="h-7 text-xs text-amber-300 hover:text-amber-200"
+                        >
+                            {isAiParsing ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                            Retry
+                        </Button>
+                    </div>
+                    <p className="text-xs text-amber-300/80">{aiError}</p>
+                    <p className="text-xs text-zinc-500">The standard parser will still try to extract questions. You can also reformat your text and paste again.</p>
+                </div>
+            )}
+
+            {/* REGEX PARSING ERRORS */}
+            {errors.length > 0 && !aiError && (
                 <div className="p-4 bg-red-900/20 border border-red-900/50 rounded-lg space-y-2">
                     <div className="flex items-center justify-between text-red-400 font-medium">
                         <div className="flex items-center gap-2">
                             <AlertCircle className="w-4 h-4" />
                             <span>Parsing Issues Detected</span>
                         </div>
-                        <span className="text-xs opacity-75">Try Magic Parse if standard parsing fails</span>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleAiParse}
+                            disabled={isAiParsing}
+                            className="h-7 text-xs text-violet-300 hover:text-violet-200"
+                        >
+                            {isAiParsing ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                            Try AI Parse
+                        </Button>
                     </div>
                     <ul className="list-disc list-inside text-xs text-red-300 space-y-1">
                         {errors.slice(0, 3).map((err, i) => (

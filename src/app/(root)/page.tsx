@@ -35,8 +35,8 @@ export default function Dashboard() {
                     </h1>
 
                     <p className="text-base sm:text-lg text-zinc-400 max-w-3xl leading-relaxed mb-6">
-                        Your complete learning platform for first-year science studies. Access organized course materials,
-                        video lectures, interactive quizzes, and track your academic progress — all in one place.
+                        Your all-in-one learning companion for first-year science. Video lectures, quizzes, 
+                        progress analytics, guild quests, and a ranking system — everything you need to level up.
                     </p>
 
                     {/* Features Grid */}
@@ -48,26 +48,26 @@ export default function Dashboard() {
                             <h3 className="text-sm font-semibold text-zinc-200">Video Lectures</h3>
                             <p className="text-xs text-zinc-500 mt-1">Watch organized lecture videos for each chapter</p>
                         </div>
-                        <div className="bg-zinc-900/50 border border-zinc-800 rounded-sm p-3 sm:p-4 hover:border-violet-800/50 transition-colors duration-200">
-                            <div className="text-violet-400 mb-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></svg>
-                            </div>
-                            <h3 className="text-sm font-semibold text-zinc-200">Interactive Quizzes</h3>
-                            <p className="text-xs text-zinc-500 mt-1">Test your knowledge with chapter quizzes</p>
-                        </div>
-                        <div className="bg-zinc-900/50 border border-zinc-800 rounded-sm p-3 sm:p-4 hover:border-violet-800/50 transition-colors duration-200">
-                            <div className="text-violet-400 mb-2">
+                        <div className="bg-zinc-900/50 border border-zinc-800 rounded-sm p-3 sm:p-4 hover:border-emerald-800/50 transition-colors duration-200">
+                            <div className="text-emerald-400 mb-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><path d="m19 9-5 5-4-4-3 3" /></svg>
                             </div>
-                            <h3 className="text-sm font-semibold text-zinc-200">Progress Tracking</h3>
-                            <p className="text-xs text-zinc-500 mt-1">Track your completion across all courses</p>
+                            <h3 className="text-sm font-semibold text-zinc-200">Progress Dashboard</h3>
+                            <p className="text-xs text-zinc-500 mt-1">Interactive charts, quiz trends, and course analytics</p>
                         </div>
-                        <div className="bg-zinc-900/50 border border-zinc-800 rounded-sm p-3 sm:p-4 hover:border-violet-800/50 transition-colors duration-200">
-                            <div className="text-violet-400 mb-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+                        <div className="bg-zinc-900/50 border border-zinc-800 rounded-sm p-3 sm:p-4 hover:border-yellow-800/50 transition-colors duration-200">
+                            <div className="text-yellow-400 mb-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" /></svg>
                             </div>
-                            <h3 className="text-sm font-semibold text-zinc-200">Class Reminders</h3>
-                            <p className="text-xs text-zinc-500 mt-1">Get notified 15 & 5 min before class starts</p>
+                            <h3 className="text-sm font-semibold text-zinc-200">Ranking & XP</h3>
+                            <p className="text-xs text-zinc-500 mt-1">Earn XP, climb ranks from E to SSS, top the leaderboard</p>
+                        </div>
+                        <div className="bg-zinc-900/50 border border-zinc-800 rounded-sm p-3 sm:p-4 hover:border-fuchsia-800/50 transition-colors duration-200">
+                            <div className="text-fuchsia-400 mb-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" /><path d="m9 12 2 2 4-4" /></svg>
+                            </div>
+                            <h3 className="text-sm font-semibold text-zinc-200">Quizzes & GPA</h3>
+                            <p className="text-xs text-zinc-500 mt-1">Take quizzes, retake for better scores, predict your GPA</p>
                         </div>
                     </div>
 

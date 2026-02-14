@@ -55,7 +55,9 @@ export async function parseQuizWithAI(rawText: string) {
         }
 
         const apiKeys = getGeminiKeys();
-        if (apiKeys.length === 0) throw new Error('AI Service Unavailable (Missing Keys)');
+        if (apiKeys.length === 0) {
+            return { error: 'AI Service Unavailable — No API keys configured. Contact your admin.' };
+        }
 
         const keyPool = [...apiKeys].sort(() => 0.5 - Math.random());
         let lastError = null;
@@ -139,6 +141,9 @@ Return ONLY a valid JSON array matching this structure. No markdown, no explanat
                         if (primaryError.message.includes('429') || fallbackError.message.includes('429')) {
                             throw new Error('AI Usage Limit Exceeded. Please try again in a minute.');
                         }
+                        if (primaryError.message.includes('API_KEY_INVALID') || fallbackError.message.includes('API_KEY_INVALID')) {
+                            throw new Error('API key is invalid or expired. Contact your admin to update the Gemini API key.');
+                        }
                         throw fallbackError;
                     }
                 }
@@ -216,11 +221,22 @@ Return ONLY a valid JSON array matching this structure. No markdown, no explanat
             }
         }
 
-        throw lastError || new Error('All API keys failed.');
+        throw lastError || new Error('All API keys failed. They may be invalid or expired.');
 
     } catch (error: any) {
         console.error('AI Parse Error:', error);
-        return { error: 'Failed to parse with AI: ' + error.message };
+        const msg = error?.message || 'Unknown error';
+        // Return user-friendly messages
+        if (msg.includes('API_KEY_INVALID') || msg.includes('API key not valid')) {
+            return { error: 'AI API key is invalid or expired. Please contact your admin.' };
+        }
+        if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) {
+            return { error: 'AI rate limit reached. Please wait a minute and try again.' };
+        }
+        if (msg.includes('Unauthorized')) {
+            return { error: msg };
+        }
+        return { error: 'AI parsing failed: ' + msg };
     }
 }
 

@@ -3,7 +3,7 @@
 import { CHANGELOG } from '@/lib/data/changelog';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle2, Rocket, Calendar, ArrowLeft, Clock, Zap } from 'lucide-react';
+import { CheckCircle2, Rocket, Calendar, ArrowLeft, Clock, Zap, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
@@ -20,6 +20,14 @@ function timeAgo(dateStr: string): string {
     return `${Math.floor(days / 30)}mo ago`;
 }
 
+function formatDate(dateStr: string): string {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+    });
+}
+
 export default function UpdatesPage() {
     return (
         <div className="min-h-screen bg-zinc-950 pb-20">
@@ -31,11 +39,14 @@ export default function UpdatesPage() {
                             <ArrowLeft className="w-5 h-5" />
                         </Button>
                     </Link>
-                    <h1 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">
-                        What&apos;s New
-                    </h1>
+                    <div className="flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-fuchsia-400" />
+                        <h1 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">
+                            What&apos;s New
+                        </h1>
+                    </div>
                     <Badge variant="secondary" className="ml-auto bg-zinc-900 text-zinc-400 border-zinc-800 text-[10px]">
-                        {CHANGELOG.length} releases
+                        {CHANGELOG.length} updates
                     </Badge>
                 </div>
             </div>
@@ -44,7 +55,7 @@ export default function UpdatesPage() {
                 {CHANGELOG.map((entry, index) => {
                     const isLatest = index === 0;
                     const deployedAt = entry.deployedAt;
-                    const isRecent = deployedAt && (Date.now() - new Date(deployedAt).getTime()) < 24 * 60 * 60 * 1000;
+                    const isRecent = deployedAt && (Date.now() - new Date(deployedAt).getTime()) < 7 * 24 * 60 * 60 * 1000;
 
                     return (
                         <div key={entry.version} className="relative pl-6 sm:pl-8">
@@ -71,11 +82,14 @@ export default function UpdatesPage() {
                                         <div className="space-y-1">
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 <h2 className={`text-lg font-bold ${isLatest ? 'text-white' : 'text-zinc-300'}`}>
-                                                    v{entry.version}
+                                                    {entry.title}
                                                 </h2>
+                                                <Badge variant="outline" className="text-[10px] px-1.5 h-5 border-zinc-700 text-zinc-500 font-mono">
+                                                    v{entry.version}
+                                                </Badge>
                                                 {isLatest && isRecent && (
                                                     <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-300 border-emerald-500/20 text-[10px] px-2 h-5 animate-pulse">
-                                                        🔥 JUST DEPLOYED
+                                                        🔥 NEW
                                                     </Badge>
                                                 )}
                                                 {isLatest && !isRecent && (
@@ -87,7 +101,7 @@ export default function UpdatesPage() {
                                             <div className="flex items-center gap-3 text-xs text-zinc-500">
                                                 <span className="flex items-center gap-1">
                                                     <Calendar className="w-3 h-3" />
-                                                    {entry.date}
+                                                    {formatDate(entry.date)}
                                                 </span>
                                                 {deployedAt && (
                                                     <span className="flex items-center gap-1">
@@ -101,20 +115,17 @@ export default function UpdatesPage() {
 
                                     <div className="h-px bg-zinc-800/50 w-full" />
 
-                                    <div className="space-y-2">
-                                        <h3 className="font-medium text-zinc-200 text-sm">{entry.title}</h3>
-                                        <ul className="space-y-3 pt-2">
-                                            {entry.changes.map((change, i) => (
-                                                <li key={i} className="flex items-start gap-3 text-sm text-zinc-400 leading-relaxed group">
-                                                    <CheckCircle2 className={`
-                                                        w-4 h-4 mt-0.5 shrink-0 transition-colors
-                                                        ${isLatest ? 'text-emerald-500' : 'text-zinc-600'}
-                                                    `} />
-                                                    <span className="group-hover:text-zinc-300 transition-colors">{change}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
+                                    <ul className="space-y-3">
+                                        {entry.changes.map((change, i) => (
+                                            <li key={i} className="flex items-start gap-3 text-sm text-zinc-400 leading-relaxed group">
+                                                <CheckCircle2 className={`
+                                                    w-4 h-4 mt-0.5 shrink-0 transition-colors
+                                                    ${isLatest ? 'text-emerald-500' : 'text-zinc-600'}
+                                                `} />
+                                                <span className="group-hover:text-zinc-300 transition-colors">{change}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
                                 </CardContent>
                             </Card>
                         </div>
