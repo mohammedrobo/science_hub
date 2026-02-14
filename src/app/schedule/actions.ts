@@ -4,7 +4,8 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { getSession } from '@/app/login/actions';
 import { revalidatePath } from 'next/cache';
 import { unstable_cache } from 'next/cache';
-import scheduleData from '@/../secure_data/structured_schedules.json';
+import fs from 'fs';
+import path from 'path';
 
 export interface ScheduleEntry {
     id?: string;
@@ -90,13 +91,23 @@ export async function getSchedule(sectionId: string) {
 
 // Get schedule from JSON file (fallback)
 function getScheduleFromJSON(sectionId: string) {
-    const data = scheduleData as Record<string, Record<string, Array<{
+    let data: Record<string, Record<string, Array<{
         subject: string;
         type: string;
         room: string;
         time: string;
         slot: number;
-    }>>>;
+    }>>> = {};
+
+    try {
+        const filePath = path.join(process.cwd(), 'secure_data', 'structured_schedules.json');
+        const raw = fs.readFileSync(filePath, 'utf-8');
+        data = JSON.parse(raw);
+    } catch {
+        // File not available (e.g. deployment without secure_data)
+        console.warn('structured_schedules.json not found, JSON fallback unavailable');
+        return {};
+    }
 
     const sectionData = data[sectionId];
     if (!sectionData) return {};
