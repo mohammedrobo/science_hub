@@ -25,12 +25,12 @@ export const CHANGELOG: ChangeLogEntry[] = [
     {
         version: '2.4.0',
         date: '2026-02-10',
-        title: '🛡️ Safety & Security Improvements',
+        title: '⚡ Performance & Bug Fixes',
         changes: [
             '🔒 Enhanced account security with better session management.',
-            '📊 Improved admin safety tracking and monitoring tools.',
             '⚡ Faster page loading with optimized database queries.',
             '🐛 Fixed various bugs reported by students.',
+            '📱 Improved responsiveness on mobile devices.',
         ]
     },
     {

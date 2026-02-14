@@ -34,10 +34,84 @@ export default function Dashboard() {
                         Welcome to <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-indigo-400">Science Hub</span>
                     </h1>
 
-                    <p className="text-base sm:text-lg text-zinc-400 max-w-3xl leading-relaxed mb-6">
-                        Your all-in-one learning companion for first-year science. Video lectures, quizzes, 
-                        progress analytics, guild quests, and a ranking system — everything you need to level up.
+                    <p className="text-base sm:text-lg text-zinc-400 max-w-3xl leading-relaxed mb-3">
+                        Your all-in-one learning companion for first-year science. Everything you need to study, practice, 
+                        and track your academic progress — all in one place.
                     </p>
+
+                    {/* How It Works Guide */}
+                    <div className="bg-zinc-900/40 border border-zinc-800/60 rounded-lg p-4 sm:p-5 mb-6">
+                        <h2 className="text-sm font-semibold text-violet-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                            How It Works
+                        </h2>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-zinc-400">
+                            <div className="flex items-start gap-2">
+                                <span className="text-violet-400 mt-0.5 shrink-0">1.</span>
+                                <span>Pick a <span className="text-zinc-300">course</span> below → open a <span className="text-zinc-300">chapter</span> → watch the <span className="text-zinc-300">video lecture</span></span>
+                            </div>
+                            <div className="flex items-start gap-2">
+                                <span className="text-violet-400 mt-0.5 shrink-0">2.</span>
+                                <span>After watching, take the chapter <span className="text-zinc-300">quiz</span> to test yourself</span>
+                            </div>
+                            <div className="flex items-start gap-2">
+                                <span className="text-violet-400 mt-0.5 shrink-0">3.</span>
+                                <span>Your <span className="text-zinc-300">first attempt</span> earns XP — retakes update your high score but give <span className="text-amber-400">0 XP</span></span>
+                            </div>
+                            <div className="flex items-start gap-2">
+                                <span className="text-violet-400 mt-0.5 shrink-0">4.</span>
+                                <span>Track everything from <span className="text-zinc-300">Progress</span> and compete on the <span className="text-zinc-300">Leaderboard</span></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* XP System Explained */}
+                    <div className="bg-zinc-900/40 border border-zinc-800/60 rounded-lg p-4 sm:p-5 mb-6">
+                        <h2 className="text-sm font-semibold text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                            XP & Ranking System
+                        </h2>
+                        <div className="flex flex-col sm:flex-row gap-4 sm:gap-8">
+                            {/* XP Earnings */}
+                            <div className="flex-1 space-y-1.5 text-sm">
+                                <p className="text-zinc-500 text-xs uppercase tracking-wider mb-2">How you earn XP</p>
+                                <div className="flex items-center justify-between text-zinc-400">
+                                    <span>🏆 Quiz score 100%</span>
+                                    <span className="text-amber-400 font-mono font-semibold">+100 XP</span>
+                                </div>
+                                <div className="flex items-center justify-between text-zinc-400">
+                                    <span>⭐ Quiz score 80%+</span>
+                                    <span className="text-emerald-400 font-mono font-semibold">+50 XP</span>
+                                </div>
+                                <div className="flex items-center justify-between text-zinc-400">
+                                    <span>✅ Quiz score 60%+</span>
+                                    <span className="text-blue-400 font-mono font-semibold">+20 XP</span>
+                                </div>
+                                <div className="flex items-center justify-between text-zinc-400">
+                                    <span>❌ Quiz score &lt;60%</span>
+                                    <span className="text-zinc-500 font-mono font-semibold">+0 XP</span>
+                                </div>
+                                <p className="text-xs text-zinc-600 mt-2 italic">
+                                    ⚠️ XP is awarded on your <span className="text-zinc-400">first attempt only</span>. Retakes update your best score but won&apos;t give more XP.
+                                </p>
+                            </div>
+
+                            {/* Rank Ladder */}
+                            <div className="flex-1 space-y-1.5 text-sm">
+                                <p className="text-zinc-500 text-xs uppercase tracking-wider mb-2">Rank ladder</p>
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                                    <div className="flex items-center gap-1.5"><span>🌱</span><span className="text-zinc-500">E</span><span className="text-zinc-600 text-xs">— 0 XP</span></div>
+                                    <div className="flex items-center gap-1.5"><span>🎯</span><span className="text-orange-400">D</span><span className="text-zinc-600 text-xs">— 300 XP</span></div>
+                                    <div className="flex items-center gap-1.5"><span>✨</span><span className="text-yellow-400">C</span><span className="text-zinc-600 text-xs">— 750 XP</span></div>
+                                    <div className="flex items-center gap-1.5"><span>🌟</span><span className="text-emerald-400">B</span><span className="text-zinc-600 text-xs">— 1,500 XP</span></div>
+                                    <div className="flex items-center gap-1.5"><span>💎</span><span className="text-blue-400">A</span><span className="text-zinc-600 text-xs">— 3,000 XP</span></div>
+                                    <div className="flex items-center gap-1.5"><span>⚡</span><span className="text-violet-400">S</span><span className="text-zinc-600 text-xs">— 5,000 XP</span></div>
+                                    <div className="flex items-center gap-1.5"><span>🔥</span><span className="text-red-400">SS</span><span className="text-zinc-600 text-xs">— 7,500 XP</span></div>
+                                    <div className="flex items-center gap-1.5"><span>👑</span><span className="text-amber-400">SSS</span><span className="text-zinc-600 text-xs">— 10,000 XP</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     {/* Features Grid */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
@@ -53,21 +127,21 @@ export default function Dashboard() {
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><path d="m19 9-5 5-4-4-3 3" /></svg>
                             </div>
                             <h3 className="text-sm font-semibold text-zinc-200">Progress Dashboard</h3>
-                            <p className="text-xs text-zinc-500 mt-1">Interactive charts, quiz trends, and course analytics</p>
+                            <p className="text-xs text-zinc-500 mt-1">Charts, quiz trends, and course-by-course analytics</p>
                         </div>
                         <div className="bg-zinc-900/50 border border-zinc-800 rounded-sm p-3 sm:p-4 hover:border-yellow-800/50 transition-colors duration-200">
                             <div className="text-yellow-400 mb-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" /></svg>
                             </div>
-                            <h3 className="text-sm font-semibold text-zinc-200">Ranking & XP</h3>
-                            <p className="text-xs text-zinc-500 mt-1">Earn XP, climb ranks from E to SSS, top the leaderboard</p>
+                            <h3 className="text-sm font-semibold text-zinc-200">Ranking & Leaderboard</h3>
+                            <p className="text-xs text-zinc-500 mt-1">Compete with classmates, climb from E-Rank to SSS</p>
                         </div>
                         <div className="bg-zinc-900/50 border border-zinc-800 rounded-sm p-3 sm:p-4 hover:border-fuchsia-800/50 transition-colors duration-200">
                             <div className="text-fuchsia-400 mb-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" /><path d="m9 12 2 2 4-4" /></svg>
                             </div>
                             <h3 className="text-sm font-semibold text-zinc-200">Quizzes & GPA</h3>
-                            <p className="text-xs text-zinc-500 mt-1">Take quizzes, retake for better scores, predict your GPA</p>
+                            <p className="text-xs text-zinc-500 mt-1">First attempt = XP. Retakes update your best score only</p>
                         </div>
                     </div>
 
