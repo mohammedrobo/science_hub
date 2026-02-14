@@ -366,3 +366,268 @@ export async function getXPHistory(username: string): Promise<XPHistoryPoint[]> 
 
     return Array.from(dailyXP.entries()).map(([date, xp]) => ({ date, xp }));
 }
+
+// ============ DETAILED COURSE PROGRESS ============
+
+export interface LessonDetail {
+    lessonId: string;
+    title: string;
+    orderIndex: number;
+    isCompleted: boolean;
+    completedAt: string | null;
+}
+
+export interface QuizDetail {
+    quizId: string;
+    title: string;
+    score: number | null;
+    grade: string;
+    completedAt: string | null;
+}
+
+export interface CourseDetailedProgress {
+    courseId: string;
+    courseCode: string;
+    courseName: string;
+    lessons: LessonDetail[];
+    quizzes: QuizDetail[];
+    completedLessons: number;
+    totalLessons: number;
+    completedQuizzes: number;
+    totalQuizzes: number;
+    lessonCompletionPercent: number;
+    quizCompletionPercent: number;
+    overallPercent: number;
+}
+
+/**
+ * Get per-lesson and per-quiz completion detail for a single course
+ */
+export async function getCourseDetailedProgress(
+    username: string,
+    courseId: string
+): Promise<CourseDetailedProgress | null> {
+    const supabase = await createClient();
+
+    // Fetch course info
+    const { data: course } = await supabase
+        .from('courses')
+        .select('id, code, name')
+        .eq('id', courseId)
+        .single();
+
+    if (!course) return null;
+
+    // Fetch lessons and quizzes for this course in parallel
+    const [lessonsResult, quizzesResult, progressResult] = await Promise.all([
+        supabase
+            .from('lessons')
+            .select('id, title, order_index')
+            .eq('course_id', courseId)
+            .order('order_index', { ascending: true }),
+        supabase
+            .from('quizzes')
+            .select('id, title')
+            .eq('course_id', courseId),
+        supabase
+            .from('user_progress')
+            .select('content_id, content_type, score, completed_at, status')
+            .eq('username', username)
+            .eq('status', 'completed'),
+    ]);
+
+    const lessons = lessonsResult.data || [];
+    const quizzes = quizzesResult.data || [];
+    const progress = progressResult.data || [];
+
+    const progressMap = new Map(progress.map(p => [p.content_id, p]));
+
+    const lessonDetails: LessonDetail[] = lessons.map(l => {
+        const prog = progressMap.get(l.id);
+        return {
+            lessonId: l.id,
+            title: l.title,
+            orderIndex: l.order_index,
+            isCompleted: !!prog,
+            completedAt: prog?.completed_at ?? null,
+        };
+    });
+
+    const quizDetails: QuizDetail[] = quizzes.map(q => {
+        const prog = progressMap.get(q.id);
+        return {
+            quizId: q.id,
+            title: q.title,
+            score: prog?.score ?? null,
+            grade: prog ? getGrade(prog.score ?? 0).grade : '-',
+            completedAt: prog?.completed_at ?? null,
+        };
+    });
+
+    const completedLessons = lessonDetails.filter(l => l.isCompleted).length;
+    const completedQuizzes = quizDetails.filter(q => q.score !== null).length;
+    const totalLessons = lessons.length;
+    const totalQuizzes = quizzes.length;
+    const totalItems = totalLessons + totalQuizzes;
+
+    return {
+        courseId,
+        courseCode: course.code,
+        courseName: course.name,
+        lessons: lessonDetails,
+        quizzes: quizDetails,
+        completedLessons,
+        totalLessons,
+        completedQuizzes,
+        totalQuizzes,
+        lessonCompletionPercent: totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0,
+        quizCompletionPercent: totalQuizzes > 0 ? Math.round((completedQuizzes / totalQuizzes) * 100) : 0,
+        overallPercent: totalItems > 0 ? Math.round(((completedLessons + completedQuizzes) / totalItems) * 100) : 0,
+    };
+}
+
+// ============ QUIZ SCORE HISTORY (TIME-SERIES) ============
+
+export interface QuizScorePoint {
+    date: string;
+    score: number;
+    quizTitle: string;
+    courseCode: string;
+}
+
+/**
+ * Get timestamped quiz scores for trend charting.
+ * If courseId is provided, filter to that course only.
+ */
+export async function getQuizScoreHistory(
+    username: string,
+    courseId?: string
+): Promise<QuizScorePoint[]> {
+    const supabase = await createClient();
+
+    // Get all completed quizzes with scores
+    const { data: progress } = await supabase
+        .from('user_progress')
+        .select('content_id, score, completed_at')
+        .eq('username', username)
+        .eq('content_type', 'quiz')
+        .eq('status', 'completed')
+        .not('completed_at', 'is', null)
+        .not('score', 'is', null)
+        .order('completed_at', { ascending: true });
+
+    if (!progress || progress.length === 0) return [];
+
+    const quizIds = progress.map(p => p.content_id);
+
+    // Fetch quiz + course info
+    let quizQuery = supabase
+        .from('quizzes')
+        .select('id, title, course_id, course:courses(id, code, name)')
+        .in('id', quizIds);
+
+    if (courseId) {
+        quizQuery = quizQuery.eq('course_id', courseId);
+    }
+
+    const { data: quizzes } = await quizQuery;
+    if (!quizzes) return [];
+
+    const quizMap = new Map(
+        quizzes.map(q => {
+            const courseData = Array.isArray(q.course) ? q.course[0] : q.course;
+            return [q.id, { title: q.title, courseCode: courseData?.code ?? '???' }];
+        })
+    );
+
+    return progress
+        .filter(p => quizMap.has(p.content_id))
+        .map(p => {
+            const quiz = quizMap.get(p.content_id)!;
+            return {
+                date: new Date(p.completed_at).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                }),
+                score: p.score ?? 0,
+                quizTitle: quiz.title,
+                courseCode: quiz.courseCode,
+            };
+        });
+}
+
+// ============ OVERALL COMPLETION STATS ============
+
+export interface OverallCompletion {
+    totalLessons: number;
+    completedLessons: number;
+    totalQuizzes: number;
+    completedQuizzes: number;
+    overallPercent: number;
+    coursesWithProgress: {
+        courseId: string;
+        courseCode: string;
+        courseName: string;
+        completedLessons: number;
+        totalLessons: number;
+        completedQuizzes: number;
+        totalQuizzes: number;
+        percent: number;
+    }[];
+}
+
+export async function getOverallCompletion(username: string): Promise<OverallCompletion> {
+    const supabase = await createClient();
+
+    const [coursesResult, lessonsResult, quizzesResult, progressResult] = await Promise.all([
+        supabase.from('courses').select('id, code, name'),
+        supabase.from('lessons').select('id, course_id'),
+        supabase.from('quizzes').select('id, course_id'),
+        supabase
+            .from('user_progress')
+            .select('content_id, content_type, status')
+            .eq('username', username)
+            .eq('status', 'completed'),
+    ]);
+
+    const courses = coursesResult.data || [];
+    const lessons = lessonsResult.data || [];
+    const quizzes = quizzesResult.data || [];
+    const progress = progressResult.data || [];
+
+    const completedIds = new Set(progress.map(p => p.content_id));
+
+    const coursesWithProgress = courses.map(course => {
+        const courseLessons = lessons.filter(l => l.course_id === course.id);
+        const courseQuizzes = quizzes.filter(q => q.course_id === course.id);
+        const completedL = courseLessons.filter(l => completedIds.has(l.id)).length;
+        const completedQ = courseQuizzes.filter(q => completedIds.has(q.id)).length;
+        const total = courseLessons.length + courseQuizzes.length;
+        return {
+            courseId: course.id,
+            courseCode: course.code,
+            courseName: course.name,
+            completedLessons: completedL,
+            totalLessons: courseLessons.length,
+            completedQuizzes: completedQ,
+            totalQuizzes: courseQuizzes.length,
+            percent: total > 0 ? Math.round(((completedL + completedQ) / total) * 100) : 0,
+        };
+    }).filter(c => c.totalLessons > 0 || c.totalQuizzes > 0)
+      .sort((a, b) => a.courseCode.localeCompare(b.courseCode));
+
+    const totalLessons = lessons.length;
+    const totalQuizzes = quizzes.length;
+    const completedLessons = lessons.filter(l => completedIds.has(l.id)).length;
+    const completedQuizzes = quizzes.filter(q => completedIds.has(q.id)).length;
+    const totalItems = totalLessons + totalQuizzes;
+
+    return {
+        totalLessons,
+        completedLessons,
+        totalQuizzes,
+        completedQuizzes,
+        overallPercent: totalItems > 0 ? Math.round(((completedLessons + completedQuizzes) / totalItems) * 100) : 0,
+        coursesWithProgress,
+    };
+}

@@ -18,13 +18,30 @@ import {
 // Admin Auth Guard
 // ═══════════════════════════════════════════════════════════════
 
+class UnauthorizedError extends Error {
+    constructor() {
+        super('Unauthorized');
+        this.name = 'UnauthorizedError';
+    }
+}
+
 async function requireAdmin() {
     const session = await getSession();
     if (!session || session.role !== 'super_admin') {
-        throw new Error('Unauthorized');
+        throw new UnauthorizedError();
     }
     return session;
 }
+
+// ═══════════════════════════════════════════════════════════════
+// Dashboard Data Cache (short TTL to avoid hammering the DB)
+// ═══════════════════════════════════════════════════════════════
+
+let dashboardCache: {
+    data: { overview: ClassOverview; heatmap: HeatmapCell[]; recentAlerts: any[]; sections: string[]; groups: string[]; allStudents: EngagementScore[] } | null;
+    cachedAt: number;
+} = { data: null, cachedAt: 0 };
+const DASHBOARD_CACHE_TTL = 60_000; // 60 seconds
 
 // ═══════════════════════════════════════════════════════════════
 // Dashboard Overview
@@ -36,26 +53,43 @@ export async function getDashboardData(): Promise<{
     recentAlerts: any[];
     sections: string[];
     groups: string[];
+    allStudents: EngagementScore[];
 }> {
     await requireAdmin();
 
-    // Generate any new smart alerts
-    await generateSmartAlerts().catch(() => {});
+    // Return cached data if fresh
+    if (dashboardCache.data && Date.now() - dashboardCache.cachedAt < DASHBOARD_CACHE_TTL) {
+        return dashboardCache.data;
+    }
+
+    // Single fetch — reuse for overview + alerts
+    const allStudents = await getAllStudentEngagement();
+
+    // Generate any new smart alerts (reuse prefetched students)
+    await generateSmartAlerts(allStudents).catch((err) => {
+        console.error('[Safety] Smart alert generation failed:', err);
+    });
 
     const [overview, heatmap, alertsRes, filtersRes] = await Promise.all([
-        getOverview(),
+        getOverview(allStudents),
         getHeatmap(),
         getAlerts(1, 5),
         getAvailableSectionsAndGroups(),
     ]);
 
-    return {
+    const result = {
         overview,
         heatmap,
         recentAlerts: alertsRes.alerts || [],
         sections: filtersRes.sections,
         groups: filtersRes.groups,
+        allStudents,
     };
+
+    // Cache the result
+    dashboardCache = { data: result, cachedAt: Date.now() };
+
+    return result;
 }
 
 // ═══════════════════════════════════════════════════════════════

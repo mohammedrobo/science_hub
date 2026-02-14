@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { SemesterToggle } from './SemesterToggle';
 import { UserNav } from './UserNav';
-import { BookOpen, Crown, Sparkles } from 'lucide-react';
+import { BookOpen, Crown, Sparkles, BarChart3, Calculator, Trophy, Calendar, Shield } from 'lucide-react';
 import { getSession } from '@/app/login/actions';
 import { MobileMenu } from './MobileMenu';
 import { getHeaderStats } from '@/lib/gamification';
@@ -30,7 +30,7 @@ export async function Header() {
 
     return (
         <header className="border-b border-border bg-background sticky top-0 z-50 overflow-x-hidden">
-            <div className="container mx-auto px-4 min-h-16 flex items-center justify-between">
+            <div className="mx-auto px-3 sm:px-4 lg:px-6 min-h-16 flex items-center justify-between max-w-[1600px]">
                 <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
                     <div className="bg-gradient-to-br from-violet-600 to-indigo-600 p-2 rounded text-white shadow-lg shadow-violet-500/20">
                         <BookOpen className="h-5 w-5" />
@@ -42,25 +42,33 @@ export async function Header() {
                     </div>
                 </Link>
 
-                <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
+                <nav className="hidden lg:flex items-center gap-1 text-sm font-medium">
 
-                    <Link href="/tools/gpa" className="hover:text-primary transition-colors">
+                    <Link href="/tools/gpa" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-zinc-400 hover:text-orange-400 hover:bg-orange-500/10 transition-all">
+                        <Calculator className="h-3.5 w-3.5 text-orange-500" />
                         GPA Calc
                     </Link>
-                    <Link href="/leaderboard" className="hover:text-primary transition-colors">
+                    <Link href="/progress" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-zinc-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all">
+                        <BarChart3 className="h-3.5 w-3.5 text-emerald-500" />
+                        Progress
+                    </Link>
+                    <Link href="/leaderboard" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-zinc-400 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all">
+                        <Trophy className="h-3.5 w-3.5 text-yellow-500" />
                         Leaderboard
                     </Link>
-                    <Link href="/schedule" className="hover:text-primary transition-colors">
+                    <Link href="/schedule" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-zinc-400 hover:text-violet-400 hover:bg-violet-500/10 transition-all">
+                        <Calendar className="h-3.5 w-3.5 text-violet-500" />
                         Schedule
                     </Link>
-                    <Link href="/updates" className="hover:text-primary transition-colors flex items-center gap-1">
-                        <Sparkles className="h-3.5 w-3.5" />
+                    <Link href="/updates" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-zinc-400 hover:text-fuchsia-400 hover:bg-fuchsia-500/10 transition-all">
+                        <Sparkles className="h-3.5 w-3.5 text-fuchsia-500" />
                         What's New
                     </Link>
 
                     {/* Admin Button */}
                     {isAdmin && (
-                        <Link href="/admin" className="hover:text-primary transition-colors">
+                        <Link href="/admin" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-zinc-400 hover:text-amber-400 hover:bg-amber-500/10 transition-all">
+                            <Shield className="h-3.5 w-3.5 text-amber-500" />
                             Admin
                         </Link>
                     )}
@@ -73,12 +81,12 @@ export async function Header() {
                     <div className="shrink-0">
                         <NotificationBell userRole={session?.role as 'super_admin' | 'admin' | 'leader' | 'student'} />
                     </div>
-                    <div className="shrink-0 hidden md:block">
+                    <div className="shrink-0 hidden lg:block">
                         <UserNav />
                     </div>
 
                     {/* Mobile Menu (Client Component) */}
-                    <div className="md:hidden shrink-0">
+                    <div className="lg:hidden shrink-0">
                         <MobileMenu
                             isAdmin={isAdmin}
                             session={session}

@@ -1,4 +1,4 @@
-import { getDashboardData, getStudentsWithEngagement, getActivityLogs, getStudentReports, getAlerts } from './actions';
+import { getDashboardData, getActivityLogs, getStudentReports, getAlerts } from './actions';
 import { SafetyDashboardClient } from './_components/SafetyDashboardClient';
 import { readSession } from '@/lib/auth/session-read';
 import { redirect } from 'next/navigation';
@@ -10,10 +10,9 @@ export default async function SafetyDashboardPage() {
         redirect('/admin');
     }
 
-    // Fetch all initial data in parallel
-    const [dashboardData, students, logsRes, reportsRes, alertsRes] = await Promise.all([
+    // Fetch all initial data in parallel — students come from dashboardData (single fetch)
+    const [dashboardData, logsRes, reportsRes, alertsRes] = await Promise.all([
         getDashboardData(),
-        getStudentsWithEngagement(),
         getActivityLogs(1, 50),
         getStudentReports(1, 50),
         getAlerts(1, 30),
@@ -22,7 +21,7 @@ export default async function SafetyDashboardPage() {
     return (
         <SafetyDashboardClient
             dashboardData={dashboardData}
-            initialStudents={students}
+            initialStudents={dashboardData.allStudents}
             initialLogs={logsRes.logs || []}
             initialLogCount={logsRes.count || 0}
             initialReports={reportsRes.reports || []}

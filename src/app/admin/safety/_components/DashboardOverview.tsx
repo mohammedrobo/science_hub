@@ -2,8 +2,8 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Users, UserCheck, Activity, TrendingUp, AlertTriangle, Star, ShieldAlert, ArrowUpRight, Zap } from 'lucide-react';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell } from 'recharts';
+import { Users, UserCheck, Activity, TrendingUp, AlertTriangle, Star, ShieldAlert, ArrowUpRight, Zap, GraduationCap, BookOpen, Target, Trophy } from 'lucide-react';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell, PieChart, Pie } from 'recharts';
 import { ActivityHeatmap } from './ActivityHeatmap';
 import { AlertsPanel } from './AlertsPanel';
 import type { ClassOverview, HeatmapCell, EngagementScore } from '@/lib/safety/analytics';
@@ -66,6 +66,10 @@ export function DashboardOverview({ overview, heatmap, recentAlerts, students = 
     const participationRate = overview.totalStudents > 0 ? Math.round((overview.activeThisWeek / overview.totalStudents) * 100) : 0;
     const sectionColors = ['#8b5cf6', '#6366f1', '#a78bfa', '#7c3aed', '#818cf8'];
     const groupColors = ['#22c55e', '#10b981', '#34d399', '#059669', '#6ee7b7'];
+    const gradeColors = { A: '#22c55e', B: '#3b82f6', C: '#eab308', D: '#f97316', F: '#ef4444' };
+    const gradeData = Object.entries(overview.gradeDistribution || { A: 0, B: 0, C: 0, D: 0, F: 0 })
+        .map(([grade, count]) => ({ grade, count, fill: gradeColors[grade as keyof typeof gradeColors] }))
+        .filter(d => d.count > 0);
 
     return (
         <div className="space-y-6">
@@ -75,7 +79,7 @@ export function DashboardOverview({ overview, heatmap, recentAlerts, students = 
                     <CardContent className="p-4 relative z-10">
                         <div className="flex items-start justify-between">
                             <div>
-                                <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-medium">Students</p>
+                                <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-medium">Total Users</p>
                                 <p className="text-3xl font-black text-white mt-1 tabular-nums">{overview.totalStudents}</p>
                                 <p className="text-[11px] text-zinc-500 mt-1">{overview.activeThisWeek} active this week</p>
                             </div>
@@ -140,6 +144,83 @@ export function DashboardOverview({ overview, heatmap, recentAlerts, students = 
                     </CardContent>
                     {overview.atRiskStudents.length > 0 && <div className="absolute bottom-0 right-0 w-24 h-24 bg-red-500/[0.03] rounded-tl-full" />}
                 </Card>
+
+                {/* Academic Cards */}
+                <Card className="bg-gradient-to-br from-zinc-900 to-zinc-900/50 border-zinc-800 overflow-hidden relative group hover:border-purple-500/30 transition-all duration-300">
+                    <CardContent className="p-4 relative z-10">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-medium">Quizzes Taken</p>
+                                <p className="text-3xl font-black text-white mt-1 tabular-nums">{overview.totalQuizzesTaken || 0}</p>
+                                <p className="text-[11px] text-zinc-500 mt-1">avg score: {overview.avgQuizScore || 0}%</p>
+                            </div>
+                            <div className="p-2 rounded-xl bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
+                                <Target className="h-5 w-5 text-purple-400" />
+                            </div>
+                        </div>
+                    </CardContent>
+                    <div className="absolute bottom-0 right-0 w-24 h-24 bg-purple-500/[0.03] rounded-tl-full" />
+                </Card>
+
+                <Card className="bg-gradient-to-br from-zinc-900 to-zinc-900/50 border-zinc-800 overflow-hidden relative group hover:border-cyan-500/30 transition-all duration-300">
+                    <CardContent className="p-4 relative z-10">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-medium">Lessons Done</p>
+                                <p className="text-3xl font-black text-white mt-1 tabular-nums">{overview.totalLessonsCompleted || 0}</p>
+                                <p className="text-[11px] text-zinc-500 mt-1">across all users</p>
+                            </div>
+                            <div className="p-2 rounded-xl bg-cyan-500/10 group-hover:bg-cyan-500/20 transition-colors">
+                                <BookOpen className="h-5 w-5 text-cyan-400" />
+                            </div>
+                        </div>
+                    </CardContent>
+                    <div className="absolute bottom-0 right-0 w-24 h-24 bg-cyan-500/[0.03] rounded-tl-full" />
+                </Card>
+
+                <Card className="bg-gradient-to-br from-zinc-900 to-zinc-900/50 border-zinc-800 overflow-hidden relative group hover:border-amber-500/30 transition-all duration-300">
+                    <CardContent className="p-4 relative z-10">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-medium">Avg Quiz Score</p>
+                                <div className="flex items-baseline gap-1 mt-1">
+                                    <p className="text-3xl font-black text-white tabular-nums">{overview.avgQuizScore || 0}</p>
+                                    <span className="text-sm text-zinc-600">%</span>
+                                </div>
+                                <p className="text-[11px] text-zinc-500 mt-1">{participationRate}% weekly active</p>
+                            </div>
+                            <div className="p-2 rounded-xl bg-amber-500/10 group-hover:bg-amber-500/20 transition-colors">
+                                <GraduationCap className="h-5 w-5 text-amber-400" />
+                            </div>
+                        </div>
+                    </CardContent>
+                    <div className="absolute bottom-0 right-0 w-24 h-24 bg-amber-500/[0.03] rounded-tl-full" />
+                </Card>
+
+                <Card className="bg-gradient-to-br from-zinc-900 to-zinc-900/50 border-zinc-800 overflow-hidden relative group hover:border-pink-500/30 transition-all duration-300">
+                    <CardContent className="p-4 relative z-10">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-medium">Passing Rate</p>
+                                <div className="flex items-baseline gap-1 mt-1">
+                                    <p className="text-3xl font-black text-white tabular-nums">
+                                        {(() => {
+                                            const gd = overview.gradeDistribution || { A: 0, B: 0, C: 0, D: 0, F: 0 };
+                                            const total = gd.A + gd.B + gd.C + gd.D + gd.F;
+                                            return total > 0 ? Math.round(((gd.A + gd.B + gd.C) / total) * 100) : 0;
+                                        })()}
+                                    </p>
+                                    <span className="text-sm text-zinc-600">%</span>
+                                </div>
+                                <p className="text-[11px] text-zinc-500 mt-1">A+B+C grades</p>
+                            </div>
+                            <div className="p-2 rounded-xl bg-pink-500/10 group-hover:bg-pink-500/20 transition-colors">
+                                <Trophy className="h-5 w-5 text-pink-400" />
+                            </div>
+                        </div>
+                    </CardContent>
+                    <div className="absolute bottom-0 right-0 w-24 h-24 bg-pink-500/[0.03] rounded-tl-full" />
+                </Card>
             </div>
 
             {/* ═══ Engagement Distribution ═══ */}
@@ -181,13 +262,14 @@ export function DashboardOverview({ overview, heatmap, recentAlerts, students = 
                 </Card>
             )}
 
-            {/* ═══ Charts Row ═══ */}
+            {/* ═══ Charts Row — Section & Group with Academic Data ═══ */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <Card className="bg-zinc-900/80 border-zinc-800">
                     <CardHeader className="pb-1 pt-4 px-5">
                         <CardTitle className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
                             <div className="w-1 h-4 rounded-full bg-violet-500" />
                             By Section
+                            <span className="text-[10px] text-zinc-600 font-normal ml-auto">Engagement + Quiz Avg</span>
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="px-3 pb-4">
@@ -198,12 +280,12 @@ export function DashboardOverview({ overview, heatmap, recentAlerts, students = 
                                     <XAxis dataKey="section" stroke="#52525b" fontSize={11} tickLine={false} axisLine={false} />
                                     <YAxis stroke="#52525b" fontSize={10} tickLine={false} axisLine={false} domain={[0, 100]} width={28} />
                                     <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
-                                    <Bar dataKey="avgScore" name="avgScore" radius={[6, 6, 0, 0]} barSize={20}>
+                                    <Bar dataKey="avgScore" name="Engagement" radius={[6, 6, 0, 0]} barSize={16}>
                                         {overview.sectionBreakdown.map((_: any, i: number) => (
                                             <Cell key={i} fill={sectionColors[i % sectionColors.length]} />
                                         ))}
                                     </Bar>
-                                    <Bar dataKey="studentCount" name="studentCount" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={20} opacity={0.4} />
+                                    <Bar dataKey="avgQuizScore" name="Quiz Avg" fill="#a855f7" radius={[6, 6, 0, 0]} barSize={16} opacity={0.6} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
@@ -215,6 +297,7 @@ export function DashboardOverview({ overview, heatmap, recentAlerts, students = 
                         <CardTitle className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
                             <div className="w-1 h-4 rounded-full bg-emerald-500" />
                             By Group
+                            <span className="text-[10px] text-zinc-600 font-normal ml-auto">Engagement + Quiz Avg</span>
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="px-3 pb-4">
@@ -225,18 +308,85 @@ export function DashboardOverview({ overview, heatmap, recentAlerts, students = 
                                     <XAxis dataKey="group" stroke="#52525b" fontSize={11} tickLine={false} axisLine={false} />
                                     <YAxis stroke="#52525b" fontSize={10} tickLine={false} axisLine={false} domain={[0, 100]} width={28} />
                                     <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
-                                    <Bar dataKey="avgScore" name="avgScore" radius={[6, 6, 0, 0]} barSize={20}>
+                                    <Bar dataKey="avgScore" name="Engagement" radius={[6, 6, 0, 0]} barSize={16}>
                                         {overview.groupBreakdown.map((_: any, i: number) => (
                                             <Cell key={i} fill={groupColors[i % groupColors.length]} />
                                         ))}
                                     </Bar>
-                                    <Bar dataKey="studentCount" name="studentCount" fill="#06b6d4" radius={[6, 6, 0, 0]} barSize={20} opacity={0.4} />
+                                    <Bar dataKey="avgQuizScore" name="Quiz Avg" fill="#06b6d4" radius={[6, 6, 0, 0]} barSize={16} opacity={0.6} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
                     </CardContent>
                 </Card>
             </div>
+
+            {/* ═══ Performance by Course ═══ */}
+            {(overview.courseBreakdown || []).length > 0 && (
+                <Card className="bg-zinc-900/80 border-zinc-800">
+                    <CardHeader className="pb-1 pt-4 px-5">
+                        <CardTitle className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
+                            <div className="w-1 h-4 rounded-full bg-purple-500" />
+                            Performance by Course
+                            <span className="text-[10px] text-zinc-600 font-normal ml-auto">{overview.courseBreakdown.length} courses</span>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="px-3 pb-4">
+                        <div className="h-[260px] w-full">
+                            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                                <BarChart data={overview.courseBreakdown} barGap={4}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#1f1f23" vertical={false} />
+                                    <XAxis dataKey="courseCode" stroke="#52525b" fontSize={11} tickLine={false} axisLine={false} />
+                                    <YAxis stroke="#52525b" fontSize={10} tickLine={false} axisLine={false} domain={[0, 100]} width={28} />
+                                    <Tooltip
+                                        content={({ active, payload, label }) => {
+                                            if (!active || !payload?.length) return null;
+                                            const course = overview.courseBreakdown.find(c => c.courseCode === label);
+                                            return (
+                                                <div className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 shadow-xl">
+                                                    <p className="text-xs font-medium text-zinc-200 mb-1">{course?.courseName || label}</p>
+                                                    <p className="text-[10px] text-zinc-400">Avg Score: <span className="text-purple-400 font-mono">{course?.avgScore}%</span></p>
+                                                    <p className="text-[10px] text-zinc-400">Students: <span className="text-zinc-200 font-mono">{course?.studentsTaken}</span></p>
+                                                    <p className="text-[10px] text-zinc-400">Quizzes: <span className="text-zinc-200 font-mono">{course?.totalQuizzes}</span></p>
+                                                    {course?.bestAvgStudent && <p className="text-[10px] text-zinc-400">Best: <span className="text-amber-400">{course.bestAvgStudent}</span></p>}
+                                                </div>
+                                            );
+                                        }}
+                                        cursor={{ fill: 'rgba(255,255,255,0.02)' }}
+                                    />
+                                    <Bar dataKey="avgScore" name="Avg Score" radius={[6, 6, 0, 0]} barSize={28}>
+                                        {overview.courseBreakdown.map((_: any, i: number) => {
+                                            const score = overview.courseBreakdown[i].avgScore;
+                                            const color = score >= 80 ? '#22c55e' : score >= 60 ? '#3b82f6' : score >= 40 ? '#eab308' : '#ef4444';
+                                            return <Cell key={i} fill={color} />;
+                                        })}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                        {/* Course summary pills */}
+                        <div className="flex flex-wrap gap-2 mt-3 px-2">
+                            {overview.courseBreakdown.map(c => (
+                                <div key={c.courseCode} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs ${
+                                    c.avgScore >= 80 ? 'bg-emerald-500/5 border-emerald-500/20' :
+                                    c.avgScore >= 60 ? 'bg-blue-500/5 border-blue-500/20' :
+                                    c.avgScore >= 40 ? 'bg-yellow-500/5 border-yellow-500/20' :
+                                    'bg-red-500/5 border-red-500/20'
+                                }`}>
+                                    <span className="font-semibold text-zinc-200">{c.courseCode}</span>
+                                    <span className={`font-mono ${
+                                        c.avgScore >= 80 ? 'text-emerald-400' :
+                                        c.avgScore >= 60 ? 'text-blue-400' :
+                                        c.avgScore >= 40 ? 'text-yellow-400' :
+                                        'text-red-400'
+                                    }`}>{c.avgScore}%</span>
+                                    <span className="text-zinc-600">{c.studentsTaken} students</span>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* ═══ Heatmap ═══ */}
             <Card className="bg-zinc-900/80 border-zinc-800">
@@ -246,12 +396,12 @@ export function DashboardOverview({ overview, heatmap, recentAlerts, students = 
             </Card>
 
             {/* ═══ Bottom Row ═══ */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Top Performers */}
                 <Card className="bg-zinc-900/80 border-zinc-800 overflow-hidden">
                     <CardHeader className="pb-2 pt-4 px-5">
                         <CardTitle className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
-                            <Star className="h-4 w-4 text-amber-400" /> Top Performers
+                            <Star className="h-4 w-4 text-amber-400" /> Top Engagement
                             {overview.topPerformers.length > 0 && (
                                 <Badge className="ml-auto bg-amber-500/10 text-amber-400 border-amber-500/20 text-[9px] h-4 px-1.5">Top {overview.topPerformers.length}</Badge>
                             )}
@@ -272,12 +422,49 @@ export function DashboardOverview({ overview, heatmap, recentAlerts, students = 
                                             <span className={`text-xs font-black w-5 text-center tabular-nums ${i < 3 ? medalColors[i] : 'text-zinc-600'}`}>{i + 1}</span>
                                             <div className="flex-1 min-w-0">
                                                 <span className="text-sm text-zinc-200 truncate block group-hover:text-white transition-colors">{displayName}</span>
-                                                {studentData?.fullName && studentData.fullName !== s.username && (
-                                                    <span className="text-[10px] text-zinc-600 truncate block">@{s.username}</span>
+                                                {studentData?.section && (
+                                                    <span className="text-[10px] text-zinc-600 truncate block">{studentData.section}{studentData.group ? ` · G${studentData.group}` : ''}</span>
                                                 )}
                                             </div>
                                             <ScoreBar score={s.score} />
-                                            <ArrowUpRight className="w-3.5 h-3.5 text-zinc-700 group-hover:text-zinc-400 transition-colors shrink-0" />
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Top Quiz Scorers */}
+                <Card className="bg-zinc-900/80 border-zinc-800 overflow-hidden">
+                    <CardHeader className="pb-2 pt-4 px-5">
+                        <CardTitle className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
+                            <GraduationCap className="h-4 w-4 text-purple-400" /> Top Quiz Scores
+                            {(overview.topQuizScorers || []).length > 0 && (
+                                <Badge className="ml-auto bg-purple-500/10 text-purple-400 border-purple-500/20 text-[9px] h-4 px-1.5">Top {overview.topQuizScorers.length}</Badge>
+                            )}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="px-3 pb-3">
+                        {(overview.topQuizScorers || []).length === 0 ? (
+                            <p className="text-xs text-zinc-500 text-center py-6">No quizzes taken yet</p>
+                        ) : (
+                            <div className="space-y-0.5">
+                                {overview.topQuizScorers.map((s, i) => {
+                                    const studentData = students.find(st => st.username === s.username);
+                                    const displayName = studentData?.fullName || s.username;
+                                    const medalColors = ['text-amber-400', 'text-zinc-300', 'text-orange-600'];
+                                    return (
+                                        <Link key={s.username} href={`/admin/safety/student/${s.username}`}
+                                            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-zinc-800/60 transition-colors group">
+                                            <span className={`text-xs font-black w-5 text-center tabular-nums ${i < 3 ? medalColors[i] : 'text-zinc-600'}`}>{i + 1}</span>
+                                            <div className="flex-1 min-w-0">
+                                                <span className="text-sm text-zinc-200 truncate block group-hover:text-white transition-colors">{displayName}</span>
+                                                <span className="text-[10px] text-zinc-600 truncate block">{s.quizCount} quizzes{studentData?.section ? ` · ${studentData.section}` : ''}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-xs font-mono tabular-nums text-purple-400">{s.avgScore}%</span>
+                                            </div>
                                         </Link>
                                     );
                                 })}
@@ -316,7 +503,6 @@ export function DashboardOverview({ overview, heatmap, recentAlerts, students = 
                                                 <span className="text-[10px] text-zinc-600 truncate block">{s.reason || 'Low engagement'}</span>
                                             </div>
                                             <ScoreBar score={s.score} />
-                                            <ArrowUpRight className="w-3.5 h-3.5 text-zinc-700 group-hover:text-red-400 transition-colors shrink-0" />
                                         </Link>
                                     );
                                 })}
@@ -325,20 +511,53 @@ export function DashboardOverview({ overview, heatmap, recentAlerts, students = 
                     </CardContent>
                 </Card>
 
-                {/* Recent Alerts */}
-                <Card className="bg-zinc-900/80 border-zinc-800 overflow-hidden">
-                    <CardHeader className="pb-2 pt-4 px-5">
-                        <CardTitle className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
-                            <Activity className="h-4 w-4 text-yellow-400" /> Recent Alerts
-                            {recentAlerts.length > 0 && (
-                                <Badge className="ml-auto bg-yellow-500/10 text-yellow-400 border-yellow-500/20 text-[9px] h-4 px-1.5">{recentAlerts.filter((a: any) => !a.is_acknowledged).length} new</Badge>
+                {/* Grade Distribution + Alerts */}
+                <div className="space-y-4">
+                    {/* Grade Distribution */}
+                    <Card className="bg-zinc-900/80 border-zinc-800 overflow-hidden">
+                        <CardHeader className="pb-2 pt-4 px-5">
+                            <CardTitle className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
+                                <Target className="h-4 w-4 text-cyan-400" /> Grade Distribution
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="px-5 pb-4">
+                            {gradeData.length === 0 ? (
+                                <p className="text-xs text-zinc-500 text-center py-4">No quiz data yet</p>
+                            ) : (
+                                <div className="space-y-2">
+                                    {Object.entries(overview.gradeDistribution || {}).map(([grade, count]) => {
+                                        const total = Object.values(overview.gradeDistribution || {}).reduce((s, v) => s + v, 0);
+                                        const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                                        return (
+                                            <div key={grade} className="flex items-center gap-2">
+                                                <span className="text-xs font-bold w-4 text-center" style={{ color: gradeColors[grade as keyof typeof gradeColors] }}>{grade}</span>
+                                                <div className="flex-1 h-2 bg-zinc-800 rounded-full overflow-hidden">
+                                                    <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: gradeColors[grade as keyof typeof gradeColors] }} />
+                                                </div>
+                                                <span className="text-[10px] font-mono tabular-nums text-zinc-500 w-10 text-right">{count} ({pct}%)</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             )}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="px-2 pb-3">
-                        <AlertsPanel initialAlerts={recentAlerts} compact />
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+
+                    {/* Recent Alerts (compact) */}
+                    <Card className="bg-zinc-900/80 border-zinc-800 overflow-hidden">
+                        <CardHeader className="pb-2 pt-4 px-5">
+                            <CardTitle className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
+                                <Activity className="h-4 w-4 text-yellow-400" /> Alerts
+                                {recentAlerts.length > 0 && (
+                                    <Badge className="ml-auto bg-yellow-500/10 text-yellow-400 border-yellow-500/20 text-[9px] h-4 px-1.5">{recentAlerts.filter((a: any) => !a.is_acknowledged).length} new</Badge>
+                                )}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="px-2 pb-3">
+                            <AlertsPanel initialAlerts={recentAlerts} compact />
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </div>
     );

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Menu, Calculator, Trophy, Crown, User, LogOut, Shield, Calendar, Sparkles } from 'lucide-react';
+import { Menu, Calculator, Trophy, Crown, User, LogOut, Shield, Calendar, Sparkles, BarChart3 } from 'lucide-react';
 import { LogoutButton } from '@/components/auth/LogoutButton';
 
 interface MobileMenuProps {
@@ -84,6 +84,14 @@ export function MobileMenu({ isAdmin, session, userNameInitial, profilePictureUr
                     {/* Navigation Links */}
                     <nav className="flex-1 p-6 space-y-2">
 
+                        <Link
+                            href="/progress"
+                            onClick={closeMenu}
+                            className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground hover:bg-muted transition-colors"
+                        >
+                            <BarChart3 className="h-5 w-5 text-emerald-500" />
+                            <span className="font-medium">My Progress</span>
+                        </Link>
                         <Link
                             href="/tools/gpa"
                             onClick={closeMenu}

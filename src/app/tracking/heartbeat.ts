@@ -12,8 +12,45 @@ function parseDevice(ua: string): string {
 }
 
 /**
+ * Close stale sessions — computes duration_seconds from started_at → last_heartbeat.
+ * Used as a fallback when the RPC doesn't exist.
+ */
+async function closeStaleSessionsManual(supabase: any, username?: string) {
+    const staleThreshold = new Date(Date.now() - 120000).toISOString();
+
+    // Fetch stale sessions to compute their durations
+    let query = supabase
+        .from('active_sessions')
+        .select('id, started_at, last_heartbeat')
+        .eq('is_active', true)
+        .lt('last_heartbeat', staleThreshold);
+
+    if (username) {
+        query = query.eq('username', username);
+    }
+
+    const { data: staleSessions } = await query;
+    if (!staleSessions || staleSessions.length === 0) return;
+
+    // Update each with computed duration
+    for (const s of staleSessions) {
+        const duration = Math.floor(
+            (new Date(s.last_heartbeat).getTime() - new Date(s.started_at).getTime()) / 1000
+        );
+        await supabase
+            .from('active_sessions')
+            .update({
+                is_active: false,
+                ended_at: s.last_heartbeat,
+                duration_seconds: Math.max(duration, 0),
+            })
+            .eq('id', s.id);
+    }
+}
+
+/**
  * Start a new active session — called once when the page first loads.
- * Returns a sessionId for subsequent heartbeats.
+ * Returns sessionId + username for subsequent heartbeats and sendBeacon.
  */
 export async function startActiveSession(sessionId: string, currentPage: string) {
     const session = await getSession();
@@ -27,15 +64,7 @@ export async function startActiveSession(sessionId: string, currentPage: string)
     const { error: rpcError } = await supabase.rpc('close_stale_sessions');
     if (rpcError) {
         // RPC might not exist if migration hasn't run — fall back to manual cleanup
-        await supabase
-            .from('active_sessions')
-            .update({
-                is_active: false,
-                ended_at: new Date(Date.now() - 120000).toISOString(),
-            })
-            .eq('username', session.username)
-            .eq('is_active', true)
-            .lt('last_heartbeat', new Date(Date.now() - 120000).toISOString());
+        await closeStaleSessionsManual(supabase, session.username);
     }
 
     const { error } = await supabase.from('active_sessions').insert({
@@ -61,12 +90,13 @@ export async function startActiveSession(sessionId: string, currentPage: string)
         return { error: 'Failed to start session' };
     }
 
-    return { success: true };
+    return { success: true, username: session.username };
 }
 
 /**
  * Heartbeat — called every 30 seconds while the user is active.
- * Updates the last_heartbeat timestamp and current page.
+ * Updates the last_heartbeat timestamp, current page, and appends
+ * the page to visited list in a single update when possible.
  */
 export async function heartbeat(sessionId: string, currentPage: string) {
     const session = await getSession();
@@ -74,32 +104,32 @@ export async function heartbeat(sessionId: string, currentPage: string) {
 
     const supabase = await createServiceRoleClient();
 
-    // Update last heartbeat + current page
-    const { error } = await supabase
-        .from('active_sessions')
-        .update({
-            last_heartbeat: new Date().toISOString(),
-            current_page: currentPage,
-        })
-        .eq('session_id', sessionId)
-        .eq('username', session.username)
-        .eq('is_active', true);
-
-    if (error) {
-        if (error.code === '42P01' || error.code === 'PGRST205' || error.message?.includes('does not exist')) {
-            return { error: 'table_not_ready' };
-        }
-        return { error: 'Failed' };
-    }
-
-    // Add page to visited list (append if not present)
+    // First try the RPC which does update + append in one shot
     const { error: rpcErr } = await supabase.rpc('append_page_to_session', {
         p_session_id: sessionId,
         p_page: currentPage,
     });
 
     if (rpcErr) {
-        // Fallback: RPC not available, manually append
+        // Fallback: RPC not available — do update + manual append
+        const { error } = await supabase
+            .from('active_sessions')
+            .update({
+                last_heartbeat: new Date().toISOString(),
+                current_page: currentPage,
+            })
+            .eq('session_id', sessionId)
+            .eq('username', session.username)
+            .eq('is_active', true);
+
+        if (error) {
+            if (error.code === '42P01' || error.code === 'PGRST205' || error.message?.includes('does not exist')) {
+                return { error: 'table_not_ready' };
+            }
+            return { error: 'Failed' };
+        }
+
+        // Append page if not already in list
         const { data } = await supabase
             .from('active_sessions')
             .select('pages_visited')
@@ -116,6 +146,17 @@ export async function heartbeat(sessionId: string, currentPage: string) {
                     .eq('session_id', sessionId);
             }
         }
+    } else {
+        // RPC succeeded — still update heartbeat timestamp
+        await supabase
+            .from('active_sessions')
+            .update({
+                last_heartbeat: new Date().toISOString(),
+                current_page: currentPage,
+            })
+            .eq('session_id', sessionId)
+            .eq('username', session.username)
+            .eq('is_active', true);
     }
 
     return { success: true };
@@ -155,33 +196,32 @@ export async function endActiveSession(sessionId: string) {
 
 /**
  * Get currently active sessions — for the safety dashboard "live" view.
+ * Returns { error: 'unauthorized' } on auth failure instead of empty array.
  */
 export async function getActiveSessions() {
     const session = await getSession();
     if (!session || session.role !== 'super_admin') {
-        return [];
+        return { error: 'unauthorized' as const, sessions: [] };
     }
 
     const supabase = await createServiceRoleClient();
 
-    // First close stale sessions
-    await supabase
-        .from('active_sessions')
-        .update({
-            is_active: false,
-            ended_at: new Date(Date.now() - 120000).toISOString(),
-        })
-        .eq('is_active', true)
-        .lt('last_heartbeat', new Date(Date.now() - 120000).toISOString());
+    // Close stale sessions with proper duration computation
+    await closeStaleSessionsManual(supabase);
 
     // Get active sessions with user info
-    const { data } = await supabase
+    const { data, error } = await supabase
         .from('active_sessions')
         .select('session_id, username, started_at, last_heartbeat, current_page, device_info')
         .eq('is_active', true)
         .order('last_heartbeat', { ascending: false });
 
-    if (!data) return [];
+    if (error) {
+        console.error('[Heartbeat] Get active sessions error:', error);
+        return { error: 'fetch_failed' as const, sessions: [] };
+    }
+
+    if (!data || data.length === 0) return { sessions: [] };
 
     // Get user names
     const usernames = [...new Set(data.map(s => s.username))];
@@ -192,36 +232,45 @@ export async function getActiveSessions() {
 
     const userMap = new Map((users || []).map(u => [u.username, u]));
 
-    return data.map(s => ({
-        ...s,
-        full_name: userMap.get(s.username)?.full_name || s.username,
-        section: userMap.get(s.username)?.original_section || '',
-        group: userMap.get(s.username)?.original_group || '',
-        active_minutes: Math.floor((Date.now() - new Date(s.started_at).getTime()) / 60000),
-    }));
+    return {
+        sessions: data.map(s => ({
+            ...s,
+            full_name: userMap.get(s.username)?.full_name || s.username,
+            section: userMap.get(s.username)?.original_section || '',
+            group: userMap.get(s.username)?.original_group || '',
+            active_minutes: Math.floor((Date.now() - new Date(s.started_at).getTime()) / 60000),
+        })),
+    };
 }
 
 /**
  * Get time spent stats for a specific student.
+ * Returns a typed error object instead of null on failure.
  */
 export async function getStudentTimeStats(username: string) {
     const session = await getSession();
     if (!session || session.role !== 'super_admin') {
-        return null;
+        return { error: 'unauthorized' as const };
     }
 
     const supabase = await createServiceRoleClient();
 
-    // Get all sessions for this student in the last 30 days
+    // Get sessions for this student in the last 30 days (limit to 500 to prevent unbounded queries)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const { data: sessions } = await supabase
+    const { data: sessions, error } = await supabase
         .from('active_sessions')
         .select('started_at, ended_at, last_heartbeat, duration_seconds, pages_visited, current_page, device_info, is_active')
         .eq('username', username)
         .gte('started_at', thirtyDaysAgo.toISOString())
-        .order('started_at', { ascending: false });
+        .order('started_at', { ascending: false })
+        .limit(500);
+
+    if (error) {
+        console.error('[Heartbeat] Student time stats error:', error);
+        return { error: 'fetch_failed' as const };
+    }
 
     if (!sessions || sessions.length === 0) {
         return {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useDeferredValue } from 'react';
 import { Shield, LayoutDashboard, Users, Activity, Bell, FileText, Pin, ArrowLeft, Radio, Search, ExternalLink, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,7 @@ import { AlertsPanel } from './AlertsPanel';
 import { ReportsTable } from './ReportsTable';
 import { WatchlistTable } from './WatchlistTable';
 import { LiveTracker } from './LiveTracker';
+import { SafetyErrorBoundary } from './SafetyErrorBoundary';
 import type { ClassOverview, HeatmapCell, EngagementScore } from '@/lib/safety/analytics';
 
 type Tab = 'dashboard' | 'live' | 'students' | 'activity' | 'alerts' | 'reports' | 'watchlist';
@@ -52,15 +53,16 @@ export function SafetyDashboardClient({
 }: SafetyDashboardClientProps) {
     const [activeTab, setActiveTab] = useState<Tab>('dashboard');
     const [studentSearch, setStudentSearch] = useState('');
+    const deferredSearch = useDeferredValue(studentSearch);
 
     const unacknowledgedAlerts = initialAlerts.filter(a => !a.is_acknowledged).length;
 
-    // Quick search results from the full students list — show all matches
-    const searchResults = studentSearch.length >= 2
+    // Quick search results from the full students list — deferred to avoid lag
+    const searchResults = deferredSearch.length >= 2
         ? initialStudents.filter(s =>
-            s.username.toLowerCase().includes(studentSearch.toLowerCase()) ||
-            s.fullName?.toLowerCase().includes(studentSearch.toLowerCase())
-        )
+            s.username.toLowerCase().includes(deferredSearch.toLowerCase()) ||
+            s.fullName?.toLowerCase().includes(deferredSearch.toLowerCase())
+        ).slice(0, 20)
         : [];
 
     return (
@@ -204,86 +206,100 @@ export function SafetyDashboardClient({
                 {/* Main Content */}
                 <main className="flex-1 p-4 sm:p-6 pb-20 lg:pb-6 max-w-full overflow-hidden">
                     {activeTab === 'dashboard' && (
-                        <DashboardOverview
-                            overview={dashboardData.overview}
-                            heatmap={dashboardData.heatmap}
-                            recentAlerts={dashboardData.recentAlerts}
-                            students={initialStudents}
-                        />
+                        <SafetyErrorBoundary fallbackTitle="Dashboard failed to load">
+                            <DashboardOverview
+                                overview={dashboardData.overview}
+                                heatmap={dashboardData.heatmap}
+                                recentAlerts={dashboardData.recentAlerts}
+                                students={initialStudents}
+                            />
+                        </SafetyErrorBoundary>
                     )}
 
                     {activeTab === 'live' && (
-                        <div className="space-y-4">
-                            <div>
-                                <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                                    <span className="relative flex h-3 w-3">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                                    </span>
-                                    Live Activity
-                                </h2>
-                                <p className="text-xs text-zinc-500 mt-1">Students currently online — auto-refreshes every 30 seconds</p>
+                        <SafetyErrorBoundary fallbackTitle="Live tracker failed to load">
+                            <div className="space-y-4">
+                                <div>
+                                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                                        <span className="relative flex h-3 w-3">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                            <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                                        </span>
+                                        Live Activity
+                                    </h2>
+                                    <p className="text-xs text-zinc-500 mt-1">Students currently online — auto-refreshes every 30 seconds</p>
+                                </div>
+                                <LiveTracker />
                             </div>
-                            <LiveTracker />
-                        </div>
+                        </SafetyErrorBoundary>
                     )}
 
                     {activeTab === 'students' && (
-                        <div className="space-y-4">
-                            <div>
-                                <h2 className="text-xl font-bold text-white">Student Tracking</h2>
-                                <p className="text-xs text-zinc-500 mt-1">Monitor individual students, filter by section or group</p>
+                        <SafetyErrorBoundary fallbackTitle="Student tracking failed to load">
+                            <div className="space-y-4">
+                                <div>
+                                    <h2 className="text-xl font-bold text-white">Student Tracking</h2>
+                                    <p className="text-xs text-zinc-500 mt-1">Monitor individual students, filter by section or group</p>
+                                </div>
+                                <StudentRankingTable
+                                    students={initialStudents}
+                                    sections={dashboardData.sections}
+                                    groups={dashboardData.groups}
+                                />
                             </div>
-                            <StudentRankingTable
-                                students={initialStudents}
-                                sections={dashboardData.sections}
-                                groups={dashboardData.groups}
-                            />
-                        </div>
+                        </SafetyErrorBoundary>
                     )}
 
                     {activeTab === 'activity' && (
-                        <div className="space-y-4">
-                            <div>
-                                <h2 className="text-xl font-bold text-white">Activity Feed</h2>
-                                <p className="text-xs text-zinc-500 mt-1">Real-time student activity across the platform</p>
+                        <SafetyErrorBoundary fallbackTitle="Activity feed failed to load">
+                            <div className="space-y-4">
+                                <div>
+                                    <h2 className="text-xl font-bold text-white">Activity Feed</h2>
+                                    <p className="text-xs text-zinc-500 mt-1">Real-time student activity across the platform</p>
+                                </div>
+                                <ActivityFeed
+                                    initialLogs={initialLogs}
+                                    initialCount={initialLogCount}
+                                    sections={dashboardData.sections}
+                                />
                             </div>
-                            <ActivityFeed
-                                initialLogs={initialLogs}
-                                initialCount={initialLogCount}
-                                sections={dashboardData.sections}
-                            />
-                        </div>
+                        </SafetyErrorBoundary>
                     )}
 
                     {activeTab === 'alerts' && (
-                        <div className="space-y-4">
-                            <div>
-                                <h2 className="text-xl font-bold text-white">Smart Alerts</h2>
-                                <p className="text-xs text-zinc-500 mt-1">Auto-generated alerts for student behavior anomalies</p>
+                        <SafetyErrorBoundary fallbackTitle="Alerts failed to load">
+                            <div className="space-y-4">
+                                <div>
+                                    <h2 className="text-xl font-bold text-white">Smart Alerts</h2>
+                                    <p className="text-xs text-zinc-500 mt-1">Auto-generated alerts for student behavior anomalies</p>
+                                </div>
+                                <AlertsPanel initialAlerts={initialAlerts} />
                             </div>
-                            <AlertsPanel initialAlerts={initialAlerts} />
-                        </div>
+                        </SafetyErrorBoundary>
                     )}
 
                     {activeTab === 'reports' && (
-                        <div className="space-y-4">
-                            <div>
-                                <h2 className="text-xl font-bold text-white">Student Reports</h2>
-                                <p className="text-xs text-zinc-500 mt-1">Reports submitted by students</p>
+                        <SafetyErrorBoundary fallbackTitle="Reports failed to load">
+                            <div className="space-y-4">
+                                <div>
+                                    <h2 className="text-xl font-bold text-white">Student Reports</h2>
+                                    <p className="text-xs text-zinc-500 mt-1">Reports submitted by students</p>
+                                </div>
+                                <ReportsTable initialReports={initialReports} />
                             </div>
-                            <ReportsTable initialReports={initialReports} />
-                        </div>
+                        </SafetyErrorBoundary>
                     )}
 
                     {activeTab === 'watchlist' && (
-                        <div className="space-y-4">
-                            <div>
-                                <h2 className="text-xl font-bold text-white">Watchlist</h2>
-                                <p className="text-xs text-zinc-500 mt-1">Students you&apos;re monitoring closely</p>
+                        <SafetyErrorBoundary fallbackTitle="Watchlist failed to load">
+                            <div className="space-y-4">
+                                <div>
+                                    <h2 className="text-xl font-bold text-white">Watchlist</h2>
+                                    <p className="text-xs text-zinc-500 mt-1">Students you&apos;re monitoring closely</p>
+                                </div>
+                                <WatchlistTable />
                             </div>
-                            <WatchlistTable />
-                        </div>
+                        </SafetyErrorBoundary>
                     )}
                 </main>
             </div>

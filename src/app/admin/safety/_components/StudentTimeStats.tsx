@@ -58,7 +58,13 @@ export function StudentTimeStats({ username }: TimeStatsProps) {
 
     useEffect(() => {
         getStudentTimeStats(username).then(d => {
-            setData(d as TimeData);
+            if (d && 'error' in d) {
+                // Auth failure or fetch error
+                console.warn('[StudentTimeStats]', d.error);
+                setData(null);
+            } else {
+                setData(d as TimeData);
+            }
             setLoading(false);
         }).catch(() => setLoading(false));
     }, [username]);

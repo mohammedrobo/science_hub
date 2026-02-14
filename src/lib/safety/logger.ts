@@ -34,7 +34,7 @@ interface LogEntry {
 /**
  * Logs a user action to the activity_logs table.
  * Uses Service Role to bypass potential RLS issues (though RLS allows insert).
- * Fire-and-forget: does not block the main threat.
+ * Awaitable: callers can choose to await or fire-and-forget.
  */
 export async function logActivity(entry: LogEntry) {
     try {
@@ -48,22 +48,19 @@ export async function logActivity(entry: LogEntry) {
 
         const userAgent = headersList.get('user-agent') || 'unknown';
 
-        // Fire and forget - don't await the result to avoid slowing down the user
-        // But we catch errors to avoid crashing
-        supabase.from('activity_logs').insert({
+        const { error } = await supabase.from('activity_logs').insert({
             user_id: entry.userId,
             username: entry.username,
             action_type: entry.action,
             details: entry.details || {},
             ip_address: ip,
             user_agent: userAgent,
-        }).then(({ error }) => {
-            if (error) {
-                console.error('[SafetyLogger] Failed to write log:', error);
-            }
         });
 
+        if (error) {
+            console.error('[SafetyLogger] Failed to write log:', error);
+        }
     } catch (error) {
-        console.error('[SafetyLogger] Critial error:', error);
+        console.error('[SafetyLogger] Critical error:', error);
     }
 }

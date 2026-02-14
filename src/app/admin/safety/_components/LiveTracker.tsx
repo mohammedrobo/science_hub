@@ -62,8 +62,13 @@ export function LiveTracker() {
     const refresh = useCallback(async () => {
         setLoading(true);
         try {
-            const data = await getActiveSessions();
-            setSessions(data as ActiveSession[]);
+            const result = await getActiveSessions();
+            if ('error' in result && result.error === 'unauthorized') {
+                console.warn('[LiveTracker] Unauthorized — cannot fetch sessions');
+                setSessions([]);
+            } else {
+                setSessions((result.sessions || []) as ActiveSession[]);
+            }
             setLastRefresh(new Date());
         } catch {
             // ignore

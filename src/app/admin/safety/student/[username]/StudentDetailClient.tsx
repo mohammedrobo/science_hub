@@ -51,6 +51,7 @@ import {
     PolarGrid,
     PolarAngleAxis,
     PolarRadiusAxis,
+    Cell,
 } from 'recharts';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -211,13 +212,14 @@ export function StudentDetailClient({ data, username, sessionHistory, securityDa
     };
 
     // ── Radar chart data ──
+    // loginFrequency is already 0-100, other metrics need normalization
     const radarData = engagement ? [
-        { subject: 'Login Freq', value: Math.round(engagement.metrics.loginFrequency * 100), fullMark: 100 },
-        { subject: 'Quiz Part.', value: Math.round(engagement.metrics.quizParticipation * 100), fullMark: 100 },
-        { subject: 'Lesson Eng.', value: Math.round(engagement.metrics.lessonEngagement * 100), fullMark: 100 },
-        { subject: 'Session Dur.', value: Math.round(engagement.metrics.sessionDuration * 100), fullMark: 100 },
-        { subject: 'Page Diversity', value: Math.round(engagement.metrics.pageViewDiversity * 100), fullMark: 100 },
-        { subject: 'Consistency', value: Math.round(engagement.metrics.consistencyStreak * 100), fullMark: 100 },
+        { subject: 'Login Freq', value: Math.min(engagement.metrics.loginFrequency, 100), fullMark: 100 },
+        { subject: 'Quiz Part.', value: Math.min(engagement.metrics.quizParticipation * 10, 100), fullMark: 100 },
+        { subject: 'Lesson Eng.', value: Math.min(engagement.metrics.lessonEngagement * 5, 100), fullMark: 100 },
+        { subject: 'Session Dur.', value: Math.min(engagement.metrics.sessionDuration * 2, 100), fullMark: 100 },
+        { subject: 'Page Diversity', value: Math.min(engagement.metrics.pageViewDiversity * 5, 100), fullMark: 100 },
+        { subject: 'Consistency', value: Math.min(engagement.metrics.consistencyStreak * 7, 100), fullMark: 100 },
     ] : [];
 
     // ── Activity by action type ──
@@ -570,6 +572,124 @@ export function StudentDetailClient({ data, username, sessionHistory, securityDa
                                 </CardContent>
                             </Card>
                         </div>
+
+                        {/* Per-Course Breakdown */}
+                        {engagement?.courseScores && engagement.courseScores.length > 0 && (
+                            <Card className="bg-zinc-900/50 border-zinc-800">
+                                <CardHeader>
+                                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                        <BookOpen className="w-4 h-4 text-purple-400" /> Performance by Course
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-3">
+                                        {engagement.courseScores.map(cs => (
+                                            <div key={cs.courseCode} className="p-3 rounded-lg bg-zinc-900 border border-zinc-800">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div>
+                                                        <span className="text-sm font-semibold text-zinc-200">{cs.courseCode}</span>
+                                                        <span className="text-xs text-zinc-500 ml-2">{cs.courseName}</span>
+                                                    </div>
+                                                    <Badge variant="outline" className={`text-xs ${
+                                                        cs.avgScore >= 80 ? 'border-emerald-500/30 text-emerald-400' :
+                                                        cs.avgScore >= 60 ? 'border-blue-500/30 text-blue-400' :
+                                                        cs.avgScore >= 40 ? 'border-yellow-500/30 text-yellow-400' :
+                                                        'border-red-500/30 text-red-400'
+                                                    }`}>
+                                                        {cs.avgScore}% avg
+                                                    </Badge>
+                                                </div>
+                                                <div className="h-2 bg-zinc-800 rounded-full overflow-hidden mb-2">
+                                                    <div
+                                                        className="h-full rounded-full transition-all duration-700"
+                                                        style={{
+                                                            width: `${cs.avgScore}%`,
+                                                            backgroundColor: cs.avgScore >= 80 ? '#22c55e' : cs.avgScore >= 60 ? '#3b82f6' : cs.avgScore >= 40 ? '#eab308' : '#ef4444'
+                                                        }}
+                                                    />
+                                                </div>
+                                                <div className="flex gap-4 text-[11px] text-zinc-500">
+                                                    <span>Quizzes: <span className="text-zinc-300 font-mono">{cs.quizCount}</span></span>
+                                                    <span>Best: <span className="text-amber-400 font-mono">{cs.bestScore}%</span></span>
+                                                    <span>Lessons: <span className="text-cyan-400 font-mono">{cs.lessonsCompleted}</span></span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Quiz Score History */}
+                        {academicData.quizzes.length > 0 && (
+                            <Card className="bg-zinc-900/50 border-zinc-800">
+                                <CardHeader>
+                                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                        <Target className="w-4 h-4 text-purple-400" /> Quiz Score History
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <ResponsiveContainer width="100%" height={200} minWidth={0} minHeight={0}>
+                                        <BarChart data={academicData.quizzes.slice(0, 20).reverse()}>
+                                            <CartesianGrid stroke="#27272a" strokeDasharray="3 3" vertical={false} />
+                                            <XAxis
+                                                dataKey="completed_at"
+                                                tick={{ fill: '#71717a', fontSize: 9 }}
+                                                tickFormatter={(d) => d ? new Date(d).toLocaleDateString('en', { month: 'short', day: 'numeric' }) : ''}
+                                                axisLine={false}
+                                                tickLine={false}
+                                            />
+                                            <YAxis tick={{ fill: '#71717a', fontSize: 10 }} domain={[0, 100]} width={28} axisLine={false} tickLine={false} />
+                                            <Tooltip
+                                                contentStyle={{ backgroundColor: '#18181b', border: '1px solid #3f3f46', borderRadius: '8px' }}
+                                                labelStyle={{ color: '#e4e4e7' }}
+                                                labelFormatter={(d) => d ? new Date(d).toLocaleDateString() : ''}
+                                            />
+                                            <Bar dataKey="score" name="Score" radius={[4, 4, 0, 0]} barSize={20}>
+                                                {academicData.quizzes.slice(0, 20).reverse().map((q: any, i: number) => {
+                                                    const s = q.score || 0;
+                                                    const color = s >= 80 ? '#22c55e' : s >= 60 ? '#3b82f6' : s >= 40 ? '#eab308' : '#ef4444';
+                                                    return <Cell key={i} fill={color} />;
+                                                })}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Grade Distribution */}
+                        {(() => {
+                            const gd = academicData.gradeDistribution;
+                            const total = gd.A + gd.B + gd.C + gd.D + gd.F;
+                            if (total === 0) return null;
+                            const gradeColors: Record<string, string> = { A: '#22c55e', B: '#3b82f6', C: '#eab308', D: '#f97316', F: '#ef4444' };
+                            return (
+                                <Card className="bg-zinc-900/50 border-zinc-800">
+                                    <CardHeader>
+                                        <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                            <GraduationCap className="w-4 h-4 text-amber-400" /> Grade Distribution
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-2">
+                                            {Object.entries(gd).map(([grade, count]) => {
+                                                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                                                return (
+                                                    <div key={grade} className="flex items-center gap-3">
+                                                        <span className="text-sm font-bold w-5 text-center" style={{ color: gradeColors[grade] }}>{grade}</span>
+                                                        <div className="flex-1 h-3 bg-zinc-800 rounded-full overflow-hidden">
+                                                            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: gradeColors[grade] }} />
+                                                        </div>
+                                                        <span className="text-xs font-mono text-zinc-400 w-16 text-right">{count} ({pct}%)</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            );
+                        })()}
 
                         {/* Reports Section */}
                         {reports.length > 0 && (
