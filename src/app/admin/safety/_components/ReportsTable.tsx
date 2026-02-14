@@ -54,8 +54,8 @@ export function ReportsTable({ initialReports }: ReportsTableProps) {
                 </div>
             </div>
 
-            <div className="rounded-md border border-zinc-800 bg-zinc-950">
-                <Table>
+            <div className="rounded-md border border-zinc-800 bg-zinc-950 overflow-x-auto">
+                <Table className="min-w-[500px] sm:min-w-0">
                     <TableHeader>
                         <TableRow className="border-zinc-800 hover:bg-zinc-900/50">
                             <TableHead className="text-zinc-400 hidden md:table-cell">Date</TableHead>

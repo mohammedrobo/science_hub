@@ -1,13 +1,18 @@
 'use server';
 
 import { cookies } from 'next/headers';
+import { SignJWT, jwtVerify } from 'jose';
 
 const SESSION_COOKIE = 'sciencehub_session';
 
+// HMAC secret for signing session cookies — falls back to a dev-only key
+const SESSION_SECRET = new TextEncoder().encode(
+    process.env.SESSION_SECRET || 'dev-only-secret-change-in-production-32chars!'
+);
+
 // Cache for DB verification to avoid checking on every request
-// Key: sessionToken, Value: { verified: timestamp, valid: boolean }
 const verificationCache = new Map<string, { verified: number; valid: boolean }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache for DB verification (extended from 1 min)
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 export interface SessionData {
     username: string;
@@ -22,50 +27,78 @@ export interface SessionData {
 }
 
 /**
- * Create a session cookie
+ * Sign session data into a JWT
+ */
+async function signSession(data: SessionData): Promise<string> {
+    return new SignJWT(data as unknown as Record<string, unknown>)
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime('7d')
+        .sign(SESSION_SECRET);
+}
+
+/**
+ * Verify and decode a signed session JWT.
+ * Returns null if signature is invalid or token is expired.
+ */
+async function verifySignedSession(token: string): Promise<SessionData | null> {
+    try {
+        const { payload } = await jwtVerify(token, SESSION_SECRET);
+        return payload as unknown as SessionData;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Create a signed session cookie
  */
 export async function createSession(data: SessionData): Promise<void> {
     const cookieStore = await cookies();
     const isProduction = process.env.NODE_ENV === 'production';
-    
-    cookieStore.set(SESSION_COOKIE, JSON.stringify(data), {
+
+    const jwt = await signSession(data);
+
+    cookieStore.set(SESSION_COOKIE, jwt, {
         httpOnly: true,
         secure: isProduction,
         sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 30, // 30 days (extended from 7)
+        maxAge: 60 * 60 * 24 * 7, // 7 days
         path: '/',
-        // Don't set domain - let browser use current domain automatically
     });
-    
+
     // Cache this session as valid
     if (data.sessionToken) {
         verificationCache.set(data.sessionToken, { verified: Date.now(), valid: true });
     }
-    
-    console.log(`[Session] Created session for ${data.username}`);
 }
 
 /**
- * Get current session
+ * Get current session - verifies JWT signature first
  */
 import { createClient } from '@/lib/supabase/server';
 
-/**
- * Get current session - FAST path trusts the cookie
- * DB verification only happens on sensitive actions via verifySessionWithDB()
- */
 export async function getSession(): Promise<SessionData | null> {
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get(SESSION_COOKIE);
 
     if (!sessionCookie) return null;
 
+    // Try JWT verification first (new signed format)
+    const session = await verifySignedSession(sessionCookie.value);
+    if (session) return session;
+
+    // Fallback: try legacy unsigned JSON (for existing sessions during migration)
     try {
-        const session = JSON.parse(sessionCookie.value) as SessionData;
-        return session;
+        const legacy = JSON.parse(sessionCookie.value) as SessionData;
+        if (legacy.username && legacy.role) {
+            return legacy;
+        }
     } catch {
-        return null;
+        // Neither JWT nor JSON — invalid cookie
     }
+
+    return null;
 }
 
 /**
@@ -73,14 +106,10 @@ export async function getSession(): Promise<SessionData | null> {
  * This checks if the session token is still valid (not kicked by another login)
  */
 export async function verifySessionWithDB(): Promise<SessionData | null> {
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get(SESSION_COOKIE);
-
-    if (!sessionCookie) return null;
+    const session = await getSession();
+    if (!session) return null;
 
     try {
-        const session = JSON.parse(sessionCookie.value) as SessionData;
-        
         // Check cache first (keyed by sessionToken for accuracy)
         if (session.sessionToken) {
             const cached = verificationCache.get(session.sessionToken);

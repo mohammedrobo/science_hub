@@ -69,7 +69,7 @@ export function StudentProfileSheet({ username, open, onOpenChange }: StudentPro
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent className="w-[400px] sm:w-[540px] bg-zinc-950 border-zinc-800 text-zinc-100 overflow-y-auto">
+            <SheetContent className="w-full sm:w-[540px] bg-zinc-950 border-zinc-800 text-zinc-100 overflow-y-auto">
                 <SheetHeader className="mb-6">
                     <div className="flex items-start justify-between">
                         <div>
@@ -169,7 +169,7 @@ export function StudentProfileSheet({ username, open, onOpenChange }: StudentPro
                                                 {new Date(log.created_at).toLocaleString()}
                                             </span>
                                             {log.details && Object.keys(log.details).length > 0 && (
-                                                <div className="text-xs bg-zinc-900 p-2 rounded border border-zinc-800 text-zinc-400 mt-1 max-w-[300px] overflow-hidden truncate">
+                                                <div className="text-xs bg-zinc-900 p-2 rounded border border-zinc-800 text-zinc-400 mt-1 max-w-full sm:max-w-[300px] overflow-hidden truncate">
                                                     {log.details.path || JSON.stringify(log.details)}
                                                 </div>
                                             )}

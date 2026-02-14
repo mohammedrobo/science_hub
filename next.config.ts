@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
     optimizeCss: true,
     // Increase Server Action body size limit for file uploads (500MB)
     serverActions: {
-      bodySizeLimit: '500mb',
+      bodySizeLimit: '10mb',
     },
     // Optimize imports for heavy packages
     optimizePackageImports: ['lucide-react', 'katex', 'date-fns', '@supabase/supabase-js'],
@@ -66,7 +66,7 @@ const nextConfig: NextConfig = {
           // Content Security Policy - adjust based on your needs
           { 
             key: 'Content-Security-Policy', 
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://generativelanguage.googleapis.com; frame-ancestors 'self';"
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://generativelanguage.googleapis.com; frame-ancestors 'self';"
           },
           // HSTS: Enable in production with HTTPS
           ...(process.env.NODE_ENV === 'production' ? [

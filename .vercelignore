@@ -1,0 +1,12 @@
+# Exclude sensitive credential files from deployment
+secure_data/
+scripts/
+database/
+
+# Test files
+testsprite_tests/
+
+# Documentation
+PROJECT_DOCUMENTATION.md
+SECURITY_AUDIT_REPORT.md
+project.md

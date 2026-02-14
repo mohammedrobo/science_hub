@@ -20,26 +20,31 @@ export default async function SafetyDashboardPage() {
     const reports = reportsRes.reports || [];
 
     return (
-        <div className="space-y-6">
-            <h1 className="text-3xl font-bold flex items-center gap-3">
-                <Shield className="w-8 h-8 text-emerald-400" />
-                Safety & Monitoring Center
-            </h1>
+        <div className="space-y-4 sm:space-y-6">
+            <div>
+                <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
+                    <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-400" />
+                    Safety & Monitoring
+                </h1>
+                <p className="text-sm text-zinc-500 mt-1 hidden sm:block">Monitor student activity, reports, and system health</p>
+            </div>
 
             <Tabs defaultValue="overview" className="space-y-4">
-                <TabsList className="bg-zinc-900 border-zinc-800 p-1 overflow-x-auto justify-start w-full sm:w-auto flex-nowrap">
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="reports">
-                        Reports
-                        {stats.openReports > 0 && (
-                            <span className="ml-2 rounded-full bg-red-600 px-2 py-0.5 text-xs text-white">
-                                {stats.openReports}
-                            </span>
-                        )}
-                    </TabsTrigger>
-                    <TabsTrigger value="activity">Live Activity</TabsTrigger>
-                    <TabsTrigger value="watchlist">Watchlist</TabsTrigger>
-                </TabsList>
+                <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+                    <TabsList className="bg-zinc-900 border border-zinc-800 p-1 w-max sm:w-auto flex">
+                        <TabsTrigger value="overview" className="text-xs sm:text-sm px-3 sm:px-4">Overview</TabsTrigger>
+                        <TabsTrigger value="reports" className="text-xs sm:text-sm px-3 sm:px-4">
+                            Reports
+                            {stats.openReports > 0 && (
+                                <span className="ml-1.5 rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] text-white">
+                                    {stats.openReports}
+                                </span>
+                            )}
+                        </TabsTrigger>
+                        <TabsTrigger value="activity" className="text-xs sm:text-sm px-3 sm:px-4">Activity</TabsTrigger>
+                        <TabsTrigger value="watchlist" className="text-xs sm:text-sm px-3 sm:px-4">Watchlist</TabsTrigger>
+                    </TabsList>
+                </div>
 
                 <TabsContent value="overview" className="space-y-4">
                     <SafetyStats stats={stats} chartData={chartData} />

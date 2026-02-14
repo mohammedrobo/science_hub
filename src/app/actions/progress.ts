@@ -4,6 +4,20 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { getSession } from '@/app/login/actions';
 import { MOCK_COURSES } from '@/lib/data/mocks';
 import { logActivity } from '@/lib/safety/logger';
+import { unstable_cache, updateTag } from 'next/cache';
+
+// Cache lessons list — rarely changes, avoids re-fetching on every homepage visit
+const getCachedLessons = unstable_cache(
+    async () => {
+        const supabase = await createServiceRoleClient();
+        const { data } = await supabase
+            .from('lessons')
+            .select('id, course_code');
+        return data ?? [];
+    },
+    ['all-lessons'],
+    { revalidate: 300, tags: ['lessons'] } // 5 min cache, revalidated on lesson CRUD
+);
 
 export async function getCourseProgress(): Promise<Record<string, number>> {
     const session = await getSession();
@@ -11,52 +25,45 @@ export async function getCourseProgress(): Promise<Record<string, number>> {
 
     const supabase = await createServiceRoleClient();
 
-    // Fetch all progress for the user
-    // We assume 'content_id' in user_progress maps to lesson IDs.
-    // We need to know which lessons belong to which course.
-    // For this implementation, we'll try to aggregate by matching course structure.
+    // Parallel: fetch user progress + cached lessons list
+    const [progressResult, lessons] = await Promise.all([
+        supabase
+            .from('user_progress')
+            .select('content_id')
+            .eq('username', session.username)
+            .eq('status', 'completed'),
+        getCachedLessons(),
+    ]);
 
-    // NOTE: In a real DB schema, lessons would link to courses. 
-    // Since we rely on MOCK_COURSES const for course definitions, we need to map it here.
-
-    // 1. Get user progress
-    const { data: progressData, error } = await supabase
-        .from('user_progress')
-        .select('content_id, status')
-        .eq('username', session.username)
-        .eq('status', 'completed');
-
-    if (error) {
-        console.error('Error fetching progress:', error);
+    const progressData = progressResult.data;
+    if (progressResult.error || !progressData) {
+        console.error('Error fetching progress:', progressResult.error);
         return {};
     }
 
-    const completedLessonIds = new Set(progressData?.map(p => p.content_id) || []);
+    if (!lessons.length) return {};
 
-    // 2. Calculate progress per course
+    // Build course -> total lessons map and completed count
+    const courseTotals = new Map<string, number>();
+    const courseCompleted = new Map<string, number>();
+    const completedIds = new Set(progressData.map(p => p.content_id));
+
+    for (const lesson of lessons) {
+        const code = lesson.course_code;
+        courseTotals.set(code, (courseTotals.get(code) || 0) + 1);
+        if (completedIds.has(lesson.id)) {
+            courseCompleted.set(code, (courseCompleted.get(code) || 0) + 1);
+        }
+    }
+
+    // Calculate percentage per course
     const courseProgress: Record<string, number> = {};
+    for (const [code, total] of courseTotals) {
+        const completed = courseCompleted.get(code) || 0;
+        courseProgress[code] = total > 0 ? Math.round((completed / total) * 100) : 0;
+    }
 
-    // We need to access the lessons of each course.
-    // Let's assume MOCK_COURSES has a 'lessons' array or similar count.
-    // If MOCK_COURSES only has metadata, we might need to look up lesson definitions.
-    // The previously viewed 'getQuizById' file suggests data is in code.
-    // Let's assume we can import COURSES_DATA or similar if MOCK_COURSES doesn't have it.
-    // Based on `page.tsx`, `MOCK_COURSES` is used. Let's iterate it.
-
-    /* 
-       Optimization: If we don't have the full lesson list per course in MOCK_COURSES,
-       we might need to mock the "total lessons" count.
-       Let's check `src/lib/constants` via view_file if needed, but for now 
-       I will assume MOCK_COURSES has a `lessons` array or `totalLessons` property.
-       If not, I'll default to a mock count or 0.
-    */
-
-    // Let's view MOCK_COURSES structure first to be safe? 
-    // Actually, I'll view it in the next step if this file creation depends on it.
-    // For now, I'll write the scaffold.
-
-    // Wait, I should view `src/lib/constants` to be accurate.
-    return {};
+    return courseProgress;
 }
 
 export async function markContentAsCompleted(contentId: string, contentType: 'lesson' | 'quiz', xp: number = 0) {
@@ -172,27 +179,33 @@ export async function submitQuizResult(quizId: string, percentage: number) {
         return { error: 'Failed to save result' };
     }
 
-    // Award XP
-    if (xpToAward > 0) {
-        await supabase.rpc('award_xp', {
-            p_username: session.username,
-            p_content_id: quizId,
-            p_xp: xpToAward
-        });
-    }
+    // Award XP + Log Activity in parallel (independent operations)
+    await Promise.all([
+        xpToAward > 0
+            ? supabase.rpc('award_xp', {
+                  p_username: session.username,
+                  p_content_id: quizId,
+                  p_xp: xpToAward,
+              })
+            : Promise.resolve(),
+        logActivity({
+            action: 'QUIZ_SUBMIT',
+            username: session.username,
+            details: {
+                quizId,
+                score: percentage,
+                xpEarned: xpToAward,
+                grade,
+                label,
+            },
+        }),
+    ]);
 
-    // Log Activity
-    await logActivity({
-        action: 'QUIZ_SUBMIT',
-        username: session.username,
-        details: {
-            quizId,
-            score: percentage,
-            xpEarned: xpToAward,
-            grade,
-            label
-        }
-    });
+    // Revalidate cached data that depends on XP
+    if (xpToAward > 0) {
+        updateTag('leaderboard');
+        updateTag('header-stats');
+    }
 
     return { success: true, xpEarned: xpToAward, message: `Quiz Complete! Grade: ${grade} (${label})` };
 }

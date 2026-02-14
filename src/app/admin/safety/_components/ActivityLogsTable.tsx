@@ -38,8 +38,8 @@ export function ActivityLogsTable({ initialLogs, initialCount }: ActivityLogsTab
             {/* Simple search UI placeholder - full integration would use router.push to update search params */}
             {/* For now, just displaying the data we have nicely */}
 
-            <div className="rounded-md border border-zinc-800 bg-zinc-950">
-                <Table>
+            <div className="rounded-md border border-zinc-800 bg-zinc-950 overflow-x-auto">
+                <Table className="min-w-[400px] sm:min-w-0">
                     <TableHeader>
                         <TableRow className="border-zinc-800 hover:bg-zinc-900/50">
                             <TableHead className="text-zinc-400 w-[180px] hidden md:table-cell">Timestamp</TableHead>

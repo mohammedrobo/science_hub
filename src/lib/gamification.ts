@@ -1,4 +1,53 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { unstable_cache } from 'next/cache';
+
+// ============ LIGHTWEIGHT HEADER STATS (CACHED) ============
+
+export interface HeaderStats {
+    profilePictureUrl?: string;
+    currentRank: string;
+    totalXp: number;
+    fullName?: string;
+}
+
+/**
+ * Lightweight stats for the Header — 1 query instead of 3.
+ * Cached per-user for 120 seconds so navigating between pages is instant.
+ */
+export async function getHeaderStats(username: string): Promise<HeaderStats> {
+    return _getHeaderStatsCached(username);
+}
+
+const _getHeaderStatsCached = unstable_cache(
+    async (username: string): Promise<HeaderStats> => {
+        // Use service role client — unstable_cache cannot access cookies()
+        const supabase = await createServiceRoleClient();
+
+        const [statsResult, userResult] = await Promise.all([
+            supabase
+                .from('user_stats')
+                .select('current_rank, total_xp, profile_picture_url')
+                .eq('username', username)
+                .single(),
+            supabase
+                .from('allowed_users')
+                .select('full_name')
+                .eq('username', username)
+                .single(),
+        ]);
+
+        return {
+            profilePictureUrl: statsResult.data?.profile_picture_url ?? undefined,
+            currentRank: statsResult.data?.current_rank ?? 'E',
+            totalXp: statsResult.data?.total_xp ?? 0,
+            fullName: userResult.data?.full_name ?? undefined,
+        };
+    },
+    ['header-stats'],
+    { revalidate: 120, tags: ['header-stats'] }
+);
+
+// ============ FULL USER STATS ============
 
 export interface UserStats {
     username: string;
@@ -17,20 +66,27 @@ export interface UserStats {
 export async function getUserStats(username: string): Promise<UserStats | null> {
     const supabase = await createClient();
 
-    // 1. Fetch Basic User Stats (XP, Rank, GPA)
-    // Removed gpa_term_1 from selection as it's no longer used
-    let { data: stats, error: statsError } = await supabase
-        .from('user_stats')
-        .select('username, total_xp, current_rank, profile_picture_url')
-        .eq('username', username)
-        .single();
+    // Single combined query: fetch stats, progress, and user name in parallel
+    const [statsResult, progressResult, userResult] = await Promise.all([
+        supabase
+            .from('user_stats')
+            .select('username, total_xp, current_rank, profile_picture_url')
+            .eq('username', username)
+            .single(),
+        supabase
+            .from('user_progress')
+            .select('content_id, content_type, score, status')
+            .eq('username', username)
+            .eq('status', 'completed'),
+        supabase
+            .from('allowed_users')
+            .select('full_name')
+            .eq('username', username)
+            .single()
+    ]);
 
-    // 2. Fetch Detailed Progress (Lessons and Quizzes)
-    const { data: progress } = await supabase
-        .from('user_progress')
-        .select('content_id, content_type, score, status')
-        .eq('username', username)
-        .eq('status', 'completed');
+    let stats = statsResult.data;
+    const progress = progressResult.data;
 
     // Calculate Counts
     const completedLessons = progress?.filter(p => p.content_type === 'lesson').length || 0;
@@ -78,7 +134,7 @@ export async function getUserStats(username: string): Promise<UserStats | null> 
 
 
     // If stats don't exist, create them
-    if (statsError || !stats) {
+    if (statsResult.error || !stats) {
         const { data: newStats, error: createError } = await supabase
             .from('user_stats')
             .insert({
@@ -101,18 +157,11 @@ export async function getUserStats(username: string): Promise<UserStats | null> 
         }
     }
 
-    // Fetch full name
-    const { data: user } = await supabase
-        .from('allowed_users')
-        .select('full_name')
-        .eq('username', username)
-        .single();
-
     return {
         username: stats?.username || username,
         totalXp: stats?.total_xp || 0,
         currentRank: stats?.current_rank || 'E',
-        fullName: user?.full_name || username,
+        fullName: userResult.data?.full_name || username,
         profilePictureUrl: stats?.profile_picture_url,
         completedCount: totalCount,
         completedLessons,
@@ -142,7 +191,7 @@ export async function getUserCourseProgress(
         .select('id')
         .eq('course_code', courseId);
 
-    if (lessonsError || !lessons) {
+    if (lessonsError || !lessons || lessons.length === 0) {
         return {
             courseId,
             completedLessons: 0,
@@ -152,12 +201,12 @@ export async function getUserCourseProgress(
     }
 
     const totalLessons = lessons.length;
+    const lessonIds = lessons.map(l => l.id);
 
     // Get completed lessons count
-    const lessonIds = lessons.map(l => l.id);
-    const { data: progress, error: progressError } = await supabase
+    const { count, error: progressError } = await supabase
         .from('user_progress')
-        .select('content_id')
+        .select('content_id', { count: 'exact', head: true })
         .eq('username', username)
         .eq('status', 'completed')
         .in('content_id', lessonIds);
@@ -166,7 +215,7 @@ export async function getUserCourseProgress(
         console.error('Error fetching progress:', progressError);
     }
 
-    const completedLessons = progress?.length || 0;
+    const completedLessons = count || 0;
     const progressPercentage = totalLessons > 0
         ? Math.round((completedLessons / totalLessons) * 100)
         : 0;
@@ -199,14 +248,10 @@ import { getGrade } from '@/lib/utils';
 export async function getSubjectPerformance(username: string): Promise<SubjectPerformance[]> {
     const supabase = await createClient();
 
-    // Fetch quiz progress with course info via joins
+    // Single query: fetch quiz progress with course info via JOIN
     const { data: progress } = await supabase
         .from('user_progress')
-        .select(`
-            content_id,
-            score,
-            status
-        `)
+        .select('content_id, score, status')
         .eq('username', username)
         .eq('content_type', 'quiz')
         .eq('status', 'completed');
@@ -215,7 +260,7 @@ export async function getSubjectPerformance(username: string): Promise<SubjectPe
         return [];
     }
 
-    // Get quiz IDs and fetch their course associations
+    // Get quiz IDs and fetch their course associations in one query
     const quizIds = progress.map(p => p.content_id);
 
     const { data: quizzes } = await supabase
@@ -278,4 +323,46 @@ export async function getSubjectPerformance(username: string): Promise<SubjectPe
     results.sort((a, b) => a.courseCode.localeCompare(b.courseCode));
 
     return results;
+}
+
+// ============ XP HISTORY FOR CHARTS ============
+
+export interface XPHistoryPoint {
+    date: string;
+    xp: number;
+}
+
+/**
+ * Get cumulative XP over time for a student's progress chart
+ */
+export async function getXPHistory(username: string): Promise<XPHistoryPoint[]> {
+    const supabase = await createClient();
+
+    const { data: progress } = await supabase
+        .from('user_progress')
+        .select('completed_at, xp_earned')
+        .eq('username', username)
+        .eq('status', 'completed')
+        .not('completed_at', 'is', null)
+        .order('completed_at', { ascending: true });
+
+    if (!progress || progress.length === 0) {
+        return [];
+    }
+
+    // Group by date and accumulate XP
+    const dailyXP = new Map<string, number>();
+    let cumulativeXP = 0;
+
+    for (const entry of progress) {
+        const date = new Date(entry.completed_at).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+        });
+        const xpEarned = entry.xp_earned || 0;
+        cumulativeXP += xpEarned;
+        dailyXP.set(date, cumulativeXP);
+    }
+
+    return Array.from(dailyXP.entries()).map(([date, xp]) => ({ date, xp }));
 }

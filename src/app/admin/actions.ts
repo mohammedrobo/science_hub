@@ -2,7 +2,7 @@
 
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { getSession } from '@/app/login/actions';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, updateTag } from 'next/cache';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Middleware should block non-admins, but we double-check here for safety.
@@ -30,75 +30,101 @@ const getGeminiKeys = () => {
 };
 
 /**
- * Uses Gemini AI to parse messy/unstructured text into strict JSON Quiz format.
+ * Uses Gemini AI to parse markdown quiz content from AI chatbot output (ChatGPT, Gemini, Claude, etc.)
+ * Strips conversational fluff and extracts only the questions/options/answers.
  */
 export async function parseQuizWithAI(rawText: string) {
     try {
-        await ensureLeaderOrAdmin(); // Leaders can also create content
+        await ensureLeaderOrAdmin();
+
+        // === INPUT VALIDATION ===
+        const trimmed = rawText.trim();
+        if (!trimmed) return { error: 'No text provided.' };
+        if (trimmed.length > 30000) {
+            return { error: 'Input too long (max 30,000 characters). Please split into smaller sections.' };
+        }
 
         const apiKeys = getGeminiKeys();
         if (apiKeys.length === 0) throw new Error('AI Service Unavailable (Missing Keys)');
 
-        // Shuffle keys to distribute load, but try ALL of them if needed
         const keyPool = [...apiKeys].sort(() => 0.5 - Math.random());
         let lastError = null;
 
-        const prompt = `
-            You are an advanced Quiz Extraction Engine. Your goal is to extract exam questions from raw, messy, or unstructured text and convert them into strict JSON.
+        const prompt = `You are a Quiz Extraction Engine. Your ONLY job is to extract exam questions from markdown text that was copied from an AI chatbot (ChatGPT, Gemini, Claude, etc.) and return clean JSON.
 
-            INPUT TEXT:
-            """
-            ${rawText}
-            """
+INPUT TEXT:
+"""
+${trimmed}
+"""
 
-            INSTRUCTIONS:
-            1. **Input Handling**: The input may be a raw copy-paste from a PDF, Word doc, or website. It might contain page numbers ("Page 1 of 5"), headers/footers, watermarks, or random line breaks. **IGNORE all such noise.**
-            2. **Question Recognition**: Identify questions even if they don't start with numbers (e.g., just text followed by options).
-            3. **Option Recognition**: Identify options even if they lack "A/B/C" labels. (e.g., a list of 4 short lines below a question).
-            4. **Correct Answer**: 
-               - Look for explicit markers like "(Correct)", "*", or bold text.
-               - Look for an "Answer Key" section at the end.
-               - If NO answer is found, set "correctAnswerIndex" to -1.
-            5. **Math/Physics**: Detect formulas and convert them to LaTeX using $...$ for inline and $$...$$ for block.
-            6. **Output Format**: Return ONLY a valid JSON array. Do not wrap in markdown code blocks.
+CRITICAL RULES:
+1. **STRIP ALL CONVERSATIONAL TEXT** — Remove greetings ("Sure!", "Here you go!", "Hello!"), closings ("Good luck!", "I hope this helps!"), disclaimers, section titles ("## Exam Title", "### Section A"), question counts ("Here are 20 questions"), and ANY text that is not a question, option, or answer.
+2. **EXTRACT ONLY Q&A** — Each question must have text, 2-6 options, and optionally a correct answer index.
+3. **CORRECT ANSWER DETECTION**:
+   - Look for markers: bold text (**answer**), (Correct), ✅, *, or an "Answer Key" section.
+   - If found, set correctAnswerIndex to the 0-based index (0-3).
+   - If NO answer is found, set correctAnswerIndex to -1.
+4. **MATH/SCIENCE** — Convert formulas to LaTeX: $...$ for inline, $$...$$ for block.
+5. **CLEAN TEXT** — Fix typos, remove extra whitespace/line breaks, normalize numbering.
 
-            REQUIRED JSON STRUCTURE:
-            [
-              {
-                "id": 1,
-                "text": "The question text, cleaned of typos/extra spaces...",
-                "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
-                "correctAnswerIndex": 0 // Index of the correct option (0-3). -1 if unknown.
-              }
-            ]
-        `;
+EXAMPLE INPUT:
+"""
+Sure! Here are 5 questions for your Biology exam:
+
+1. What is the powerhouse of the cell?
+   a) Nucleus
+   b) Mitochondria ✅
+   c) Ribosome
+   d) Golgi apparatus
+
+2. Which molecule carries genetic information?
+   a) RNA
+   b) DNA (Correct)
+   c) Protein
+   d) Lipid
+
+Good luck with your exam!
+"""
+
+EXAMPLE OUTPUT:
+[
+  {"id": 1, "text": "What is the powerhouse of the cell?", "options": ["Nucleus", "Mitochondria", "Ribosome", "Golgi apparatus"], "correctAnswerIndex": 1},
+  {"id": 2, "text": "Which molecule carries genetic information?", "options": ["RNA", "DNA", "Protein", "Lipid"], "correctAnswerIndex": 1}
+]
+
+Return ONLY a valid JSON array matching this structure. No markdown, no explanation, no wrapping.`;
 
         for (const apiKey of keyPool) {
             try {
                 const genAI = new GoogleGenerativeAI(apiKey);
 
-                // === SMART MODEL SELECTION ===
-                // Primary: gemini-2.0-flash (Latest fast model)
-                // Fallback: gemini-1.5-flash (Stable backup)
-
+                // === MODEL WITH JSON MODE ===
                 let responseText = null;
 
                 try {
-                    // PRIMARY ATTEMPT
-                    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+                    const model = genAI.getGenerativeModel({
+                        model: 'gemini-2.5-pro',
+                        generationConfig: {
+                            responseMimeType: 'application/json',
+                        } as any,
+                    });
                     const result = await model.generateContent(prompt);
                     responseText = result.response.text();
                 } catch (primaryError: any) {
-                    console.warn(`[QuizAI] Primary model (2.0-flash) failed: ${primaryError.message}`);
+                    console.warn(`[QuizAI] Primary model (2.5-pro) failed: ${primaryError.message}`);
 
-                    // FALLBACK ATTEMPT
                     try {
-                        console.log(`[QuizAI] Switching to fallback model: gemini-1.5-flash`);
-                        const fallbackModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+                        console.log(`[QuizAI] Switching to fallback model: gemini-2.0-flash`);
+                        const fallbackModel = genAI.getGenerativeModel({
+                            model: 'gemini-2.0-flash',
+                            generationConfig: {
+                                responseMimeType: 'application/json',
+                            } as any,
+                        });
                         const fallbackResult = await fallbackModel.generateContent(prompt);
                         responseText = fallbackResult.response.text();
                     } catch (fallbackError: any) {
-                        console.error(`[QuizAI] Fallback model (1.5-flash) also failed: ${fallbackError.message}`);
+                        console.error(`[QuizAI] Fallback model (2.0-flash) also failed: ${fallbackError.message}`);
 
                         if (primaryError.message.includes('429') || fallbackError.message.includes('429')) {
                             throw new Error('AI Usage Limit Exceeded. Please try again in a minute.');
@@ -107,38 +133,79 @@ export async function parseQuizWithAI(rawText: string) {
                     }
                 }
 
-                // Cleanup: Robustly extract JSON array
-                // 1. Remove markdown code blocks
-                let cleanJson = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
-
-                // 2. Find the first '[' and last ']' to ignore any conversational text
-                const firstOpen = cleanJson.indexOf('[');
-                const lastClose = cleanJson.lastIndexOf(']');
-
-                if (firstOpen !== -1 && lastClose !== -1) {
-                    cleanJson = cleanJson.substring(firstOpen, lastClose + 1);
-                }
-
+                // === PARSE JSON (JSON mode should return clean JSON) ===
                 let parsedQuestions;
                 try {
+                    // JSON mode usually returns clean JSON, but add safety fallback
+                    let cleanJson = responseText.trim();
+                    // In case there's still wrapping, strip it
+                    if (cleanJson.startsWith('```')) {
+                        cleanJson = cleanJson.replace(/```json/gi, '').replace(/```/g, '').trim();
+                    }
                     parsedQuestions = JSON.parse(cleanJson);
                 } catch (jsonError) {
                     throw new Error('AI returned invalid JSON. Try simplifying the text.');
                 }
 
-                // Basic validation
                 if (!Array.isArray(parsedQuestions)) throw new Error('AI returned invalid format (not an array)');
 
-                return { questions: parsedQuestions, success: true };
+                // === OUTPUT VALIDATION ===
+                const validated = [];
+                const warnings: string[] = [];
+
+                for (let i = 0; i < parsedQuestions.length; i++) {
+                    const q = parsedQuestions[i];
+                    const qNum = i + 1;
+
+                    // Validate text
+                    if (!q.text || typeof q.text !== 'string' || q.text.trim().length === 0) {
+                        warnings.push(`Question ${qNum}: missing or empty text — skipped.`);
+                        continue;
+                    }
+
+                    // Validate options
+                    if (!Array.isArray(q.options) || q.options.length < 2 || q.options.length > 6) {
+                        warnings.push(`Question ${qNum}: must have 2-6 options — skipped.`);
+                        continue;
+                    }
+
+                    const cleanOptions = q.options.filter((o: any) => typeof o === 'string' && o.trim().length > 0);
+                    if (cleanOptions.length < 2) {
+                        warnings.push(`Question ${qNum}: too few valid options — skipped.`);
+                        continue;
+                    }
+
+                    // Validate correctAnswerIndex
+                    let answerIdx = typeof q.correctAnswerIndex === 'number' ? q.correctAnswerIndex : -1;
+                    if (answerIdx < -1 || answerIdx >= cleanOptions.length) {
+                        answerIdx = -1;
+                        warnings.push(`Question ${qNum}: invalid answer index, set to unknown.`);
+                    }
+
+                    validated.push({
+                        id: validated.length + 1,
+                        text: q.text.trim(),
+                        options: cleanOptions,
+                        correctAnswerIndex: answerIdx,
+                    });
+                }
+
+                if (validated.length === 0) {
+                    throw new Error('AI could not extract any valid questions from the text.');
+                }
+
+                return {
+                    questions: validated,
+                    success: true,
+                    ...(warnings.length > 0 ? { warnings } : {}),
+                };
 
             } catch (keyError: any) {
                 console.warn(`[QuizAI] Key ending in ...${apiKey.slice(-4)} failed: ${keyError.message}`);
                 lastError = keyError;
-                // Continue to next key loop
             }
         }
 
-        // If loop finishes without returning, all keys failed
         throw lastError || new Error('All API keys failed.');
 
     } catch (error: any) {
@@ -265,6 +332,7 @@ export async function createLesson(data: {
         }
 
         revalidatePath('/admin/upload');
+        updateTag('lessons');
         return { success: true, message: `Lesson "${data.title}" created successfully!` };
     } catch (e: any) {
         console.error('Create lesson crash:', e);
@@ -373,7 +441,8 @@ export async function createUser(data: { username: string; full_name: string; gr
     await ensureAdmin();
     const supabase = await createServiceRoleClient();
 
-    const password = 'student123'; // Default password
+    const { hashPassword } = await import('@/lib/auth/password');
+    const hashedPassword = await hashPassword('student123');
 
     const { error } = await supabase
         .from('allowed_users')
@@ -382,7 +451,7 @@ export async function createUser(data: { username: string; full_name: string; gr
             full_name: data.full_name,
             original_group: data.group,
             original_section: data.section,
-            password: password,
+            password: hashedPassword,
             access_role: 'student',
             is_first_login: true
         });
@@ -459,7 +528,9 @@ export async function resetFullAccount(username: string) {
         foundInFile = false;
     }
 
-    // Store password as plaintext - will be auto-hashed on first login via verifyPassword migration
+    // Hash the password before storing (NEVER store plaintext)
+    const { hashPassword } = await import('@/lib/auth/password');
+    const hashedOriginalPassword = await hashPassword(originalPassword);
 
     // 2. Reset user flags and password
 
@@ -471,11 +542,11 @@ export async function resetFullAccount(username: string) {
     const { error: userError } = await supabase
         .from('allowed_users')
         .update({
-            password: originalPassword, // Plaintext - auto-migrates to hash on first login
+            password: hashedOriginalPassword,
             is_first_login: true,
             has_onboarded: false,
-            nickname: null, // Clear nickname as requested
-            access_role: newRole // Demote back to student unless they are Admin
+            nickname: null,
+            access_role: newRole
         })
         .eq('username', username);
 
@@ -654,6 +725,7 @@ export async function deleteLesson(lessonId: string) {
 
         revalidatePath('/admin/lessons');
         revalidatePath('/course');
+        updateTag('lessons');
         return { success: true, message: 'Lesson deleted successfully' };
     } catch (e: any) {
         console.error('Delete lesson crash:', e);

@@ -1,12 +1,40 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { jwtVerify } from 'jose';
 
 const SESSION_COOKIE = 'sciencehub_session';
+const SESSION_SECRET = new TextEncoder().encode(
+    process.env.SESSION_SECRET || 'dev-only-secret-change-in-production-32chars!'
+);
 
 interface SessionPayload {
     username: string;
     role: string;
     isFirstLogin: boolean;
     hasOnboarded?: boolean;
+}
+
+/**
+ * Decode and verify the session cookie.
+ * Supports new JWT format and legacy unsigned JSON (during migration).
+ */
+async function decodeSession(cookieValue: string): Promise<SessionPayload | null> {
+    // Try JWT first (new signed format)
+    try {
+        const { payload } = await jwtVerify(cookieValue, SESSION_SECRET);
+        return payload as unknown as SessionPayload;
+    } catch {
+        // Not a valid JWT — fall through to legacy
+    }
+
+    // Fallback: legacy unsigned JSON
+    try {
+        const parsed = JSON.parse(cookieValue) as SessionPayload;
+        if (parsed.username && parsed.role) return parsed;
+    } catch {
+        // Not valid JSON either
+    }
+
+    return null;
 }
 
 export async function proxy(request: NextRequest) {
@@ -32,8 +60,15 @@ export async function proxy(request: NextRequest) {
     }
 
     try {
-        // Parse session data
-        const session = JSON.parse(sessionCookie.value) as SessionPayload;
+        // Verify and decode session (JWT signature checked)
+        const session = await decodeSession(sessionCookie.value);
+
+        if (!session) {
+            // Invalid/tampered cookie — clear it and redirect
+            const response = NextResponse.redirect(new URL('/login', request.url));
+            response.cookies.delete(SESSION_COOKIE);
+            return response;
+        }
 
         // --- SKIP DB CHECK FOR SPEED ---
         // DB verification only happens on login and password change
@@ -85,13 +120,12 @@ export async function proxy(request: NextRequest) {
     const response = NextResponse.next();
     const isProduction = process.env.NODE_ENV === 'production';
     
-    // Refresh the session cookie - extend by 30 days on every request
-    // This prevents the session from expiring while user is actively using the site
+    // Refresh the session cookie - extend by 7 days on every request
     response.cookies.set(SESSION_COOKIE, sessionCookie.value, {
         httpOnly: true,
         secure: isProduction,
         sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 30, // 30 days
+        maxAge: 60 * 60 * 24 * 7, // 7 days
         path: '/'
     });
     

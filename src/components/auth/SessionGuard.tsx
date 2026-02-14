@@ -42,23 +42,25 @@ export function SessionGuard({ children, sessionToken }: SessionGuardProps) {
         }
     }, [sessionToken]);
 
-    // Poll every 30 seconds
+    // Poll every 2 minutes instead of 30s to reduce DB load
     useEffect(() => {
         if (!sessionToken) return;
 
         // Check immediately
         checkSession();
 
-        // Then poll every 30 seconds
-        const interval = setInterval(checkSession, 30000);
+        // Poll every 2 minutes
+        const interval = setInterval(checkSession, 120000);
 
-        // Also check when window regains focus (user switches back to tab)
-        const handleFocus = () => checkSession();
-        window.addEventListener('focus', handleFocus);
+        // Also check when tab becomes visible (more reliable than focus)
+        const handleVisibility = () => {
+            if (document.visibilityState === 'visible') checkSession();
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
 
         return () => {
             clearInterval(interval);
-            window.removeEventListener('focus', handleFocus);
+            document.removeEventListener('visibilitychange', handleVisibility);
         };
     }, [sessionToken, checkSession]);
 

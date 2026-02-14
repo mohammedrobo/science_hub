@@ -77,16 +77,23 @@ export function QuizUploader({ onQuizDataChange, onParsingChange }: QuizUploader
 
             try {
                 const result = await parseQuizWithAI(rawText);
-                if (result.success && result.questions) {
+                if ('error' in result) {
+                    console.log("AI Parse failed/skipped:", result.error);
+                } else if (result.questions) {
                     setParsedQuestions(result.questions);
-                    setErrors([]);
+                    setErrors(result.warnings || []);
                     onChangeRef.current({ questions: result.questions });
-                    toast.success("AI successfully parsed your content!");
+                    const warningCount = result.warnings?.length || 0;
+                    toast.success(
+                        warningCount > 0
+                            ? `AI parsed ${result.questions.length} questions (${warningCount} warnings)`
+                            : `AI successfully parsed ${result.questions.length} questions!`
+                    );
                 } else {
                     // Don't show error toast on auto-type, it's annoying. 
                     // Just show standard regex errors if AI fails?
                     // Or keep silent.
-                    console.log("AI Parse failed/skipped:", result.error);
+                    console.log("AI Parse returned no questions");
                 }
             } catch (e) {
                 console.error(e);
@@ -127,18 +134,22 @@ export function QuizUploader({ onQuizDataChange, onParsingChange }: QuizUploader
                     )}
                 </div>
                 <p className="text-xs text-zinc-500">
-                    Paste your quiz below (PDF copy-paste, Word doc, or raw text). The AI will auto-format it.
+                    Paste the AI-generated markdown exam here (ChatGPT, Gemini, Claude). The parser auto-strips conversational text.
                 </p>
                 <Textarea
                     value={rawText}
                     onChange={(e) => setRawText(e.target.value)}
-                    placeholder={`Paste quiz text here (PDF copy-paste, Word doc, etc)...
+                    placeholder={`Paste AI-generated exam markdown here...
+
+The parser will automatically remove greetings, closings,
+section headers, and extract only the questions & answers.
+
 Example:
 1. What is the speed of light?
-a) 300,000 km/s
+a) 300,000 km/s ✅
 b) 150,000 km/s
-...
-Answer: A`}
+c) 200,000 km/s
+d) 100,000 km/s`}
                     className="bg-zinc-900 border-zinc-800 text-zinc-100 font-mono text-sm h-64 focus:ring-violet-500/50"
                 />
             </div>

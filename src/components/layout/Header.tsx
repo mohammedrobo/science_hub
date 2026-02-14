@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import { SemesterToggle } from './SemesterToggle';
 import { UserNav } from './UserNav';
-import { BookOpen, Crown } from 'lucide-react';
+import { BookOpen, Crown, Sparkles } from 'lucide-react';
 import { getSession } from '@/app/login/actions';
-import { MobileMenu } from './MobileMenu'; // Import the new client component
-import { getUserStats, type UserStats } from '@/lib/gamification';
+import { MobileMenu } from './MobileMenu';
+import { getHeaderStats } from '@/lib/gamification';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 export async function Header() {
@@ -17,13 +17,12 @@ export async function Header() {
     let xp = 0;
 
     if (session?.username) {
-        const stats = await getUserStats(session.username);
-        profilePictureUrl = stats?.profilePictureUrl;
-        rank = stats?.currentRank || "E";
-        xp = stats?.totalXp || 0;
+        const stats = await getHeaderStats(session.username);
+        profilePictureUrl = stats.profilePictureUrl;
+        rank = stats.currentRank || "E";
+        xp = stats.totalXp || 0;
 
-        // Prioritize stats name, then session name
-        const displayName = stats?.fullName || session.name;
+        const displayName = stats.fullName || session.name;
         if (displayName) {
             userNameInitial = displayName[0].toUpperCase();
         }
@@ -53,6 +52,10 @@ export async function Header() {
                     </Link>
                     <Link href="/schedule" className="hover:text-primary transition-colors">
                         Schedule
+                    </Link>
+                    <Link href="/updates" className="hover:text-primary transition-colors flex items-center gap-1">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        What's New
                     </Link>
 
                     {/* Admin Button */}

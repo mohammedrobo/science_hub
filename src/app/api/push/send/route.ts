@@ -11,16 +11,12 @@ const supabase = createClient(
 // This endpoint checks schedules and sends notifications 15 or 5 min before class
 
 export async function GET(request: NextRequest) {
-    // Verify cron secret or admin access
+    // Verify cron secret — deny if missing or mismatched
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
-    
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-        // Allow from localhost for testing
-        const host = request.headers.get('host') || '';
-        if (!host.includes('localhost')) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
+
+    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     try {

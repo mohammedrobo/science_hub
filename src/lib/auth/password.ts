@@ -10,24 +10,17 @@ export async function hashPassword(password: string): Promise<string> {
 }
 
 /**
- * Verify password against bcrypt hash or legacy plaintext
- * 
- * SECURITY NOTE: Legacy plaintext passwords are supported for backwards compatibility.
- * When a user logs in with a plaintext password, it will be automatically
- * upgraded to bcrypt hash on their next password change.
- * 
- * TODO: Run migration to hash all passwords, then remove plaintext support
+ * Verify password against bcrypt hash.
+ * Plaintext password support has been removed for security.
+ * Run the migrate-passwords script to hash any remaining plaintext passwords.
  */
 export async function verifyPassword(password: string, storedPassword: string): Promise<boolean> {
-    // Check if password is bcrypt hashed
-    if (storedPassword.startsWith('$2')) {
-        return bcrypt.compare(password, storedPassword);
+    if (!storedPassword.startsWith('$2')) {
+        // Password is not hashed — reject and log
+        console.error('[AUTH] Unhashed password detected for login attempt. Run migrate-passwords script.');
+        return false;
     }
-    
-    // Legacy plaintext comparison (timing-safe would be better, but acceptable for migration period)
-    // Log for monitoring purposes
-    console.warn('[AUTH] Legacy plaintext password used - consider migrating to bcrypt');
-    return password === storedPassword;
+    return bcrypt.compare(password, storedPassword);
 }
 
 /**

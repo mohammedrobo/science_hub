@@ -4,45 +4,47 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Medal, Crown } from 'lucide-react';
+import { unstable_cache } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
 
-async function getLeaderboard() {
-    const supabase = await createServiceRoleClient();
+const getLeaderboard = unstable_cache(
+    async () => {
+        const supabase = await createServiceRoleClient();
 
-    // 1. Fetch Top 100 Stats
-    const { data: stats, error: statsError } = await supabase
-        .from('user_stats')
-        .select('username, total_xp, current_rank, profile_picture_url')
-        .order('total_xp', { ascending: false })
-        .limit(100);
+        const { data: stats, error: statsError } = await supabase
+            .from('user_stats')
+            .select('username, total_xp, current_rank, profile_picture_url')
+            .order('total_xp', { ascending: false })
+            .limit(100);
 
-    if (statsError) {
-        console.error('Fetch stats error:', statsError);
-        return [];
-    }
+        if (statsError || !stats) {
+            console.error('Fetch stats error:', statsError);
+            return [];
+        }
 
-    // 2. Fetch User Names for these stats
-    const usernames = stats.map(s => s.username);
-    const { data: users, error: usersError } = await supabase
-        .from('allowed_users')
-        .select('username, full_name')
-        .in('username', usernames);
+        const usernames = stats.map(s => s.username);
+        const { data: users, error: usersError } = await supabase
+            .from('allowed_users')
+            .select('username, full_name')
+            .in('username', usernames);
 
-    if (usersError) {
-        console.error('Fetch users error:', usersError);
-        return [];
-    }
+        if (usersError) {
+            console.error('Fetch users error:', usersError);
+            return [];
+        }
 
-    // 3. Map Names to Stats
-    const userMap = new Map(users?.map(u => [u.username, u.full_name]) || []);
+        const userMap = new Map(users?.map(u => [u.username, u.full_name]) || []);
 
-    return stats.map((stat, index) => ({
-        ...stat,
-        full_name: userMap.get(stat.username) || 'Unknown Student',
-        rank_position: index + 1
-    }));
-}
+        return stats.map((stat, index) => ({
+            ...stat,
+            full_name: userMap.get(stat.username) || 'Unknown Student',
+            rank_position: index + 1
+        }));
+    },
+    ['leaderboard'],
+    { revalidate: 60, tags: ['leaderboard'] }
+);
 
 function RankBadge({ position }: { position: number }) {
     if (position === 1) return <Crown className="w-6 h-6 text-yellow-500 animate-pulse" />;

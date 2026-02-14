@@ -21,7 +21,11 @@ export async function getActivityLogs(page = 1, limit = 50, search = '') {
         .range(from, to);
 
     if (search) {
-        query = query.or(`username.ilike.%${search}%,action_type.ilike.%${search}%`);
+        // Sanitize search input to prevent filter injection
+        const sanitized = search.replace(/[%_\\,\.()]/g, '');
+        if (sanitized.length > 0) {
+            query = query.or(`username.ilike.%${sanitized}%,action_type.ilike.%${sanitized}%`);
+        }
     }
 
     const { data, error, count } = await query;
@@ -104,10 +108,14 @@ export async function getSafetyStats() {
 
     const supabase = await createServiceRoleClient();
 
-    // Parallel fetch for speed
+    // Limit to last 30 days to avoid full table scans as data grows
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const cutoff = thirtyDaysAgo.toISOString();
+
     const [reportsRes, logsRes] = await Promise.all([
-        supabase.from('student_reports').select('created_at, status', { count: 'exact' }),
-        supabase.from('activity_logs').select('created_at, action_type', { count: 'exact' }) // limiting fields for performance
+        supabase.from('student_reports').select('created_at, status', { count: 'exact' }).gte('created_at', cutoff),
+        supabase.from('activity_logs').select('created_at, action_type', { count: 'exact' }).gte('created_at', cutoff)
     ]);
 
     const reports = reportsRes.data || [];
@@ -230,7 +238,7 @@ export async function toggleWatchlist(studentUsername: string, reason: string = 
 
 export async function getWatchlistStatus(studentUsername: string) {
     const session = await getSession();
-    if (!session) return { watching: false };
+    if (!session || session.role !== 'admin') return { watching: false };
 
     const supabase = await createServiceRoleClient();
     const { data } = await supabase

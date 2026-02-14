@@ -7,13 +7,18 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowLeft, Shield, Clock, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
+import { getSession } from '@/app/login/actions';
 
 interface PageProps {
     params: Promise<{ username: string }>;
 }
 
 export default async function UserAuditPage({ params }: PageProps) {
+    // Auth check — admin only
+    const session = await getSession();
+    if (!session || session.role !== 'admin') redirect('/');
+
     const { username } = await params;
     const decodedUsername = decodeURIComponent(username);
     const supabase = await createServiceRoleClient();

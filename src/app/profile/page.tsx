@@ -1,9 +1,9 @@
 import { getSession } from '@/app/login/actions';
-import { getUserStats, getSubjectPerformance, SubjectPerformance } from '@/lib/gamification';
+import { getUserStats, getSubjectPerformance, getXPHistory, SubjectPerformance } from '@/lib/gamification';
 import { redirect } from 'next/navigation';
+import { ProfileCharts } from './ProfileCharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ProfilePictureUpload } from './ProfilePictureUpload';
-import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Trophy, Target, CalendarDays, Zap, BrainCircuit, Sparkles, ArrowLeft, TrendingUp, BookOpen, Award } from 'lucide-react';
@@ -45,20 +45,15 @@ export default async function ProfilePage() {
         redirect('/login');
     }
 
-    const stats = await getUserStats(session.username);
-    const subjectPerformance = await getSubjectPerformance(session.username);
+    const [stats, subjectPerformance, xpHistory] = await Promise.all([
+        getUserStats(session.username),
+        getSubjectPerformance(session.username),
+        getXPHistory(session.username),
+    ]);
 
     if (!stats) {
         redirect('/');
     }
-
-    // Get profile picture URL
-    const supabase = await createClient();
-    const { data: userStats } = await supabase
-        .from('user_stats')
-        .select('profile_picture_url')
-        .eq('username', session.username)
-        .single();
 
     const { nextRank, xpRequired } = getNextRankXP(stats.currentRank);
     const progressToNext = stats.currentRank === 'SSS' ? 100 : Math.min(100, (stats.totalXp / xpRequired) * 100);
@@ -87,7 +82,7 @@ export default async function ProfilePage() {
             <Card className="mb-6 bg-gradient-to-br from-zinc-900 to-zinc-950 border-zinc-800">
                 <CardContent className="pt-6">
                     <ProfilePictureUpload
-                        currentPictureUrl={userStats?.profile_picture_url}
+                        currentPictureUrl={stats.profilePictureUrl}
                         username={session.username}
                     />
                 </CardContent>
@@ -164,17 +159,17 @@ export default async function ProfilePage() {
                     </CardContent>
                 </Card>
 
-                {/* XP Card */}
+                {/* Streak Card */}
                 <Card className="bg-zinc-900/50 border-zinc-800">
                     <CardContent className="pt-6">
                         <div className="flex items-center gap-3">
-                            <div className="p-3 bg-yellow-500/10 rounded-lg">
-                                <Trophy className="h-6 w-6 text-primary" />
+                            <div className="p-3 bg-orange-500/10 rounded-lg">
+                                <TrendingUp className="h-6 w-6 text-orange-500" />
                             </div>
                             <div>
-                                <p className="text-sm text-muted-foreground">Current Class</p>
-                                <p className="text-2xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
-                                    {stats.currentRank}-Rank
+                                <p className="text-sm text-muted-foreground">GPA</p>
+                                <p className="text-2xl font-bold bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent">
+                                    {stats.cumulativeGPA}
                                 </p>
                             </div>
                         </div>
@@ -227,6 +222,9 @@ export default async function ProfilePage() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Performance Charts */}
+            <ProfileCharts subjectPerformance={subjectPerformance} xpHistory={xpHistory} />
 
             {/* Predictive GPA Section */}
             <div className="mb-8">
