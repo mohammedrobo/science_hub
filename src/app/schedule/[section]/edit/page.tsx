@@ -82,22 +82,23 @@ export default function ScheduleEditPage() {
     };
 
     const removeEntry = (index: number) => {
-        setSchedule(prev => {
-            const updated = { ...prev };
-            const entryToRemove = updated[activeDay][index];
+        const dayEntries = schedule[activeDay] || [];
+        const entryToRemove = dayEntries[index];
 
-            // If entry has an ID (exists in DB), mark for deletion
-            if (entryToRemove.id) {
-                setDeletedIds(prevIds => {
-                    const newIds = new Set(prevIds);
-                    newIds.add(entryToRemove.id!);
-                    return newIds;
-                });
-            }
+        // If entry has an ID (exists in DB), mark for deletion
+        if (entryToRemove?.id) {
+            setDeletedIds(prevIds => {
+                const newIds = new Set(prevIds);
+                newIds.add(entryToRemove.id!);
+                return newIds;
+            });
+        }
 
-            updated[activeDay] = updated[activeDay].filter((_, i) => i !== index);
-            return updated;
-        });
+        // Remove from UI
+        setSchedule(prev => ({
+            ...prev,
+            [activeDay]: (prev[activeDay] || []).filter((_, i) => i !== index),
+        }));
     };
 
     const saveChanges = async () => {
@@ -117,15 +118,22 @@ export default function ScheduleEditPage() {
                 setDeletedIds(new Set());
             }
 
-            // 2. Save all entries for the current day
-            for (const entry of schedule[activeDay] || []) {
-                const result = await updateScheduleEntry(entry);
-                if (result.error) {
-                    setMessage({ type: 'error', text: result.error });
-                    setSaving(false);
-                    return;
+            // 2. Save all entries across ALL days (not just active day)
+            for (const day of DAYS) {
+                for (const entry of schedule[day] || []) {
+                    const result = await updateScheduleEntry(entry);
+                    if (result.error) {
+                        setMessage({ type: 'error', text: `Error saving ${day}: ${result.error}` });
+                        setSaving(false);
+                        return;
+                    }
                 }
             }
+
+            // 3. Re-fetch data to get DB-generated IDs for new entries
+            const { schedule: freshSchedule } = await getSchedulePageData(sectionId);
+            setSchedule(freshSchedule);
+
             setMessage({ type: 'success', text: 'Changes saved successfully!' });
         } catch (err) {
             setMessage({ type: 'error', text: 'Failed to save changes' });

@@ -106,46 +106,51 @@ EXAMPLE OUTPUT:
 
 Return ONLY a valid JSON array matching this structure. No markdown, no explanation, no wrapping.`;
 
+        // Helper: attempt a single Gemini call with optional retry on 429
+        const callGemini = async (genAI: GoogleGenerativeAI, promptText: string): Promise<string> => {
+            const model = genAI.getGenerativeModel({
+                model: 'gemini-3-flash-preview',
+                generationConfig: {
+                    responseMimeType: 'application/json',
+                    thinkingConfig: { thinkingLevel: 'high' },
+                } as any,
+            });
+            try {
+                const result = await model.generateContent(promptText);
+                return result.response.text();
+            } catch (err: any) {
+                // If rate limited, extract retry delay and wait once
+                if (err.message?.includes('429')) {
+                    const delayMatch = err.message.match(/retry\s*(?:in|Delay[":]*\s*)\s*"?(\d+)/i);
+                    const waitSec = delayMatch ? Math.min(parseInt(delayMatch[1]), 30) : 15;
+                    console.log(`[QuizAI] Rate limited, retrying in ${waitSec}s...`);
+                    await new Promise(r => setTimeout(r, waitSec * 1000));
+                    const retryResult = await model.generateContent(promptText);
+                    return retryResult.response.text();
+                }
+                throw err;
+            }
+        };
+
         for (const apiKey of keyPool) {
             try {
                 const genAI = new GoogleGenerativeAI(apiKey);
 
-                // === MODEL WITH JSON MODE ===
+                // === Gemini 3 Flash with high thinking ===
                 let responseText = null;
 
                 try {
-                    const model = genAI.getGenerativeModel({
-                        model: 'gemini-2.5-pro',
-                        generationConfig: {
-                            responseMimeType: 'application/json',
-                        } as any,
-                    });
-                    const result = await model.generateContent(prompt);
-                    responseText = result.response.text();
-                } catch (primaryError: any) {
-                    console.warn(`[QuizAI] Primary model (2.5-pro) failed: ${primaryError.message}`);
+                    responseText = await callGemini(genAI, prompt);
+                } catch (err: any) {
+                    console.warn(`[QuizAI] gemini-3-flash-preview failed: ${err.message}`);
 
-                    try {
-                        console.log(`[QuizAI] Switching to fallback model: gemini-2.0-flash`);
-                        const fallbackModel = genAI.getGenerativeModel({
-                            model: 'gemini-2.0-flash',
-                            generationConfig: {
-                                responseMimeType: 'application/json',
-                            } as any,
-                        });
-                        const fallbackResult = await fallbackModel.generateContent(prompt);
-                        responseText = fallbackResult.response.text();
-                    } catch (fallbackError: any) {
-                        console.error(`[QuizAI] Fallback model (2.0-flash) also failed: ${fallbackError.message}`);
-
-                        if (primaryError.message.includes('429') || fallbackError.message.includes('429')) {
-                            throw new Error('AI Usage Limit Exceeded. Please try again in a minute.');
-                        }
-                        if (primaryError.message.includes('API_KEY_INVALID') || fallbackError.message.includes('API_KEY_INVALID')) {
-                            throw new Error('API key is invalid or expired. Contact your admin to update the Gemini API key.');
-                        }
-                        throw fallbackError;
+                    if (err.message.includes('429')) {
+                        throw new Error('RATE_LIMITED');
                     }
+                    if (err.message.includes('API_KEY_INVALID')) {
+                        throw new Error('API key is invalid or expired. Contact your admin to update the Gemini API key.');
+                    }
+                    throw err;
                 }
 
                 // === PARSE JSON (JSON mode should return clean JSON) ===
@@ -218,9 +223,15 @@ Return ONLY a valid JSON array matching this structure. No markdown, no explanat
             } catch (keyError: any) {
                 console.warn(`[QuizAI] Key ending in ...${apiKey.slice(-4)} failed: ${keyError.message}`);
                 lastError = keyError;
+                // If rate limited, continue to next key instead of giving up
+                if (keyError.message === 'RATE_LIMITED') continue;
             }
         }
 
+        // All keys exhausted
+        if (lastError?.message === 'RATE_LIMITED') {
+            throw new Error('All API keys are rate limited. The free-tier quota for your Google Cloud project(s) is exhausted. Create new keys in a NEW Google Cloud project at https://aistudio.google.com/apikey');
+        }
         throw lastError || new Error('All API keys failed. They may be invalid or expired.');
 
     } catch (error: any) {
@@ -230,8 +241,8 @@ Return ONLY a valid JSON array matching this structure. No markdown, no explanat
         if (msg.includes('API_KEY_INVALID') || msg.includes('API key not valid')) {
             return { error: 'AI API key is invalid or expired. Please contact your admin.' };
         }
-        if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) {
-            return { error: 'AI rate limit reached. Please wait a minute and try again.' };
+        if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('rate limited') || msg.includes('RATE_LIMITED')) {
+            return { error: 'AI quota exhausted for all keys. Create new API keys in a NEW Google Cloud project at aistudio.google.com/apikey (click "Create API key in new project").' };
         }
         if (msg.includes('Unauthorized')) {
             return { error: msg };

@@ -257,13 +257,25 @@ export async function updateScheduleEntry(entry: ScheduleEntry) {
 
         if (error) return { error: error.message };
     } else {
-        // Insert new
+        // Insert new — exclude id so Postgres generates UUID automatically
         const { error } = await supabase
             .from('schedule_entries')
-            .insert(entry);
+            .insert({
+                section_id: entry.section_id,
+                day_of_week: entry.day_of_week,
+                slot_order: entry.slot_order,
+                subject: entry.subject,
+                class_type: entry.class_type,
+                room: entry.room || null,
+                time_start: entry.time_start || null,
+                time_end: entry.time_end || null,
+            });
 
         if (error) return { error: error.message };
     }
+
+    // Clear in-memory cache so next fetch gets fresh data
+    scheduleCache.delete(entry.section_id.toUpperCase());
 
     revalidatePath(`/schedule/${entry.section_id}`);
     return { success: true };
@@ -293,6 +305,9 @@ export async function deleteScheduleEntries(ids: string[], sectionId: string) {
         console.error('Error deleting schedule entries:', error);
         return { error: error.message };
     }
+
+    // Clear in-memory cache so next fetch gets fresh data
+    scheduleCache.delete(sectionId.toUpperCase());
 
     revalidatePath(`/schedule/${sectionId}`);
     return { success: true };
