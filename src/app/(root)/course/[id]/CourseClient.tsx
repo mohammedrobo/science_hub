@@ -15,6 +15,7 @@ import { PlayCircle, FileText, BrainCircuit, ChevronLeft, Lock, Sparkles, Monito
 import Link from 'next/link';
 import { Course, Lesson } from '@/types';
 import { VideoPlayer } from '@/components/courses/VideoPlayer';
+import { VideoErrorBoundary } from '@/components/courses/VideoErrorBoundary';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { CompleteButton } from '@/components/courses/CompleteButton';
@@ -243,11 +244,13 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                     {/* Video Player */}
                     <div className="aspect-video w-full bg-black rounded-lg sm:rounded-xl overflow-hidden shadow-[0_0_50px_-10px_rgba(139,92,246,0.15)] border border-white/10 relative">
                         {currentLesson?.video_url || (currentLesson?.video_parts && currentLesson.video_parts.length > 0) ? (
-                            <VideoPlayer
-                                url={currentLesson.video_url}
-                                title={currentLesson.title}
-                                parts={currentLesson.video_parts}
-                            />
+                            <VideoErrorBoundary videoUrl={currentLesson.video_url}>
+                                <VideoPlayer
+                                    url={currentLesson.video_url}
+                                    title={currentLesson.title}
+                                    parts={currentLesson.video_parts}
+                                />
+                            </VideoErrorBoundary>
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-zinc-900 to-black p-8 text-center relative overflow-hidden">
                                 <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.05]" />

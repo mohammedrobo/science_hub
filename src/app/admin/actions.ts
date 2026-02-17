@@ -3,7 +3,6 @@
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { getSession } from '@/lib/auth/session';
 import { revalidatePath, updateTag } from 'next/cache';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Super admin = full power (old admin). New admin = limited admin.
 async function ensureSuperAdmin() {
@@ -32,224 +31,7 @@ async function ensureLeaderOrAdmin() {
     return session;
 }
 
-// Helper to get Gemini Key
-const getGeminiKeys = () => {
-    const keys = process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || '';
-    const keyList = keys.split(',').map(k => k.trim()).filter(k => k.length > 0);
-    return keyList;
-};
 
-/**
- * Uses Gemini AI to parse markdown quiz content from AI chatbot output (ChatGPT, Gemini, Claude, etc.)
- * Strips conversational fluff and extracts only the questions/options/answers.
- */
-export async function parseQuizWithAI(rawText: string) {
-    try {
-        await ensureLeaderOrAdmin();
-
-        // === INPUT VALIDATION ===
-        const trimmed = rawText.trim();
-        if (!trimmed) return { error: 'No text provided.' };
-        if (trimmed.length > 30000) {
-            return { error: 'Input too long (max 30,000 characters). Please split into smaller sections.' };
-        }
-
-        const apiKeys = getGeminiKeys();
-        if (apiKeys.length === 0) {
-            return { error: 'AI Service Unavailable — No API keys configured. Contact your admin.' };
-        }
-
-        const keyPool = [...apiKeys].sort(() => 0.5 - Math.random());
-        let lastError = null;
-
-        const prompt = `You are a Quiz Extraction Engine. Your ONLY job is to extract exam questions from markdown text that was copied from an AI chatbot (ChatGPT, Gemini, Claude, etc.) and return clean JSON.
-
-INPUT TEXT:
-"""
-${trimmed}
-"""
-
-CRITICAL RULES:
-1. **STRIP ALL CONVERSATIONAL TEXT** — Remove greetings ("Sure!", "Here you go!", "Hello!"), closings ("Good luck!", "I hope this helps!"), disclaimers, section titles ("## Exam Title", "### Section A"), question counts ("Here are 20 questions"), and ANY text that is not a question, option, or answer.
-2. **EXTRACT ONLY Q&A** — Each question must have text, 2-6 options, and optionally a correct answer index.
-3. **CORRECT ANSWER DETECTION**:
-   - Look for markers: bold text (**answer**), (Correct), ✅, *, or an "Answer Key" section.
-   - If found, set correctAnswerIndex to the 0-based index (0-3).
-   - If NO answer is found, set correctAnswerIndex to -1.
-4. **MATH/SCIENCE** — Convert formulas to LaTeX: $...$ for inline, $$...$$ for block.
-5. **CLEAN TEXT** — Fix typos, remove extra whitespace/line breaks, normalize numbering.
-
-EXAMPLE INPUT:
-"""
-Sure! Here are 5 questions for your Biology exam:
-
-1. What is the powerhouse of the cell?
-   a) Nucleus
-   b) Mitochondria ✅
-   c) Ribosome
-   d) Golgi apparatus
-
-2. Which molecule carries genetic information?
-   a) RNA
-   b) DNA (Correct)
-   c) Protein
-   d) Lipid
-
-Good luck with your exam!
-"""
-
-EXAMPLE OUTPUT:
-[
-  {"id": 1, "text": "What is the powerhouse of the cell?", "options": ["Nucleus", "Mitochondria", "Ribosome", "Golgi apparatus"], "correctAnswerIndex": 1},
-  {"id": 2, "text": "Which molecule carries genetic information?", "options": ["RNA", "DNA", "Protein", "Lipid"], "correctAnswerIndex": 1}
-]
-
-Return ONLY a valid JSON array matching this structure. No markdown, no explanation, no wrapping.`;
-
-        // Helper: attempt a single Gemini call with optional retry on 429
-        const callGemini = async (genAI: GoogleGenerativeAI, promptText: string): Promise<string> => {
-            const model = genAI.getGenerativeModel({
-                model: 'gemini-3-flash-preview',
-                generationConfig: {
-                    responseMimeType: 'application/json',
-                    thinkingConfig: { thinkingLevel: 'high' },
-                } as any,
-            });
-            try {
-                const result = await model.generateContent(promptText);
-                return result.response.text();
-            } catch (err: any) {
-                // If rate limited, extract retry delay and wait once
-                if (err.message?.includes('429')) {
-                    const delayMatch = err.message.match(/retry\s*(?:in|Delay[":]*\s*)\s*"?(\d+)/i);
-                    const waitSec = delayMatch ? Math.min(parseInt(delayMatch[1]), 30) : 15;
-                    console.log(`[QuizAI] Rate limited, retrying in ${waitSec}s...`);
-                    await new Promise(r => setTimeout(r, waitSec * 1000));
-                    const retryResult = await model.generateContent(promptText);
-                    return retryResult.response.text();
-                }
-                throw err;
-            }
-        };
-
-        for (const apiKey of keyPool) {
-            try {
-                const genAI = new GoogleGenerativeAI(apiKey);
-
-                // === Gemini 3 Flash with high thinking ===
-                let responseText = null;
-
-                try {
-                    responseText = await callGemini(genAI, prompt);
-                } catch (err: any) {
-                    console.warn(`[QuizAI] gemini-3-flash-preview failed: ${err.message}`);
-
-                    if (err.message.includes('429')) {
-                        throw new Error('RATE_LIMITED');
-                    }
-                    if (err.message.includes('API_KEY_INVALID')) {
-                        throw new Error('API key is invalid or expired. Contact your admin to update the Gemini API key.');
-                    }
-                    throw err;
-                }
-
-                // === PARSE JSON (JSON mode should return clean JSON) ===
-                let parsedQuestions;
-                try {
-                    // JSON mode usually returns clean JSON, but add safety fallback
-                    let cleanJson = responseText.trim();
-                    // In case there's still wrapping, strip it
-                    if (cleanJson.startsWith('```')) {
-                        cleanJson = cleanJson.replace(/```json/gi, '').replace(/```/g, '').trim();
-                    }
-                    parsedQuestions = JSON.parse(cleanJson);
-                } catch (jsonError) {
-                    throw new Error('AI returned invalid JSON. Try simplifying the text.');
-                }
-
-                if (!Array.isArray(parsedQuestions)) throw new Error('AI returned invalid format (not an array)');
-
-                // === OUTPUT VALIDATION ===
-                const validated = [];
-                const warnings: string[] = [];
-
-                for (let i = 0; i < parsedQuestions.length; i++) {
-                    const q = parsedQuestions[i];
-                    const qNum = i + 1;
-
-                    // Validate text
-                    if (!q.text || typeof q.text !== 'string' || q.text.trim().length === 0) {
-                        warnings.push(`Question ${qNum}: missing or empty text — skipped.`);
-                        continue;
-                    }
-
-                    // Validate options
-                    if (!Array.isArray(q.options) || q.options.length < 2 || q.options.length > 6) {
-                        warnings.push(`Question ${qNum}: must have 2-6 options — skipped.`);
-                        continue;
-                    }
-
-                    const cleanOptions = q.options.filter((o: any) => typeof o === 'string' && o.trim().length > 0);
-                    if (cleanOptions.length < 2) {
-                        warnings.push(`Question ${qNum}: too few valid options — skipped.`);
-                        continue;
-                    }
-
-                    // Validate correctAnswerIndex
-                    let answerIdx = typeof q.correctAnswerIndex === 'number' ? q.correctAnswerIndex : -1;
-                    if (answerIdx < -1 || answerIdx >= cleanOptions.length) {
-                        answerIdx = -1;
-                        warnings.push(`Question ${qNum}: invalid answer index, set to unknown.`);
-                    }
-
-                    validated.push({
-                        id: validated.length + 1,
-                        text: q.text.trim(),
-                        options: cleanOptions,
-                        correctAnswerIndex: answerIdx,
-                    });
-                }
-
-                if (validated.length === 0) {
-                    throw new Error('AI could not extract any valid questions from the text.');
-                }
-
-                return {
-                    questions: validated,
-                    success: true,
-                    ...(warnings.length > 0 ? { warnings } : {}),
-                };
-
-            } catch (keyError: any) {
-                console.warn(`[QuizAI] Key ending in ...${apiKey.slice(-4)} failed: ${keyError.message}`);
-                lastError = keyError;
-                // If rate limited, continue to next key instead of giving up
-                if (keyError.message === 'RATE_LIMITED') continue;
-            }
-        }
-
-        // All keys exhausted
-        if (lastError?.message === 'RATE_LIMITED') {
-            throw new Error('All API keys are rate limited. The free-tier quota for your Google Cloud project(s) is exhausted. Create new keys in a NEW Google Cloud project at https://aistudio.google.com/apikey');
-        }
-        throw lastError || new Error('All API keys failed. They may be invalid or expired.');
-
-    } catch (error: any) {
-        console.error('AI Parse Error:', error);
-        const msg = error?.message || 'Unknown error';
-        // Return user-friendly messages
-        if (msg.includes('API_KEY_INVALID') || msg.includes('API key not valid')) {
-            return { error: 'AI API key is invalid or expired. Please contact your admin.' };
-        }
-        if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('rate limited') || msg.includes('RATE_LIMITED')) {
-            return { error: 'AI quota exhausted for all keys. Create new API keys in a NEW Google Cloud project at aistudio.google.com/apikey (click "Create API key in new project").' };
-        }
-        if (msg.includes('Unauthorized')) {
-            return { error: msg };
-        }
-        return { error: 'AI parsing failed: ' + msg };
-    }
-}
 
 // ============ CMS OPERATIONS ============
 
@@ -268,9 +50,11 @@ export async function createLesson(data: {
     quiz_data?: {
         title: string;
         questions: {
+            id?: number;
             text: string;
             options: string[];
             correctAnswerIndex: number;
+            type?: 'mcq' | 'true_false';
         }[];
     };
 }) {
@@ -334,13 +118,20 @@ export async function createLesson(data: {
 
             // 2. Add Questions
             const createdQuizId = quiz.id; // capture for closure
-            const questionsPayload = data.quiz_data.questions.map((q, idx) => ({
-                quiz_id: createdQuizId,
-                text: q.text,
-                options: q.options, // JSONB array (Supabase handles array->jsonb usually, but explicitly is safer)
-                correct_answer: q.options[q.correctAnswerIndex], // Store text of correct answer for robustness
-                order_index: idx
-            }));
+            const questionsPayload = data.quiz_data.questions.map((q, idx) => {
+                // Use parser's type if available, otherwise infer from options
+                const inferredTF = q.options.length === 2 &&
+                    q.options.map(o => o.toLowerCase().trim()).sort().join(',') === 'false,true';
+                const qType = q.type || (inferredTF ? 'true_false' : 'mcq');
+                return {
+                    quiz_id: createdQuizId,
+                    text: q.text,
+                    type: qType,
+                    options: q.options,
+                    correct_answer: q.correctAnswerIndex >= 0 ? q.options[q.correctAnswerIndex] : q.options[0],
+                    order_index: idx
+                };
+            });
 
             const { error: questionsError } = await supabase
                 .from('questions')
@@ -822,9 +613,11 @@ export async function updateLesson(
         quiz_data?: {
             title: string;
             questions: {
+                id?: number;
                 text: string;
                 options: string[];
                 correctAnswerIndex: number;
+                type?: 'mcq' | 'true_false';
             }[];
         };
     }
@@ -872,13 +665,20 @@ export async function updateLesson(
             }
 
             // Add new questions
-            const questionsPayload = data.quiz_data.questions.map((q, idx) => ({
-                quiz_id: quizId,
-                text: q.text,
-                options: q.options,
-                correct_answer: q.options[q.correctAnswerIndex],
-                order_index: idx
-            }));
+            const questionsPayload = data.quiz_data.questions.map((q, idx) => {
+                // Use parser's type if available, otherwise infer from options
+                const inferredTF = q.options.length === 2 &&
+                    q.options.map(o => o.toLowerCase().trim()).sort().join(',') === 'false,true';
+                const qType = q.type || (inferredTF ? 'true_false' : 'mcq');
+                return {
+                    quiz_id: quizId,
+                    text: q.text,
+                    type: qType,
+                    options: q.options,
+                    correct_answer: q.correctAnswerIndex >= 0 ? q.options[q.correctAnswerIndex] : q.options[0],
+                    order_index: idx
+                };
+            });
 
             const { error: questionsError } = await supabase
                 .from('questions')
@@ -971,6 +771,40 @@ export async function getLesson(lessonId: string) {
         }
 
         return { lesson };
+    } catch (e: any) {
+        return { error: e.message };
+    }
+}
+
+// ============ SEARCH ============
+
+/**
+ * Search students by name across ALL sections (batch-wide search)
+ */
+export async function searchUsersByName(query: string) {
+    try {
+        await ensureAnyAdmin();
+
+        const trimmed = query.trim();
+        if (!trimmed || trimmed.length < 2) {
+            return { users: [] };
+        }
+
+        const supabase = await createServiceRoleClient();
+
+        const { data, error } = await supabase
+            .from('allowed_users')
+            .select('username, full_name, access_role, original_section, original_group')
+            .ilike('full_name', `%${trimmed}%`)
+            .order('full_name', { ascending: true })
+            .limit(25);
+
+        if (error) {
+            console.error('Search users error:', error);
+            return { error: 'Search failed' };
+        }
+
+        return { users: data || [] };
     } catch (e: any) {
         return { error: e.message };
     }

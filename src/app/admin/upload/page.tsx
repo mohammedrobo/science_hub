@@ -280,7 +280,6 @@ export default function UploadPage() {
                             <div className="space-y-4 pt-4 border-t border-zinc-800">
                                 <QuizUploader
                                     onQuizDataChange={setQuizData}
-                                    onParsingChange={setIsSubmitting} // Reuse isSubmitting to block "Add Lesson"
                                 />
                             </div>
 

@@ -6,10 +6,11 @@ import { ManageNotifications } from '@/components/notifications/ManageNotificati
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ShieldAlert, Crown, Home } from 'lucide-react';
+import { ShieldAlert, Crown, Home, Upload, BookOpen } from 'lucide-react';
 import { AddStudentDialog } from './AddStudentDialog';
 import { SectionSelector } from './SectionSelector';
-import { UserActions } from './UserActions';
+import { SearchStudentDialog } from './SearchStudentDialog';
+import { UserListWithFilter } from './UserListWithFilter';
 
 interface UserWithStats {
     username: string;
@@ -132,6 +133,24 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
                         </div>
                         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                             <SectionSelector sections={sections} />
+                            <SearchStudentDialog />
+
+                            <div className="hidden sm:block w-px h-6 bg-zinc-800" />
+
+                            <Link href="/admin/upload">
+                                <Button variant="outline" size="sm" className="border-zinc-700 bg-zinc-900 text-violet-400 hover:bg-violet-950/30 hover:text-violet-300">
+                                    <Upload className="w-4 h-4 sm:mr-2" />
+                                    <span className="hidden sm:inline">Upload</span>
+                                </Button>
+                            </Link>
+                            <Link href="/admin/lessons">
+                                <Button variant="outline" size="sm" className="border-zinc-700 bg-zinc-900 text-blue-400 hover:bg-blue-950/30 hover:text-blue-300">
+                                    <BookOpen className="w-4 h-4 sm:mr-2" />
+                                    <span className="hidden sm:inline">Lessons</span>
+                                </Button>
+                            </Link>
+
+                            <div className="hidden sm:block w-px h-6 bg-zinc-800" />
 
                             {isSuperAdmin && (
                                 <Link href="/admin/safety">
@@ -164,6 +183,28 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
             {/* Main Content */}
             <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 space-y-6">
 
+                {/* Quick Stats */}
+                {selectedSection && users.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3 sm:p-4">
+                            <p className="text-xs text-zinc-500">Total</p>
+                            <p className="text-xl sm:text-2xl font-bold text-white">{users.length}</p>
+                        </div>
+                        <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3 sm:p-4">
+                            <p className="text-xs text-zinc-500">Students</p>
+                            <p className="text-xl sm:text-2xl font-bold text-zinc-300">{users.filter(u => u.access_role === 'student').length}</p>
+                        </div>
+                        <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3 sm:p-4">
+                            <p className="text-xs text-zinc-500">Leaders</p>
+                            <p className="text-xl sm:text-2xl font-bold text-violet-400">{users.filter(u => u.access_role === 'leader').length}</p>
+                        </div>
+                        <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3 sm:p-4">
+                            <p className="text-xs text-zinc-500">Admins</p>
+                            <p className="text-xl sm:text-2xl font-bold text-amber-400">{users.filter(u => ['admin', 'super_admin'].includes(u.access_role)).length}</p>
+                        </div>
+                    </div>
+                )}
+
                 {/* Communications Center */}
                 <Card className="bg-zinc-900/50 border-zinc-800">
                     <CardHeader className="pb-2">
@@ -188,7 +229,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
                             {users.length > 0 && <Badge variant="secondary" className="ml-2 bg-zinc-800">{users.length} users</Badge>}
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-0 sm:p-6">
+                    <CardContent className="p-0">
                         {!selectedSection ? (
                             <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
                                 <div className="p-4 bg-zinc-900 rounded-full">
@@ -197,7 +238,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
                                 <div className="space-y-2">
                                     <h3 className="text-xl font-semibold text-white">Select a Section</h3>
                                     <p className="text-zinc-400 max-w-md mx-auto">
-                                        Please select a section from the dropdown above to view and manage students.
+                                        Select a section from the dropdown above, or use <strong>Search Student</strong> to find anyone across all sections.
                                     </p>
                                 </div>
                             </div>
@@ -206,97 +247,15 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
                                 No students found in Section {selectedSection}.
                             </div>
                         ) : (
-                            <>
-                                {/* Mobile Card View */}
-                                <div className="block lg:hidden space-y-2 p-2 sm:p-0">
-                                    {users.map((user) => {
-                                        return (
-                                            <div key={user.username} className="bg-zinc-800/50 rounded-lg p-3 border border-zinc-700/50">
-                                                <div className="flex items-start justify-between gap-2">
-                                                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                                                        <div className="min-w-0">
-                                                            <p className="text-white font-medium text-sm truncate">{user.full_name}</p>
-                                                            <p className="text-zinc-500 text-xs truncate">@{user.username}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        {user.access_role === 'super_admin' ? (
-                                                            <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/50 text-xs flex-shrink-0">Super Admin</Badge>
-                                                        ) : user.access_role === 'admin' ? (
-                                                            <Badge className="bg-red-500/20 text-red-400 border-red-500/50 text-xs flex-shrink-0">Admin</Badge>
-                                                        ) : user.access_role === 'leader' ? (
-                                                            <Badge className="bg-violet-500/20 text-violet-400 border-violet-500/50 text-xs flex-shrink-0">Leader</Badge>
-                                                        ) : (
-                                                            <Badge variant="secondary" className="bg-zinc-800 text-zinc-400 text-xs flex-shrink-0">Student</Badge>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center justify-end mt-3 pt-2 border-t border-zinc-700/50">
-                                                    <div className="flex gap-1">
-                                                        <UserActions
-                                                            username={user.username}
-                                                            fullName={user.full_name}
-                                                            currentRole={user.access_role}
-                                                            isSuperAdmin={isSuperAdmin}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-
-                                {/* Desktop Table View */}
-                                <div className="hidden lg:block overflow-x-auto">
-                                    <table className="w-full">
-                                        <thead>
-                                            <tr className="border-b border-zinc-800">
-                                                <th className="text-left py-3 px-4 text-zinc-400 font-medium text-sm">Student Name</th>
-                                                <th className="text-left py-3 px-4 text-zinc-400 font-medium text-sm">Username</th>
-                                                <th className="text-left py-3 px-4 text-zinc-400 font-medium text-sm w-[100px]">Role</th>
-                                                <th className="text-right py-3 px-4 text-zinc-400 font-medium text-sm w-[200px]">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {users.map((user) => {
-                                                return (
-                                                    <tr key={user.username} className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors">
-                                                        <td className="py-3 px-4">
-                                                            <span className="text-white font-medium">{user.full_name}</span>
-                                                        </td>
-                                                        <td className="py-3 px-4 text-zinc-400">@{user.username}</td>
-                                                        <td className="py-3 px-4">
-                                                            {user.access_role === 'super_admin' ? (
-                                                                <Badge className="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border-amber-500/50">Super Admin</Badge>
-                                                            ) : user.access_role === 'admin' ? (
-                                                                <Badge className="bg-red-500/20 text-red-400 hover:bg-red-500/30 border-red-500/50">Admin</Badge>
-                                                            ) : user.access_role === 'leader' ? (
-                                                                <Badge className="bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border-violet-500/50">Leader</Badge>
-                                                            ) : (
-                                                                <Badge variant="secondary" className="bg-zinc-800 text-zinc-400">Student</Badge>
-                                                            )}
-                                                        </td>
-                                                        <td className="py-3 px-4 text-right">
-                                                            <div className="flex justify-end gap-1">
-                                                                <UserActions
-                                                                    username={user.username}
-                                                                    fullName={user.full_name}
-                                                                    currentRole={user.access_role}
-                                                                    isSuperAdmin={isSuperAdmin}
-                                                                />
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </>
+                            <UserListWithFilter
+                                users={users}
+                                selectedSection={selectedSection}
+                                isSuperAdmin={isSuperAdmin}
+                            />
                         )}
                     </CardContent>
                 </Card>
             </div>
-        </div >
+        </div>
     );
 }

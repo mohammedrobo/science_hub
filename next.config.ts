@@ -34,6 +34,14 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: '**.supabase.co',
       },
+      {
+        protocol: 'https',
+        hostname: 'img.youtube.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.ytimg.com',
+      },
     ],
   },
 
@@ -66,7 +74,7 @@ const nextConfig: NextConfig = {
           // Content Security Policy - adjust based on your needs
           { 
             key: 'Content-Security-Policy', 
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://generativelanguage.googleapis.com; frame-ancestors 'self';"
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob: https://img.youtube.com https://i.ytimg.com; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://generativelanguage.googleapis.com; frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com; media-src 'self' https://www.youtube-nocookie.com https://www.youtube.com blob:; frame-ancestors 'self';"
           },
           // HSTS: Enable in production with HTTPS
           ...(process.env.NODE_ENV === 'production' ? [
