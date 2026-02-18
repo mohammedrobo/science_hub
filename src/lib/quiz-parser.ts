@@ -53,8 +53,11 @@ function preprocess(raw: string): string {
     });
     text = filtered.join('\n');
 
-    // 3. Remove markdown section headers that are NOT answer keys
-    text = text.replace(/^#{1,6}\s+\*{0,2}(?:part|section|topic|chapter|category)\s+\d*\*{0,2}\s*[:\-]?\s*.*/gmi, '');
+    // 3. Remove markdown section headers that are NOT answer keys and NOT inside answer sections
+    text = text.replace(/^#{1,6}\s+\*{0,2}(?:part|section|topic|chapter|category)\s+\d*\*{0,2}\s*[:\-\u2013\u2014]?\s*.*/gmi, (match) => {
+        if (/answer|solution|\u0627\u0644\u0625\u062c\u0627\u0628/i.test(match)) return match;
+        return '';
+    });
 
     // 4. Remove horizontal rules
     text = text.replace(/^\s*[-*_]{3,}\s*$/gm, '');
@@ -257,11 +260,17 @@ export function parseQuizMarkdown(text: string): QuizParseResult {
     ];
 
     // --- Answer section headers ---
+    // Support emojis (✅✓📋🔑), unicode, bold, heading levels, colons inside/outside bold
+    const ANSWER_KEYWORDS = 'answer\\s*key|answers?|correct\\s*answers?|solutions?|answer\\s*sheet|\u0627\u0644\u0625\u062c\u0627\u0628\u0627\u062a|\u0627\u0644\u0627\u062c\u0627\u0628\u0627\u062a|\u0645\u0641\u062a\u0627\u062d';
     const answerSectionPatterns = [
-        /^#{1,6}\s*\*{0,2}\s*(answer\s*key|answers?|correct\s*answers?|solutions?|answer\s*sheet|\u0627\u0644\u0625\u062c\u0627\u0628\u0627\u062a|\u0627\u0644\u0627\u062c\u0627\u0628\u0627\u062a|\u0645\u0641\u062a\u0627\u062d)\s*\*{0,2}\s*:?\s*$/i,
-        /^\*{0,2}\s*(answer\s*key|answers?|correct\s*answers?|solutions?|answer\s*sheet|\u0627\u0644\u0625\u062c\u0627\u0628\u0627\u062a|\u0627\u0644\u0627\u062c\u0627\u0628\u0627\u062a)\s*:?\s*\*{0,2}\s*$/i,
-        /^\*{1,2}(answer\s*key|answers?|correct\s*answers?|solutions?)\*{1,2}\s*:?\s*$/i,
-        /^\*{0,2}(answer\s*key|answers?|correct\s*answers?|solutions?)\*{0,2}\s*:\s*$/i,
+        // "## ✅ Answer Key" — heading with optional emoji/symbol prefix
+        new RegExp(`^#{1,6}\\s*[^\\w]*?\\*{0,2}\\s*(${ANSWER_KEYWORDS})\\s*\\*{0,2}\\s*:?\\s*$`, 'iu'),
+        // "✅ Answer Key" / "**Answer Key:**" — standalone line with optional emoji/symbols
+        new RegExp(`^[^\\w]*?\\*{0,2}\\s*(${ANSWER_KEYWORDS})\\s*:?\\s*\\*{0,2}\\s*:?\\s*$`, 'iu'),
+        // "**answers**" / "*solutions*"
+        new RegExp(`^\\*{1,2}(${ANSWER_KEYWORDS})\\*{1,2}\\s*:?\\s*$`, 'iu'),
+        // "answers:" / "answer key:"
+        new RegExp(`^\\*{0,2}(${ANSWER_KEYWORDS})\\*{0,2}\\s*:\\s*$`, 'iu'),
     ];
 
     // --- Answer key line matchers ---
@@ -286,8 +295,18 @@ export function parseQuizMarkdown(text: string): QuizParseResult {
         { regex: /^(\d+)\s*[.\)\-:=]\s*(?:the\s+answer\s+is\s+)\*{0,2}\s*([a-hA-H])\s*\*{0,2}/i, type: 'mcq' },
     ];
 
-    // --- Table answer key: "| 1 | C |" ---
-    const tableAnswerPattern = /^\|?\s*(\d+)\s*\|\s*\*{0,2}\s*([a-hA-H]|True|False|\u0635\u062d|\u062e\u0637\u0623)\s*\*{0,2}\s*\|?\s*$/i;
+    // --- Table answer key: "| 1 | C |" or "| 1  | B      |" (with extra spaces) ---
+    const tableAnswerPattern = /^\|?\s*(\d+)\s*\|\s*\*{0,2}\s*([a-hA-H]|True|False|\u0635\u062d|\u062e\u0637\u0623|\u0635\u062d\u064a\u062d|\u062e\u0627\u0637\u0626)\s*\*{0,2}\s*\|?\s*$/i;
+
+    // --- Table header row to skip: "| Q | Answer |" ---
+    const tableHeaderPattern = /^\|?\s*(Q|#|No\.?|Question|Num\.?)\s*\|\s*(Answer|Ans\.?|Correct|Solution|\u0627\u0644\u0625\u062c\u0627\u0628\u0629)\s*\|?\s*$/i;
+
+    // --- Sub-section headers inside answer key (Part A – MCQ, Part B – T/F, etc.) ---
+    const answerSubSectionSkip = [
+        /^#{1,6}\s*\*{0,2}\s*(?:part|section)\s+[a-zA-Z0-9]+\s*[\-\u2013\u2014:]\s*.*/i,
+        /^\*{0,2}\s*(?:part|section)\s+[a-zA-Z0-9]+\s*[\-\u2013\u2014:]\s*.*/i,
+        /^#{1,6}\s*\*{0,2}\s*(?:multiple\s*choice|mcq|true\s*[\/ \\|]?\s*false|t\s*[\/ |]\s*f|short\s*answer)\s*\*{0,2}\s*$/i,
+    ];
 
     // --- Comma-separated answer keys: "1.C, 2.A, 3.B" ---
     const commaSepAnswerPattern = /^(\d+)\s*[.\-:=]\s*([a-hA-H])\s*[,;\s]\s*(\d+)\s*[.\-:=]\s*([a-hA-H])/i;
@@ -336,6 +355,10 @@ export function parseQuizMarkdown(text: string): QuizParseResult {
                 if (clusterSize > 0) clusterStart = i;
                 continue;
             }
+            if (answerSubSectionSkip.some(p => p.test(line))) {
+                if (clusterSize > 0) clusterStart = i;
+                continue;
+            }
             if (answerSectionPatterns.some(p => p.test(line))) {
                 clusterStart = i;
                 continue;
@@ -347,6 +370,17 @@ export function parseQuizMarkdown(text: string): QuizParseResult {
                 if (clusterSize > 0) {
                     break; // stop cluster if we hit T/F options
                 }
+                continue;
+            }
+
+            // Skip table headers and separators in cluster detection
+            if (tableHeaderPattern.test(line) || /^\|?\s*[-:]+\s*\|/.test(line)) {
+                if (clusterSize > 0) clusterStart = i;
+                continue;
+            }
+            // Skip decorative/italic lines
+            if (/^\*[^*]+\*\s*$/.test(line) && !/\d/.test(line)) {
+                if (clusterSize > 0) clusterStart = i;
                 continue;
             }
 
@@ -643,10 +677,15 @@ export function parseQuizMarkdown(text: string): QuizParseResult {
     // ════════════════════ STEP 3: Parse Answer Key ════════════════════
 
     for (const line of answerLines) {
-        // Skip headers, sub-headers, table separators
+        // Skip headers, sub-headers, table separators, table header rows
         if (answerSectionPatterns.some(p => p.test(line))) continue;
         if (subHeaderSkip.some(p => p.test(line))) continue;
+        if (answerSubSectionSkip.some(p => p.test(line))) continue;
+        if (tableHeaderPattern.test(line)) continue;
         if (/^\|?\s*[-:]+\s*\|/.test(line)) continue;
+        // Skip decorative lines in answer section ("Good luck! 🎓", "*italic text*")
+        if (/^\*?[^*|]*?(good\s*luck|\ud83c\udf93|\ud83c\udf40|\u2728)[^|]*?\*?\s*$/iu.test(line)) continue;
+        if (/^\*[^*]+\*\s*$/.test(line) && !/\d/.test(line)) continue;
 
         // --- Table format: "| 1 | C |" ---
         const tableM = line.match(tableAnswerPattern);
