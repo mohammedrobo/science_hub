@@ -6,7 +6,7 @@ CHANGE_PASSWORD_URL = f"{BASE_URL}/change-password"
 TIMEOUT = 30
 
 USERNAME = "C_C2-36-4da3"
-PASSWORD = "gOJ1xWNujMuC"
+PASSWORD = "Satoru123@"
 
 def test_post_change_password_with_weak_new_password():
     session = requests.Session()

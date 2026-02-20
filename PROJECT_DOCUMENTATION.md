@@ -21,8 +21,7 @@ The project is built as a modern web application using the Next.js framework wit
 *   **Storage:** Supabase Storage (for lecture notes, PDFs)
 *   **Serverless Logic:** Next.js Server Actions & API Routes
 
-### **AI & Services**
-*   **AI Engine:** Google Gemini API (`@google/generative-ai`) for the "DaVinci" chatbot and content generation.
+### **Services**
 *   **Caching/Rate Limiting:** Upstash Redis
 *   **Deployment:** Vercel
 
@@ -88,15 +87,12 @@ Organizes content by Term > Subject > Chapter > Lesson. specific supports for vi
 ### 2. **Interactive Quizzes**
 Chapter-specific assessments with various question types (MCQ, True/False) providing immediate feedback and explanations.
 
-### 3. **AI Companion (DaVinci)**
-A persistent chatbot powered by Google Gemini that assists students with academic queries, accessible throughout the application.
-
-### 4. **Gamification System**
+### 3. **Gamification System**
 *   **XP & Leveling:** Students earn experience for completing tasks.
 *   **Leaderboards:** Competitive tracking.
 *   **Guilds:** Social groups for collaborative learning.
 
-### 5. **Admin Dashboard**
+### 4. **Admin Dashboard**
 Comprehensive tools for content creators and administrators to manage users, upload lessons, and view system analytics.
 
 ### 6. **Student Tools**

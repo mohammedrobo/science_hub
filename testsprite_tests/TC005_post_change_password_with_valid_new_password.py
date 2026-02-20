@@ -2,7 +2,7 @@ import requests
 
 BASE_URL = "http://localhost:3000"
 USERNAME = "C_C2-36-4da3"
-PASSWORD = "gOJ1xWNujMuC"
+PASSWORD = "Satoru123@"
 TIMEOUT = 30
 
 def test_post_change_password_with_valid_new_password():

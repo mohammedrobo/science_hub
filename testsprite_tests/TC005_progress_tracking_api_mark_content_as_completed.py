@@ -29,7 +29,7 @@ def test_progress_tracking_mark_content():
             allow_redirects=False,
         )
 
-        if resp.status_code in (302, 303):
+        if resp.status_code in (302, 303, 307, 308):
             location = resp.headers.get("Location", "")
             if "/login" in location:
                 results.pass_test("Unauthenticated course access redirects to login")
@@ -63,7 +63,7 @@ def test_progress_tracking_mark_content():
 
         if resp.status_code == 200:
             results.pass_test("Authenticated user can access courses page")
-        elif resp.status_code in (302, 303):
+        elif resp.status_code in (302, 303, 307, 308):
             location = resp.headers.get("Location", "")
             if "/login" in location:
                 results.fail_test("Courses page access", "Redirected to login despite auth!")

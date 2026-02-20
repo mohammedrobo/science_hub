@@ -7,7 +7,7 @@ def test_post_login_with_valid_credentials():
     login_url = f"{BASE_URL}/login"
     payload = {
         "username": "C_C2-36-4da3",
-        "password": "gOJ1xWNujMuC"
+        "password": "Satoru123@"
     }
     try:
         # Perform POST /login

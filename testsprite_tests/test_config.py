@@ -21,12 +21,14 @@ TIMEOUT = 30
 # Test credentials — Use the super_admin account for admin tests
 # and a student account for regular tests
 # These match the seed data in secure_data/access_keys.json
+# NOTE: If a user has already logged in (first-login password change),
+# the original password will no longer work. Reset via DB if needed.
 ADMIN_USERNAME = os.environ.get("TEST_ADMIN_USERNAME", "C_C2-36-4da3")
-ADMIN_PASSWORD = os.environ.get("TEST_ADMIN_PASSWORD", "student123")
+ADMIN_PASSWORD = os.environ.get("TEST_ADMIN_PASSWORD", "Satoru123@")
 
 # Student test user — pick any from seed data
 STUDENT_USERNAME = os.environ.get("TEST_STUDENT_USERNAME", "A_A1-1-0444")
-STUDENT_PASSWORD = os.environ.get("TEST_STUDENT_PASSWORD", "student123")
+STUDENT_PASSWORD = os.environ.get("TEST_STUDENT_PASSWORD", "qtwfvzZdaE3q")
 
 
 # ============ HELPER FUNCTIONS ============
@@ -41,31 +43,38 @@ class TestSession:
 
     def login(self, username: str, password: str) -> Tuple[bool, str]:
         """
-        Log in via the /login form endpoint.
+        Log in via the /api/auth/login JSON endpoint.
         Returns (success, message).
-        Next.js server actions use form POST and return redirects.
+
+        Note: The login page uses Next.js Server Actions (not a regular form POST),
+        so we use a dedicated API route that accepts JSON and sets the session cookie.
         """
-        headers = {"Content-Type": "application/x-www-form-urlencoded"}
+        headers = {"Content-Type": "application/json"}
         payload = {"username": username, "password": password}
 
         try:
             resp = self.session.post(
-                f"{BASE_URL}/login",
-                data=payload,
+                f"{BASE_URL}/api/auth/login",
+                json=payload,
                 headers=headers,
                 timeout=TIMEOUT,
-                allow_redirects=False,
             )
 
-            # 303 or 302 = success (Next.js server actions use 303 See Other)
-            if resp.status_code in (302, 303):
-                self.authenticated = True
-                self.username = username
-                location = resp.headers.get("Location", "")
-                return True, f"Login successful, redirect to: {location}"
-            elif resp.status_code == 200:
-                # Server action returned with error (re-renders page)
-                return False, f"Login failed: credentials rejected"
+            if resp.status_code == 200:
+                data = resp.json()
+                if data.get("success"):
+                    self.authenticated = True
+                    self.username = username
+                    redirect_to = data.get("redirectTo", "/")
+                    return True, f"Login successful, redirect to: {redirect_to}"
+                else:
+                    return False, f"Login failed: {data.get('error', 'unknown error')}"
+            elif resp.status_code == 401:
+                data = resp.json()
+                return False, f"Login failed: {data.get('error', 'credentials rejected')}"
+            elif resp.status_code == 429:
+                data = resp.json()
+                return False, f"Rate limited: {data.get('error', 'too many attempts')}"
             else:
                 return False, f"Unexpected status: {resp.status_code}"
 
@@ -126,7 +135,6 @@ def assert_no_sensitive_data(response_text: str, context: str = ""):
         "supabase_service_role",
         "service_role_key",
         "session_secret",
-        "gemini_api_key",
         "vapid_private",
         "password_hash",
         "$2b$",  # bcrypt hash prefix

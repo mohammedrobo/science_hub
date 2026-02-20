@@ -6,7 +6,7 @@ CHECK_SESSION_URL = f"{BASE_URL}/api/auth/check-session"
 TIMEOUT = 30
 
 USERNAME = "C_C2-36-4da3"
-PASSWORD = "gOJ1xWNujMuC"
+PASSWORD = "Satoru123@"
 
 def test_post_api_auth_check_session_with_valid_jwt():
     session = requests.Session()

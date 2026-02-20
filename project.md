@@ -15,10 +15,6 @@
     *   Immediate feedback with explanations.
 *   **Progress Tracking:** Visual indicators of course and lesson completion rates.
 
-### 🤖 AI Companion (DaVinci)
-*   **Floating Chatbot:** An always-accessible AI assistant named "DaVinci".
-*   **Powered by Gemini:** Utilizes Google's Gemini API to answer student queries and provide academic support.
-
 ### 🛠️ Academic Tools
 *   **GPA Calculator:** specific tool for students to calculate and project their Grade Point Average.
 *   **Class Reminders:** Push notifications sent 15 and 5 minutes before scheduled classes.
@@ -52,7 +48,6 @@
     *   **Database:** PostgreSQL
     *   **Auth:** Supabase Auth
     *   **Storage:** Supabase Storage (for PDFs/Assets)
-*   **AI:** Google Gemini API (`@google/generative-ai`)
 *   **Caching/Rate Limiting:** Upstash Redis
 *   **Deployment:** [Vercel](https://vercel.com/)
 
@@ -94,7 +89,7 @@
     ```
 
 3.  **Environment Setup:**
-    Create a `.env.local` file in the root directory and add the necessary environment variables (Supabase keys, Gemini API key, etc.).
+    Create a `.env.local` file in the root directory and add the necessary environment variables (Supabase keys, etc.).
 
 4.  **Run Development Server:**
     ```bash

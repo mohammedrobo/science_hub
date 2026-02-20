@@ -6,7 +6,7 @@ LOGIN_URL = f"{BASE_URL}/login"
 UPLOAD_URL = f"{BASE_URL}/api/chat/upload"
 
 USERNAME = "C_C2-36-4da3"
-PASSWORD = "gOJ1xWNujMuC"
+PASSWORD = "Satoru123@"
 TIMEOUT = 30
 
 def test_post_api_chat_upload_with_valid_image_file():

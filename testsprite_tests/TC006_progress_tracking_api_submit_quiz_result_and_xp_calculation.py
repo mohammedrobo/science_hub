@@ -28,7 +28,7 @@ def test_quiz_submission():
             allow_redirects=False,
         )
 
-        if resp.status_code in (302, 303):
+        if resp.status_code in (302, 303, 307, 308):
             location = resp.headers.get("Location", "")
             if "/login" in location:
                 results.pass_test("Quiz pages require authentication")

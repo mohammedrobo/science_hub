@@ -34,7 +34,7 @@ def test_comprehensive_security():
             allow_redirects=False,
         )
 
-        if resp.status_code in (302, 303):
+        if resp.status_code in (302, 303, 307, 308):
             location = resp.headers.get("Location", "")
             if "/login" in location:
                 results.pass_test("[Middleware] /admin redirects unauthenticated to /login")
@@ -60,7 +60,7 @@ def test_comprehensive_security():
         if success:
             resp = ts.get("/admin", allow_redirects=False)
 
-            if resp.status_code in (302, 303):
+            if resp.status_code in (302, 303, 307, 308):
                 location = resp.headers.get("Location", "")
                 if "/admin" not in location:
                     results.pass_test("[Middleware] /admin redirects student away")
@@ -94,7 +94,7 @@ def test_comprehensive_security():
 
             if resp.status_code == 200:
                 results.pass_test("[Middleware] /admin accessible for admin user")
-            elif resp.status_code in (302, 303):
+            elif resp.status_code in (302, 303, 307, 308):
                 location = resp.headers.get("Location", "")
                 if "/login" in location:
                     results.fail_test("[Middleware] Admin access",
@@ -126,7 +126,7 @@ def test_comprehensive_security():
                 allow_redirects=False,
             )
 
-            if resp.status_code in (302, 303):
+            if resp.status_code in (302, 303, 307, 308):
                 location = resp.headers.get("Location", "")
                 if "/login" in location:
                     results.pass_test(f"[Middleware] {page} requires auth")
@@ -297,7 +297,6 @@ def test_comprehensive_security():
                 "SUPABASE_SERVICE_ROLE",
                 "service_role_key",
                 "SESSION_SECRET",
-                "GEMINI_API_KEYS",
                 "VAPID_PRIVATE_KEY",
                 "createServiceRoleClient",  # Server-only function
             ]
@@ -356,7 +355,7 @@ def test_comprehensive_security():
         # GET should render the form, not process login
         if resp.status_code == 200:
             results.pass_test("[CSRF] Login form doesn't process GET params")
-        elif resp.status_code in (302, 303):
+        elif resp.status_code in (302, 303, 307, 308):
             location = resp.headers.get("Location", "")
             if "/login" not in location and location != "":
                 results.fail_test("[CSRF] Login via GET",
@@ -384,7 +383,7 @@ def test_comprehensive_security():
 
         if resp.status_code in (401, 403):
             results.pass_test("[Push] Subscribe API requires auth")
-        elif resp.status_code in (302, 303):
+        elif resp.status_code in (302, 303, 307, 308):
             results.pass_test("[Push] Subscribe API redirects unauth")
         elif resp.status_code in (400, 500):
             # Might fail for other reasons but at least not accepting the subscription
@@ -410,7 +409,7 @@ def test_comprehensive_security():
 
         if resp.status_code in (401, 403):
             results.pass_test("[Push] Send API requires auth")
-        elif resp.status_code in (302, 303):
+        elif resp.status_code in (302, 303, 307, 308):
             results.pass_test("[Push] Send API redirects unauth")
         elif resp.status_code == 200:
             results.fail_test("[Push] Send API auth",
@@ -436,7 +435,7 @@ def test_comprehensive_security():
 
         if resp.status_code in (401, 403):
             results.pass_test("[Upload] Upload API requires auth")
-        elif resp.status_code in (302, 303):
+        elif resp.status_code in (302, 303, 307, 308):
             results.pass_test("[Upload] Upload API redirects unauth")
         elif resp.status_code == 200:
             results.fail_test("[Upload] Upload API auth",

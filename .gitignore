@@ -39,6 +39,9 @@ yarn-error.log*
 # sensitive data (plaintext credentials, access keys)
 secure_data/
 
+# test artifacts
+testsprite_tests/tmp/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

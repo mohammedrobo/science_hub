@@ -6,7 +6,7 @@ CHAT_PATH = "/api/chat"
 TIMEOUT = 30
 
 USERNAME = "C_C2-36-4da3"
-PASSWORD = "gOJ1xWNujMuC"
+PASSWORD = "Satoru123@"
 
 def test_post_api_chat_with_rate_limit_exceeded():
     session = requests.Session()

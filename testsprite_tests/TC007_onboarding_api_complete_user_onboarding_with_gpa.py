@@ -25,7 +25,7 @@ def test_onboarding_api():
             allow_redirects=False,
         )
 
-        if resp.status_code in (302, 303):
+        if resp.status_code in (302, 303, 307, 308):
             location = resp.headers.get("Location", "")
             if "/login" in location:
                 results.pass_test("Unauthenticated onboarding access redirects to login")
@@ -53,7 +53,7 @@ def test_onboarding_api():
 
             # Follow the redirect chain
             resp = ts.get("/", allow_redirects=False)
-            if resp.status_code in (302, 303):
+            if resp.status_code in (302, 303, 307, 308):
                 location = resp.headers.get("Location", "")
                 if "/onboarding" in location:
                     results.pass_test("Non-onboarded user redirected to onboarding")
@@ -81,7 +81,7 @@ def test_onboarding_api():
             resp = ts.get("/onboarding", allow_redirects=True)
             if resp.status_code == 200:
                 results.pass_test("Onboarding page loads for authenticated user")
-            elif resp.status_code in (302, 303):
+            elif resp.status_code in (302, 303, 307, 308):
                 # Might redirect if already onboarded
                 location = resp.headers.get("Location", "")
                 results.pass_test(f"Onboarding redirects (user may be already onboarded): {location}")
@@ -104,7 +104,7 @@ def test_onboarding_api():
 
         if success:
             resp = ts.get("/", allow_redirects=False)
-            location = resp.headers.get("Location", "") if resp.status_code in (302, 303) else ""
+            location = resp.headers.get("Location", "") if resp.status_code in (302, 303, 307, 308) else ""
 
             if "/onboarding" not in location:
                 results.pass_test("Admin users not forced to onboarding")

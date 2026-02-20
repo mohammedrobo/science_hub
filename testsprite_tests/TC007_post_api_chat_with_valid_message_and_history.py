@@ -6,7 +6,7 @@ CHAT_URL = BASE_URL + "/api/chat"
 TIMEOUT = 30
 
 USERNAME = "C_C2-36-4da3"
-PASSWORD = "gOJ1xWNujMuC"
+PASSWORD = "Satoru123@"
 
 def test_post_api_chat_with_valid_message_and_history():
     session = requests.Session()
