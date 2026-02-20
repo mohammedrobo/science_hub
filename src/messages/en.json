@@ -111,7 +111,9 @@
     "gpaCalculator": "GPA Calculator",
     "myProgress": "My Progress",
     "rank": "Rank",
-    "xp": "XP"
+    "xp": "XP",
+    "term1": "Term 1",
+    "term2": "Term 2"
   },
   "onboarding": {
     "welcomeTitle": "Welcome to Science Hub! 🎉",
