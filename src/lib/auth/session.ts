@@ -180,5 +180,5 @@ export async function updateSession(updates: Partial<SessionData>): Promise<void
 import { hashPassword as _hashPassword, verifyPassword as _verifyPassword, isPasswordHashed as _isPasswordHashed } from './password';
 
 export const hashPassword = _hashPassword;
-export const verifyPassword = _verifyPassword;
+export { _verifyPassword as verifyPassword };
 export const isPasswordHashed = _isPasswordHashed;

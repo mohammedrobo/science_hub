@@ -34,13 +34,17 @@ export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
     // Public routes that don't need auth
-    const publicRoutes = ['/login', '/api'];
+    const publicRoutes = ['/login'];
     const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
+
+    // Public API routes (no auth needed)
+    const publicApiRoutes = ['/api/courses', '/api/auth/check-session', '/api/cron'];
+    const isPublicApi = publicApiRoutes.some(route => pathname.startsWith(route));
 
     // Static files that should always be accessible (PWA, icons, etc.)
     const isStaticFile = pathname.match(/\.(json|js|png|ico|svg|webp|jpg|jpeg|gif|woff2?|css|txt|xml)$/i);
 
-    if (isPublicRoute || isStaticFile) {
+    if (isPublicRoute || isPublicApi || isStaticFile) {
         return NextResponse.next();
     }
 
@@ -48,6 +52,13 @@ export async function proxy(request: NextRequest) {
     const sessionCookie = request.cookies.get(SESSION_COOKIE);
 
     if (!sessionCookie) {
+        // API routes should return 401 JSON, not redirect
+        if (pathname.startsWith('/api/')) {
+            return NextResponse.json(
+                { error: 'Authentication required' },
+                { status: 401 }
+            );
+        }
         const loginUrl = new URL('/login', request.url);
         return NextResponse.redirect(loginUrl);
     }
@@ -58,6 +69,14 @@ export async function proxy(request: NextRequest) {
 
         if (!session) {
             // Invalid/tampered cookie — clear it and redirect
+            if (pathname.startsWith('/api/')) {
+                const response = NextResponse.json(
+                    { error: 'Invalid session' },
+                    { status: 401 }
+                );
+                response.cookies.delete(SESSION_COOKIE);
+                return response;
+            }
             const response = NextResponse.redirect(new URL('/login', request.url));
             response.cookies.delete(SESSION_COOKIE);
             return response;
@@ -96,8 +115,14 @@ export async function proxy(request: NextRequest) {
             return NextResponse.redirect(homeUrl);
         }
 
-        // Admin/Leader Route Protection
-        if ((pathname.startsWith('/admin') || pathname.startsWith('/leader')) && !['super_admin', 'admin', 'leader'].includes(session.role)) {
+        // Admin Route Protection — only super_admin and admin
+        if (pathname.startsWith('/admin') && !['super_admin', 'admin'].includes(session.role)) {
+            const homeUrl = new URL('/', request.url);
+            return NextResponse.redirect(homeUrl);
+        }
+
+        // Leader Route Protection — admin, super_admin, and leader
+        if (pathname.startsWith('/leader') && !['super_admin', 'admin', 'leader'].includes(session.role)) {
             const homeUrl = new URL('/', request.url);
             return NextResponse.redirect(homeUrl);
         }
@@ -129,12 +154,12 @@ export const config = {
     matcher: [
         /*
          * Match all request paths except for the ones starting with:
-         * - api (API routes)
          * - _next/static (static files)
          * - _next/image (image optimization files)
          * - favicon.ico, manifest.json, sw.js, robots.txt (metadata/PWA files)
          * - Static file extensions (images, fonts, etc.)
+         * Note: API routes ARE included so proxy can enforce auth on protected APIs
          */
-        '/((?!api|_next/static|_next/image|favicon\\.ico|manifest\\.json|sw\\.js|robots\\.txt|sitemap\\.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?|js|json|css|txt|xml)$).*)',
+        '/((?!_next/static|_next/image|favicon\\.ico|manifest\\.json|sw\\.js|robots\\.txt|sitemap\\.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?|css|txt|xml)$).*)',
     ],
 };

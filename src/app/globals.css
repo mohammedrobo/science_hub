@@ -44,7 +44,7 @@
 }
 
 :root {
-  /* SHADOW MONARCH THEME */
+  /* SCIENCE HUB THEME */
 
   /* Backgrounds: Deepest Abyss */
   --background: #050505;
@@ -61,7 +61,7 @@
   --popover: #0a0a0a;
   --popover-foreground: #f4f4f5;
 
-  /* PRIMARY: Electric Violet (Shadow Power) */
+  /* PRIMARY: Electric Violet */
   --primary: #7c3aed;
   /* Violet 600 */
   --primary-foreground: #ffffff;

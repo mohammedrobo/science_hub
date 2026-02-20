@@ -104,10 +104,10 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
         return { error: 'Invalid username or password' };
     }
 
-    // 2. Verify password (bcrypt hashed only - plaintext support removed)
-    const isValid = await verifyPassword(password, user.password);
+    // 2. Verify password (supports bcrypt hash + plaintext legacy with auto-migration)
+    const verification = await verifyPassword(password, user.password);
 
-    if (!isValid) {
+    if (!verification.valid) {
         await recordLoginFailure(rateLimitKey);
         await logSecurityEvent({
             type: 'LOGIN_FAILED',
@@ -117,6 +117,20 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
             details: 'Invalid password'
         });
         return { error: 'Invalid username or password' };
+    }
+
+    // Auto-migrate plaintext password to bcrypt on successful login
+    if (verification.needsHash) {
+        try {
+            const hashed = await hashPassword(password);
+            await supabase
+                .from('allowed_users')
+                .update({ password: hashed })
+                .eq('username', user.username);
+            console.log(`[AUTH] Auto-migrated password to bcrypt for ${user.username}`);
+        } catch (e) {
+            console.error('[AUTH] Failed to auto-migrate password:', e);
+        }
     }
 
     // 3. Clear rate limit on success

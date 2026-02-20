@@ -1,19 +1,20 @@
 {
   "status": "commited",
-  "type": "frontend",
+  "type": "backend",
   "scope": "codebase",
   "localEndpoint": "http://localhost:3000",
-  "loginUser": "C_C2-36-4da3",
-  "loginPassword": "Satoru123@",
+  "backendAuthType": "basic token",
+  "backendUsername": "C_C2-36-4da3",
+  "backendPassword": "Satoru123@",
   "executionArgs": {
     "projectName": "science_hub",
     "projectPath": "/home/satoru/projects/science_hub",
     "testIds": [],
     "additionalInstruction": "",
     "envs": {
-      "API_KEY": "sk-user-EP_loACOhwuqgETDD2rkJG_iwEqM782QURnlhBkpn3AFHYOlfN-HfgrQDCPjiQXMvoeMXDJkIpvq6t_tZyEPJSNHnbWRsaokMUXYDsfDxbUB5GZdA6rWF1rE62NjlNWwRgU"
+      "API_KEY": "sk-user-xLGrS1nAv82m17S19dWLdjH_pDt0IV-wweMvjWv_X4J2ZtN6w7U9ApFyQmClEcR4XaYlsyQrUUZMixj026Eo1W1CJKWNRTqIyTDTOT2izXNjBDmgUczdDGn9Ds2Jd1Itc7M"
     }
   },
-  "serverPort": 40967,
-  "proxy": "http://0a24c2c9-2dac-47fd-a2ab-591d031b69f0:HmKa5NyNEE2G0uC8PWSm6EMBrkm3bhG9@tun.testsprite.com:8080"
+  "serverPort": 46309,
+  "proxy": "http://0a0ddba9-b7c1-4fa0-ab6b-75915047dec2:PMsWm75rEaGVFWAaDg5PgngGTZDkoZjB@tun.testsprite.com:8080"
 }

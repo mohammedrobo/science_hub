@@ -1,37 +1,42 @@
 [
   {
     "id": "TC001",
-    "title": "login api authentication and rate limiting",
-    "description": "Test the /login POST endpoint to verify user authentication with correct username and password, ensure rate limiting is enforced to prevent brute force attacks, and validate session management via cookies."
+    "title": "validate_jwt_session_and_single_session_enforcement",
+    "description": "Test GET /api/auth/check-session to verify JWT session validation, single-session enforcement, detection of kicked sessions, and appropriate responses for valid, expired, revoked, and rate-limited sessions."
   },
   {
     "id": "TC002",
-    "title": "change password api strength validation and confirmation",
-    "description": "Test the /change-password POST endpoint to verify that password change requires matching new_password and confirm_password fields, enforce password strength validation, and ensure successful password update redirects appropriately."
+    "title": "ai_chat_message_sending_and_rate_limiting",
+    "description": "Test POST /api/chat to ensure sending messages to the AI tutor works correctly with conversation history, handles empty messages, enforces per-user rate limits, and responds properly when AI quota is exceeded or unavailable."
   },
   {
     "id": "TC003",
-    "title": "ai chat api message handling and error responses",
-    "description": "Test the /api/chat POST endpoint to verify that sending a valid message returns an AI response, handle missing message error with 400 status, simulate API key errors returning 500 status, and service unavailability returning 503 status."
+    "title": "courses_api_semester_filter_and_mock_fallback",
+    "description": "Test GET /api/courses to verify retrieval of courses with optional semester filtering, proper handling of invalid semester query parameters, and fallback to mock data when the database is unavailable."
   },
   {
     "id": "TC004",
-    "title": "courses api semester filtering and error handling",
-    "description": "Test the /api/courses GET endpoint to verify that courses can be fetched filtered by semester query parameter, and handle internal server errors with appropriate 500 status response."
+    "title": "feedback_submission_and_admin_moderation",
+    "description": "Test POST /api/feedback for authenticated users to submit feedback with rate limiting, GET /api/feedback for listing feedback with RBAC, PATCH /api/feedback/{id} and DELETE /api/feedback/{id} for admin-only moderation actions with proper authorization checks."
   },
   {
     "id": "TC005",
-    "title": "progress tracking api mark content as completed",
-    "description": "Test the /actions/markContentAsCompleted POST endpoint to verify marking lessons or quizzes as completed, validate contentId and contentType inputs, and ensure correct XP rewards are calculated and returned."
+    "title": "push_notification_subscription_and_sending",
+    "description": "Test GET /api/push/subscribe for retrieving VAPID key, POST /api/push/subscribe and DELETE /api/push/subscribe for managing subscriptions with authentication, and POST /api/push/send for sending push notifications with bearer token authorization."
   },
   {
     "id": "TC006",
-    "title": "progress tracking api submit quiz result and xp calculation",
-    "description": "Test the /actions/submitQuizResult POST endpoint to verify submission of quiz scores, correct calculation and awarding of XP based on scorePercentage, and proper response structure."
+    "title": "cron_schedule_notifications_authorization_and_trigger",
+    "description": "Test GET and POST /api/cron/schedule-notify endpoints to verify authorization via Vercel cron header or bearer secret and successful triggering of in-app class reminder notifications."
   },
   {
     "id": "TC007",
-    "title": "onboarding api complete user onboarding with gpa",
-    "description": "Test the /actions/completeOnboarding POST endpoint to verify completion of user onboarding process with GPA input, validate GPA value handling, and confirm successful onboarding response."
+    "title": "session_tracking_end_with_sendbeacon_support",
+    "description": "Test POST /api/tracking/end to ensure active study sessions can be ended via sendBeacon calls without authentication, including handling of valid session IDs and proper 404 response for nonexistent sessions."
+  },
+  {
+    "id": "TC008",
+    "title": "file_upload_image_validation_and_size_limit",
+    "description": "Test POST /api/upload for authenticated image uploads enforcing file type whitelist (jpg, jpeg, png, gif, webp), blocking SVG/HTML files, enforcing 5MB size limit, and proper error responses for invalid files or unauthorized access."
   }
 ]

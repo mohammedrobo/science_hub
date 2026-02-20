@@ -1,0 +1,231 @@
+version: "2"
+type: backend
+tech_stack:
+  - TypeScript
+  - Next.js 16.1.4 (App Router)
+  - Supabase (PostgreSQL)
+  - Custom JWT Auth (jose HS256 + bcryptjs)
+  - Google Gemini 2.0 Flash AI
+  - Upstash Redis Rate Limiting
+  - Web Push (VAPID)
+  - Zod validation
+  - next-intl i18n
+features:
+  - name: Authentication & Session Management
+    description: Login/logout with JWT sessions, single-session enforcement, password changes, and session validation
+    files:
+      - src/app/api/auth/check-session/route.ts
+      - src/features/auth/actions.ts
+      - src/lib/auth/session.ts
+      - src/lib/auth/session-read.ts
+    endpoints:
+      - method: GET
+        path: /api/auth/check-session
+        description: Validates user's current JWT session against database, enforces single-session policy, detects kicked sessions
+        auth_required: true
+        request_schema:
+          cookies:
+            sciencehub_session: JWT string
+        response_schema:
+          "200": "{valid: true, user: SessionUser}"
+          "401": "{valid: false, reason: string}"
+          "429": "{valid: false, reason: 'rate_limited'}"
+    depends_on: []
+
+  - name: AI Chat (DaVinci Science Tutor)
+    description: AI chat powered by Gemini 2.0 Flash acting as DaVinci science tutor with conversation history
+    files:
+      - src/app/api/chat/route.ts
+      - src/lib/auth/rate-limit-redis.ts
+    endpoints:
+      - method: POST
+        path: /api/chat
+        description: Send message to AI tutor and get response, supports conversation history
+        auth_required: true
+        request_schema:
+          body:
+            message: string
+            history: "array of {role, parts}"
+        response_schema:
+          "200": "{response: string}"
+          "401": "Unauthorized"
+          "429": "Rate limited"
+          "400": "Bad body or empty message"
+          "503": "Quota exceeded or unavailable"
+    depends_on:
+      - Authentication & Session Management
+
+  - name: Courses API
+    description: Public endpoint to list all courses with optional semester filtering and mock data fallback
+    files:
+      - src/app/api/courses/route.ts
+      - src/lib/data/mocks.ts
+    endpoints:
+      - method: GET
+        path: /api/courses
+        description: List all courses, optionally filtered by semester. Falls back to mock data if DB fails.
+        auth_required: false
+        request_schema:
+          query:
+            semester: integer (optional)
+        response_schema:
+          "200": "Course[] with id, name, description, semester, etc."
+    depends_on: []
+
+  - name: Feedback System
+    description: Submit and manage user feedback (bugs, ideas, questions) with admin moderation
+    files:
+      - src/app/api/feedback/route.ts
+      - src/app/api/feedback/[id]/route.ts
+    endpoints:
+      - method: POST
+        path: /api/feedback
+        description: Submit feedback with type, title, and description. Rate limited to 5/hour per user.
+        auth_required: true
+        request_schema:
+          body:
+            type: "bug | idea | question | other"
+            title: string
+            description: string
+        response_schema:
+          "200": "{success: true, data: Feedback}"
+          "429": "Rate limited"
+      - method: GET
+        path: /api/feedback
+        description: Get feedback entries. Users see own, super_admin sees all. Max 50 results.
+        auth_required: true
+        request_schema:
+          query:
+            status: string (optional)
+            type: string (optional)
+        response_schema:
+          "200": "Feedback[]"
+      - method: PATCH
+        path: /api/feedback/{id}
+        description: Update feedback status and admin notes. Super_admin only.
+        auth_required: true
+        request_schema:
+          body:
+            status: string
+            admin_notes: string (optional)
+        response_schema:
+          "200": "{success: true, data: Feedback}"
+          "403": "Not super_admin"
+      - method: DELETE
+        path: /api/feedback/{id}
+        description: Delete a feedback entry. Super_admin only.
+        auth_required: true
+        response_schema:
+          "200": "{success: true}"
+          "403": "Not super_admin"
+    depends_on:
+      - Authentication & Session Management
+
+  - name: Push Notifications
+    description: Web Push notification subscription management and cron-triggered sending for class reminders
+    files:
+      - src/app/api/push/subscribe/route.ts
+      - src/app/api/push/send/route.ts
+    endpoints:
+      - method: GET
+        path: /api/push/subscribe
+        description: Returns VAPID public key for client-side push subscription setup
+        auth_required: false
+        response_schema:
+          "200": "{publicKey: string}"
+      - method: POST
+        path: /api/push/subscribe
+        description: Subscribe to push notifications for a section
+        auth_required: true
+        request_schema:
+          body:
+            subscription: PushSubscription
+            section_id: string
+        response_schema:
+          "200": "{success: true}"
+      - method: DELETE
+        path: /api/push/subscribe
+        description: Unsubscribe from push notifications by endpoint
+        auth_required: true
+        request_schema:
+          body:
+            endpoint: string
+        response_schema:
+          "200": "{success: true}"
+      - method: POST
+        path: /api/push/send
+        description: Cron-triggered push notification sender for class reminders. Requires bearer token.
+        auth_required: true
+        response_schema:
+          "200": "{success: true, sent: number}"
+          "401": "Unauthorized"
+    depends_on:
+      - Authentication & Session Management
+
+  - name: Cron Schedule Notifications
+    description: Cron endpoint to trigger in-app class reminder notifications 15 and 5 minutes before classes
+    files:
+      - src/app/api/cron/schedule-notify/route.ts
+    endpoints:
+      - method: GET
+        path: /api/cron/schedule-notify
+        description: Triggers in-app class reminder notifications. Requires Vercel cron header or bearer secret.
+        auth_required: true
+        response_schema:
+          "200": "{success: true, notifications_sent: number}"
+          "401": "Unauthorized"
+      - method: POST
+        path: /api/cron/schedule-notify
+        description: POST variant that delegates to GET handler
+        auth_required: true
+        response_schema:
+          "200": "{success: true, notifications_sent: number}"
+    depends_on: []
+
+  - name: Session Tracking
+    description: Track active user sessions with start/heartbeat/end lifecycle and sendBeacon support
+    files:
+      - src/app/api/tracking/end/route.ts
+      - src/features/tracking/session-actions.ts
+    endpoints:
+      - method: POST
+        path: /api/tracking/end
+        description: End an active session when user closes tab. Called via sendBeacon. Computes session duration.
+        auth_required: false
+        request_schema:
+          body:
+            session_id: string
+        response_schema:
+          "200": "{success: true}"
+          "404": "Session not found"
+    depends_on: []
+
+  - name: File Upload
+    description: Upload images to Supabase Storage with file type validation, size limits, and extension whitelist
+    files:
+      - src/app/api/upload/route.ts
+    endpoints:
+      - method: POST
+        path: /api/upload
+        description: Upload an image to Supabase Storage. Max 5MB, images only (jpg, jpeg, png, gif, webp). SVG/HTML blocked.
+        auth_required: true
+        request_schema:
+          body:
+            file: File (multipart/form-data)
+        response_schema:
+          "200": "{url: string}"
+          "400": "No file, too large, or wrong type"
+          "401": "Unauthorized"
+    depends_on:
+      - Authentication & Session Management
+
+known_limitations:
+  - issue: Tracking end endpoint has no authentication since it uses sendBeacon which cannot carry session cookies
+    location: src/app/api/tracking/end/route.ts
+    impact: Potential for unauthenticated session-end calls
+  - issue: In-memory rate limiting resets on server restart
+    location: src/app/api/auth/check-session/route.ts
+    impact: Rate limits not persistent across deployments in dev mode
+  - issue: Courses endpoint has no caching headers
+    location: src/app/api/courses/route.ts
+    impact: Every request hits the database (with mock fallback)

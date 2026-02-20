@@ -28,7 +28,7 @@ export default function Dashboard() {
     return (
         <div className="flex-1 w-full relative">
             {/* Atmospheric Background Glow */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-violet-900/20 blur-[120px] rounded-full pointer-events-none -z-10" />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[min(800px,200vw)] h-[400px] bg-violet-900/20 blur-[120px] rounded-full pointer-events-none -z-10" />
 
             {/* Hero Section - Comprehensive Welcome */}
             <div className="bg-card/80 border-b border-border mb-8 sm:mb-12">

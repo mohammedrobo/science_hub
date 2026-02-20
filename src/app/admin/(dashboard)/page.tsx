@@ -11,6 +11,7 @@ import { AddStudentDialog } from './AddStudentDialog';
 import { SectionSelector } from './SectionSelector';
 import { SearchStudentDialog } from './SearchStudentDialog';
 import { UserListWithFilter } from './UserListWithFilter';
+import { ResetAllButton } from './ResetAllButton';
 
 interface UserWithStats {
     username: string;
@@ -168,6 +169,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
                                     </Button>
                                 </Link>
                             )}
+                            {isSuperAdmin && <ResetAllButton />}
                             <Link href="/">
                                 <Button variant="outline" size="sm" className="border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white">
                                     <Home className="w-4 h-4 sm:mr-2" />

@@ -456,6 +456,114 @@ export async function resetFullAccount(username: string) {
 }
 
 
+/**
+ * Mass Reset ALL Accounts — Returns every user to "first time" state
+ * - Resets passwords to originals from access_keys.json
+ * - Forces password change on next login
+ * - Clears all progress, stats, onboarding, nicknames
+ * - Preserves admin/super_admin roles
+ */
+export async function resetAllAccounts() {
+    await ensureSuperAdmin();
+    const supabase = await createServiceRoleClient();
+
+    // 1. Load original passwords from access_keys.json
+    let keysMap: Record<string, string> = {};
+    try {
+        const fs = await import('fs/promises');
+        const path = await import('path');
+        const pathsToTry = [
+            path.join(process.cwd(), 'secure_data', 'access_keys.json'),
+            '/home/satoru/projects/science_hub/secure_data/access_keys.json',
+        ];
+        let keysData = '';
+        for (const p of pathsToTry) {
+            try { keysData = await fs.readFile(p, 'utf-8'); break; } catch { }
+        }
+        if (keysData) {
+            const keys = JSON.parse(keysData);
+            const normalize = (s: string) => s ? s.trim().toLowerCase().normalize('NFKC') : '';
+            for (const k of keys) {
+                if (k.username && k.password) {
+                    keysMap[normalize(k.username)] = k.password.trim();
+                }
+            }
+        }
+    } catch (e) {
+        console.error('[ResetAll] Failed to load access keys:', e);
+    }
+
+    // 2. Get all users
+    const { data: allUsers, error: fetchError } = await supabase
+        .from('allowed_users')
+        .select('username, access_role');
+
+    if (fetchError || !allUsers) {
+        return { error: 'Failed to fetch users' };
+    }
+
+    const { hashPassword } = await import('@/lib/auth/password');
+    const normalize = (s: string) => s ? s.trim().toLowerCase().normalize('NFKC') : '';
+
+    let resetCount = 0;
+    let errorCount = 0;
+
+    // 3. Reset each user
+    for (const user of allUsers) {
+        try {
+            const originalPassword = keysMap[normalize(user.username)] || 'student123';
+            const hashedPassword = await hashPassword(originalPassword);
+
+            // Preserve admin/super_admin roles
+            const keepRole = ['admin', 'super_admin'].includes(user.access_role);
+            const newRole = keepRole ? user.access_role : 'student';
+
+            const { error: updateError } = await supabase
+                .from('allowed_users')
+                .update({
+                    password: hashedPassword,
+                    is_first_login: true,
+                    has_onboarded: false,
+                    has_leader_onboarded: false,
+                    nickname: null,
+                    access_role: newRole,
+                })
+                .eq('username', user.username);
+
+            if (updateError) {
+                errorCount++;
+                console.error(`[ResetAll] Failed to reset ${user.username}:`, updateError);
+            } else {
+                resetCount++;
+            }
+        } catch (e) {
+            errorCount++;
+            console.error(`[ResetAll] Error resetting ${user.username}:`, e);
+        }
+    }
+
+    // 4. Bulk-delete progress, stats reset, guild cleanup
+    await supabase.from('user_progress').delete().neq('username', '');
+    await supabase.from('user_stats').update({
+        total_xp: 0,
+        current_rank: 'E',
+        gpa_term_1: null,
+        profile_picture_url: null,
+    }).neq('username', '');
+    await supabase.from('guild_messages').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('guild_quests').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
+    revalidatePath('/admin');
+
+    return {
+        success: true,
+        message: `Reset ${resetCount} accounts.${errorCount > 0 ? ` ${errorCount} failed.` : ''}`,
+        resetCount,
+        errorCount,
+    };
+}
+
+
 export async function updateUserRole(username: string, role: 'student' | 'leader' | 'admin' | 'super_admin') {
     const session = await getSession();
     if (!session?.role || !['super_admin', 'admin'].includes(session.role)) {

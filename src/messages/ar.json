@@ -123,7 +123,7 @@
     "progressTracking": "تتبع التقدم",
     "rankingTitle": "نظام التصنيف 🏆",
     "rankingSubtitle": "ارتقِ في المراتب",
-    "rankingDescription": "مستوحى من <soloLeveling>Solo Leveling</soloLeveling>، يُمثّل تقدمك الأكاديمي بمراتب. ابدأ من <eRank>المرتبة E</eRank> وتسلق إلى <sssRank>المرتبة SSS</sssRank>!",
+    "rankingDescription": "يُمثّل تقدمك الأكاديمي بمراتب. ابدأ من <eRank>المرتبة E</eRank> وتسلق إلى <sssRank>المرتبة SSS</sssRank>!",
     "startAtERank": "تبدأ من المرتبة E. أكمل الدروس والاختبارات لكسب نقاط الخبرة!",
     "xpTitle": "كسب نقاط الخبرة ⚡",
     "xpSubtitle": "كل خطوة تحسب",
@@ -156,7 +156,7 @@
     "securePrivateDesc": "بياناتك مشفرة ولا يمكن لأحد غيرك الوصول إليها",
     "readyTitle": "أنت جاهز! 🚀",
     "readySubtitle": "ابدأ رحلتك",
-    "welcomeHunter": "مرحباً أيها الصياد! 🎮",
+    "welcomeHunter": "أنت جاهز تماماً! 🚀",
     "readyDescription": "مغامرتك الأكاديمية تبدأ الآن. أكمل الدروس، تفوق في الاختبارات، وارتقِ في المراتب لتصبح أفضل طالب!",
     "proTip": "💡 نصيحة:",
     "proTipText": "ابدأ بالدرس الأول في أي مقرر. تحتاج إلى إكمال الدروس بالترتيب لفتح الدروس التالية!",
@@ -493,5 +493,15 @@
     "stepOf": "الخطوة {current} من {total}",
     "tourSaveError": "فشل حفظ تقدم الجولة. يرجى المحاولة مرة أخرى.",
     "tourSkipped": "تم تخطي الشرح. يمكنك طلب إعادة تعيين حسابك من المشرف لرؤيته مرة أخرى."
+  },
+  "install": {
+    "title": "تثبيت التطبيق",
+    "descriptionAndroid": "أضف Science Hub إلى شاشتك الرئيسية للوصول السريع وتجربة أفضل.",
+    "descriptionIOS": "ثبّت Science Hub على جهازك لتجربة أفضل.",
+    "installNow": "ثبّت الآن",
+    "iosStep1": "1. اضغط على زر المشاركة",
+    "iosStep2": "2. اختر \"إضافة إلى الشاشة الرئيسية\"",
+    "installing": "جاري تثبيت التطبيق...",
+    "dismissed": "يمكنك التثبيت لاحقاً من قائمة المتصفح."
   }
 }

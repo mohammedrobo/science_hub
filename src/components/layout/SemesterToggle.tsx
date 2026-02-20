@@ -17,7 +17,7 @@ export function SemesterToggle() {
     };
 
     if (!hasHydrated) {
-        return <div className="w-[140px] sm:w-[190px] h-[36px] bg-muted rounded-full animate-pulse" />;
+        return <div className="w-[116px] sm:w-[190px] h-[36px] bg-muted rounded-full animate-pulse" />;
     }
 
     const tabs = [
@@ -30,7 +30,7 @@ export function SemesterToggle() {
             {/* Sliding background pill */}
             <div 
                 className={cn(
-                    "absolute top-1 bottom-1 w-20 sm:w-24 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full shadow-lg shadow-violet-500/25 transition-all duration-300 ease-out",
+                    "absolute top-1 bottom-1 w-[52px] sm:w-24 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full shadow-lg shadow-violet-500/25 transition-all duration-300 ease-out",
                     semester === 1 ? "left-1" : "left-[calc(50%)]" 
                 )}
             />
@@ -39,7 +39,7 @@ export function SemesterToggle() {
                     key={tab.id}
                     onClick={() => handleToggle(tab.id)}
                     className={cn(
-                        "relative px-4 py-1.5 text-xs sm:text-sm font-medium w-20 sm:w-24 text-center rounded-full z-10 outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors duration-200",
+                        "relative px-3 sm:px-4 py-1.5 text-[11px] sm:text-sm font-medium w-[52px] sm:w-24 text-center rounded-full z-10 outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors duration-200",
                         semester === tab.id ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
                     )}
                 >

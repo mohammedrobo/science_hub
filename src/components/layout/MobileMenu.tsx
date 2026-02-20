@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Menu, Calculator, Trophy, Crown, User, LogOut, Shield, Calendar, Sparkles, BarChart3 } from 'lucide-react';
-import { LogoutButton } from '@/components/auth/LogoutButton';
+import { signout } from '@/app/login/actions';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useTranslations } from 'next-intl';
 
@@ -129,6 +129,18 @@ export function MobileMenu({ isAdmin, session, userNameInitial, profilePictureUr
                         {/* Language Switcher */}
                         <LanguageSwitcher variant="full" />
 
+                        {/* Logout */}
+                        <button
+                            onClick={() => {
+                                closeMenu();
+                                signout();
+                            }}
+                            className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors w-full"
+                        >
+                            <LogOut className="h-5 w-5" />
+                            <span className="font-medium">{t('logout')}</span>
+                        </button>
+
                         {/* Admin Link */}
                         {isAdmin && (
                             <Link
@@ -155,7 +167,7 @@ export function MobileMenu({ isAdmin, session, userNameInitial, profilePictureUr
                     </nav>
 
                     {/* Footer Actions */}
-                    <div className="p-6 border-t border-border bg-muted/10 space-y-2">
+                    <div className="p-6 border-t border-border bg-muted/10">
                         <Link
                             href="/profile"
                             onClick={closeMenu}
@@ -164,9 +176,6 @@ export function MobileMenu({ isAdmin, session, userNameInitial, profilePictureUr
                             <User className="h-5 w-5 text-muted-foreground" />
                             <span className="font-medium text-foreground">{t('viewProfile')}</span>
                         </Link>
-                        <div className="rounded-lg bg-card border border-border hover:bg-muted/50 transition-colors">
-                            <LogoutButton />
-                        </div>
                     </div>
                 </div>
             </SheetContent>

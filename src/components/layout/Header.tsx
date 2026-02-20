@@ -32,7 +32,7 @@ export async function Header() {
     }
 
     return (
-        <header className="border-b border-border bg-background sticky top-0 z-50 overflow-x-hidden">
+        <header className="border-b border-border bg-background sticky top-0 z-50">
             <div className="mx-auto px-3 sm:px-4 lg:px-6 min-h-16 flex items-center justify-between max-w-[1600px]">
                 <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
                     <div className="bg-gradient-to-br from-violet-600 to-indigo-600 p-2 rounded text-white shadow-lg shadow-violet-500/20">
@@ -77,7 +77,7 @@ export async function Header() {
                     )}
                 </nav>
 
-                <div className="flex items-center gap-3 shrink-0">
+                <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
                     <div className="shrink-0">
                         <SemesterToggle />
                     </div>

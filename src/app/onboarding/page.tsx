@@ -64,7 +64,6 @@ function RankingContent() {
         <div className="space-y-4">
             <p className="text-zinc-300 text-center">
                 {t.rich('rankingDescription', {
-                    soloLeveling: (chunks) => <strong className="text-violet-400">{chunks}</strong>,
                     eRank: (chunks) => <strong className="text-zinc-400">{chunks}</strong>,
                     sssRank: (chunks) => <strong className="text-amber-400">{chunks}</strong>,
                 })}

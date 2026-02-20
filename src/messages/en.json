@@ -123,7 +123,7 @@
     "progressTracking": "Progress Tracking",
     "rankingTitle": "The Ranking System 🏆",
     "rankingSubtitle": "Rise Through the Ranks",
-    "rankingDescription": "Inspired by <soloLeveling>Solo Leveling</soloLeveling>, your academic progress is represented by ranks. Start as an <eRank>E-Rank</eRank> and climb to <sssRank>SSS-Rank</sssRank>!",
+    "rankingDescription": "Your academic progress is represented by ranks. Start as an <eRank>E-Rank</eRank> and climb to <sssRank>SSS-Rank</sssRank>!",
     "startAtERank": "You start at E-Rank. Complete lessons and quizzes to earn XP!",
     "xpTitle": "Earning XP ⚡",
     "xpSubtitle": "Every Action Counts",
@@ -156,7 +156,7 @@
     "securePrivateDesc": "Your data is encrypted and only you can access it",
     "readyTitle": "You're Ready! 🚀",
     "readySubtitle": "Start Your Journey",
-    "welcomeHunter": "Welcome, Hunter! 🎮",
+    "welcomeHunter": "You're All Set! 🚀",
     "readyDescription": "Your academic adventure begins now. Complete lessons, ace quizzes, and climb the ranks to become the top student!",
     "proTip": "💡 Pro Tip:",
     "proTipText": "Start with the first lesson of any course. You need to complete lessons in order to unlock the next ones!",
@@ -493,5 +493,15 @@
     "stepOf": "Step {current} of {total}",
     "tourSaveError": "Failed to save tour progress. Please try again.",
     "tourSkipped": "Tutorial skipped. You can ask an admin to reset your account if you want to see it again."
+  },
+  "install": {
+    "title": "Install the App",
+    "descriptionAndroid": "Add Science Hub to your home screen for quick access and a better experience.",
+    "descriptionIOS": "Install Science Hub on your device for a better experience.",
+    "installNow": "Install Now",
+    "iosStep1": "1. Tap the Share button",
+    "iosStep2": "2. Select \"Add to Home Screen\"",
+    "installing": "Installing app...",
+    "dismissed": "You can install later from your browser menu."
   }
 }

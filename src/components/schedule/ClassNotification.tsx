@@ -34,7 +34,7 @@ export default function ClassNotification({ sectionId }: ClassNotificationProps)
 
     return (
         <div className={`
-            fixed bottom-4 right-4 max-w-sm p-4 rounded-xl shadow-lg
+            fixed bottom-4 end-4 start-4 sm:start-auto sm:max-w-sm p-4 rounded-xl shadow-lg
             ${isCurrent
                 ? 'bg-gradient-to-r from-green-600 to-emerald-600'
                 : 'bg-gradient-to-r from-violet-600 to-purple-600'
