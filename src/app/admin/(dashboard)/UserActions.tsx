@@ -73,9 +73,10 @@ export function UserActions({ username, fullName, currentRole, isSuperAdmin }: U
                         </Button>
                     </form>
                     <form action={async () => {
+                        if (!confirm(`Full reset ${fullName} (${username})? This resets password, progress, onboarding and cannot be undone.`)) return;
                         const result = await resetFullAccount(username);
                         if ('error' in result) toast.error(result.error);
-                        else toast.success('Account reset');
+                        else toast.success('Account fully reset');
                     }}>
                         <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-500 hover:text-purple-500" title="Full Account Reset">
                             <ShieldAlert className="w-4 h-4" />

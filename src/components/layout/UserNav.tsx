@@ -11,6 +11,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { LogoutButton } from '@/components/auth/LogoutButton';
+import { getTranslations } from 'next-intl/server';
 
 function getInitials(name: string): string {
     const parts = name.trim().split(' ');
@@ -36,6 +37,7 @@ function getRankColor(rank: string): string {
 
 export async function UserNav() {
     const session = await getSession();
+    const t = await getTranslations('nav');
 
     if (!session) {
         return null;
@@ -105,10 +107,10 @@ export async function UserNav() {
                 <DropdownMenuSeparator className="bg-zinc-800" />
 
                 <DropdownMenuItem className="focus:bg-zinc-800 focus:text-white">
-                    <Trophy className="mr-2 h-4 w-4 text-yellow-500" />
+                    <Trophy className="me-2 h-4 w-4 text-yellow-500" />
                     <div className="flex flex-col flex-1">
-                        <span className="text-sm font-medium">Rank: {rank}</span>
-                        <span className="text-xs text-muted-foreground">{xp} XP</span>
+                        <span className="text-sm font-medium">{t('rank')}: {rank}</span>
+                        <span className="text-xs text-muted-foreground">{xp} {t('xp')}</span>
                     </div>
                 </DropdownMenuItem>
 
@@ -116,16 +118,16 @@ export async function UserNav() {
 
                 <DropdownMenuItem asChild className="focus:bg-zinc-800 focus:text-white cursor-pointer">
                     <Link href="/profile" className="flex items-center">
-                        <User className="mr-2 h-4 w-4" />
-                        <span>View Profile</span>
+                        <User className="me-2 h-4 w-4" />
+                        <span>{t('viewProfile')}</span>
                     </Link>
                 </DropdownMenuItem>
 
                 {['super_admin', 'admin', 'leader'].includes(session.role) && (
                     <DropdownMenuItem asChild className="focus:bg-zinc-800 focus:text-white cursor-pointer">
                         <Link href="/leader" className="flex items-center">
-                            <Shield className="mr-2 h-4 w-4 text-violet-400" />
-                            <span>Leader Dashboard</span>
+                            <Shield className="me-2 h-4 w-4 text-violet-400" />
+                            <span>{t('leaderDashboard')}</span>
                         </Link>
                     </DropdownMenuItem>
                 )}

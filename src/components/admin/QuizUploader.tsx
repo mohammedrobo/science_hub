@@ -1,11 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
-import { AlertCircle, CheckCircle, BrainCircuit, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
-import { parseQuizMarkdown, QuizQuestion } from '@/lib/quiz-parser';
+import { AlertCircle, CheckCircle, BrainCircuit, ChevronDown, ChevronUp, FileText, Hash, ListChecks, ToggleLeft } from 'lucide-react';
+import { parseQuizText, QuizQuestion } from '@/lib/quiz-parser';
 import { MathText } from '@/components/MathText';
 
 interface QuizUploaderProps {
@@ -22,7 +21,7 @@ export function QuizUploader({ onQuizDataChange }: QuizUploaderProps) {
     const onChangeRef = useRef(onQuizDataChange);
     onChangeRef.current = onQuizDataChange;
 
-    // Live Regex Parsing
+    // Live parsing
     useEffect(() => {
         if (!rawText.trim()) {
             setParsedQuestions([]);
@@ -32,23 +31,31 @@ export function QuizUploader({ onQuizDataChange }: QuizUploaderProps) {
             return;
         }
 
-        const result = parseQuizMarkdown(rawText);
+        const result = parseQuizText(rawText);
         setParsedQuestions(result.questions);
         setErrors(result.errors);
         setStats(result.stats);
 
-        if (result.errors.length === 0 && result.questions.length > 0) {
-            onChangeRef.current({ questions: result.questions });
-        } else if (result.questions.length > 0 && !result.errors.some(e => e.startsWith('❌'))) {
-            // Still pass questions even with warnings (missing answers)
+        const hasBlockingError = result.errors.some(e => e.startsWith('❌'));
+        const allMissingAnswers = result.questions.length > 0 && result.stats.withAnswers === 0;
+
+        if (hasBlockingError || allMissingAnswers) {
+            // Block: no questions found, or ALL questions missing answers
+            onChangeRef.current(null);
+        } else if (result.questions.length > 0) {
+            // Pass: at least some questions have answers
             onChangeRef.current({ questions: result.questions });
         } else {
             onChangeRef.current(null);
         }
     }, [rawText]);
 
+    const hasBlockingError = errors.some(e => e.startsWith('❌'));
+    const hasWarnings = errors.length > 0 && !hasBlockingError;
+
     return (
-        <div className="space-y-6">
+        <div className="space-y-5">
+            {/* Header */}
             <div className="space-y-2">
                 <div className="flex items-center justify-between">
                     <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
@@ -57,146 +64,178 @@ export function QuizUploader({ onQuizDataChange }: QuizUploaderProps) {
                         <span className="text-zinc-500 text-xs">(optional)</span>
                     </label>
 
-                    {/* Status Indicator */}
-                    <div className="flex items-center gap-2">
-                        {stats && stats.totalDetected > 0 ? (
-                            <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20">
-                                <CheckCircle className="w-3 h-3" />
-                                <span>
-                                    {stats.withAnswers}/{stats.totalDetected} answers
-                                    {stats.truefalseCount > 0 && ` · ${stats.truefalseCount} T/F`}
-                                    {stats.mcqCount > 0 && ` · ${stats.mcqCount} MCQ`}
-                                </span>
+                    {/* Live stats badge */}
+                    {stats && stats.totalDetected > 0 && (
+                        <div className="flex items-center gap-3">
+                            {stats.mcqCount > 0 && (
+                                <div className="flex items-center gap-1 text-[11px] text-violet-400">
+                                    <ListChecks className="w-3 h-3" />
+                                    <span>{stats.mcqCount} MCQ</span>
+                                </div>
+                            )}
+                            {stats.truefalseCount > 0 && (
+                                <div className="flex items-center gap-1 text-[11px] text-blue-400">
+                                    <ToggleLeft className="w-3 h-3" />
+                                    <span>{stats.truefalseCount} T/F</span>
+                                </div>
+                            )}
+                            <div className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border ${
+                                stats.withoutAnswers === 0
+                                    ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                                    : stats.withAnswers === 0
+                                        ? 'text-red-400 bg-red-500/10 border-red-500/20'
+                                        : 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+                            }`}>
+                                {stats.withoutAnswers === 0 ? (
+                                    <CheckCircle className="w-3 h-3" />
+                                ) : (
+                                    <AlertCircle className="w-3 h-3" />
+                                )}
+                                <span>{stats.withAnswers}/{stats.totalDetected} answers</span>
                             </div>
-                        ) : (
-                            <button
-                                type="button"
-                                onClick={() => setShowHelp(!showHelp)}
-                                className="flex items-center gap-1.5 text-xs text-zinc-500 bg-zinc-800/50 px-3 py-1.5 rounded-full border border-zinc-800 hover:border-zinc-700 hover:text-zinc-400 transition-colors"
-                            >
-                                <HelpCircle className="w-3 h-3" />
-                                <span>Format Help</span>
-                                {showHelp ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                            </button>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
 
-                {/* Format Help */}
-                {showHelp && (
-                    <div className="p-4 bg-zinc-900/80 border border-zinc-800 rounded-lg text-xs text-zinc-400 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <p className="text-zinc-300 font-medium">Supported Formats:</p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                                <p className="text-violet-400 font-medium mb-1">MCQ (Multiple Choice)</p>
-                                <pre className="bg-zinc-950 p-2 rounded text-[11px] leading-relaxed">{`1. What is 2+2?
+                <p className="text-xs text-zinc-500">
+                    Paste your quiz text below — questions, options, and answers are extracted automatically.
+                </p>
+
+                {/* Text input */}
+                <Textarea
+                    value={rawText}
+                    onChange={(e) => setRawText(e.target.value)}
+                    placeholder={`Paste your quiz here...\n\n1. What is the speed of light?\n   a) 300,000 km/s ✅\n   b) 150,000 km/s\n   c) 200,000 km/s\n   d) 100,000 km/s\n\n2. Water boils at 100°C at sea level.\n   True / False\n\nAnswer Key:\n1. A\n2. True`}
+                    className="bg-zinc-900 border-zinc-800 text-zinc-100 font-mono text-sm h-64 focus:ring-violet-500/50 placeholder:text-zinc-600"
+                />
+
+                {/* Format help toggle */}
+                <button
+                    type="button"
+                    onClick={() => setShowHelp(!showHelp)}
+                    className="flex items-center gap-1.5 text-[11px] text-zinc-500 hover:text-zinc-400 transition-colors mt-1"
+                >
+                    <FileText className="w-3 h-3" />
+                    <span>Supported formats</span>
+                    {showHelp ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                </button>
+            </div>
+
+            {/* Format Help Panel */}
+            {showHelp && (
+                <div className="p-4 bg-zinc-900/60 border border-zinc-800/80 rounded-xl text-xs text-zinc-400 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-1.5 text-violet-400 font-medium text-[11px] uppercase tracking-wider">
+                                <ListChecks className="w-3 h-3" />
+                                Multiple Choice
+                            </div>
+                            <pre className="bg-zinc-950/80 p-3 rounded-lg text-[11px] leading-relaxed text-zinc-300 border border-zinc-800/50">{`1. What is 2+2?
    a) 3
    b) 4 ✅
    c) 5
    d) 6`}</pre>
+                        </div>
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-1.5 text-blue-400 font-medium text-[11px] uppercase tracking-wider">
+                                <ToggleLeft className="w-3 h-3" />
+                                True / False
                             </div>
-                            <div>
-                                <p className="text-violet-400 font-medium mb-1">True/False</p>
-                                <pre className="bg-zinc-950 p-2 rounded text-[11px] leading-relaxed">{`11. The sky is blue.
-   True / False
+                            <pre className="bg-zinc-950/80 p-3 rounded-lg text-[11px] leading-relaxed text-zinc-300 border border-zinc-800/50">{`11. The sky is blue.
+    True / False
 
 Answer Key:
 11. True`}</pre>
-                            </div>
                         </div>
-                        <p className="text-zinc-500">
-                            ✅ Answer markers: <code className="text-zinc-400">✅</code>, <code className="text-zinc-400">(Correct)</code>, <code className="text-zinc-400">*a)</code>, <code className="text-zinc-400">[x]</code>, or a separate <strong>Answer Key</strong> section.
-                            Supports LaTeX: <code className="text-zinc-400">{'$x^2$'}</code>. Paste directly from ChatGPT, Gemini, or Claude — noise is auto-stripped.
-                        </p>
                     </div>
-                )}
+                    <div className="pt-2 border-t border-zinc-800/50 space-y-1.5 text-[11px] text-zinc-500">
+                        <p><span className="text-zinc-400 font-medium">Mark answers:</span> Use ✅ next to the option, <code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">(Correct)</code>, <code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">*a)</code>, or a separate <span className="text-zinc-300">Answer Key</span> section at the end.</p>
+                        <p><span className="text-zinc-400 font-medium">Question formats:</span> <code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">1.</code> <code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">1)</code> <code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">Q1.</code> <code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">Question 1:</code></p>
+                        <p><span className="text-zinc-400 font-medium">Option formats:</span> <code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">a)</code> <code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">A.</code> <code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">(a)</code> or dash lists <code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">- option</code></p>
+                        <p><span className="text-zinc-400 font-medium">Extras:</span> LaTeX math (<code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">{'$x^2$'}</code>), Arabic, Roman numerals — all supported.</p>
+                    </div>
+                </div>
+            )}
 
-                <p className="text-xs text-zinc-500">
-                    Paste your exam markdown here. Questions, options, and answers are extracted automatically — no AI needed.
-                </p>
-                <Textarea
-                    value={rawText}
-                    onChange={(e) => setRawText(e.target.value)}
-                    placeholder={`Paste exam markdown here (from ChatGPT, Gemini, Claude, or manual)...
-
-Example:
-1. What is the speed of light?
-   a) 300,000 km/s ✅
-   b) 150,000 km/s
-   c) 200,000 km/s
-   d) 100,000 km/s
-
-2. Water boils at 100°C at sea level.
-   True / False
-
-Answer Key:
-1. A
-2. True`}
-                    className="bg-zinc-900 border-zinc-800 text-zinc-100 font-mono text-sm h-64 focus:ring-violet-500/50"
-                />
-            </div>
-
-            {/* PARSING ERRORS/WARNINGS */}
+            {/* Errors & Warnings */}
             {errors.length > 0 && (
-                <div className={`p-4 rounded-lg space-y-2 ${errors.some(e => e.startsWith('❌'))
-                    ? 'bg-red-900/20 border border-red-900/50'
-                    : 'bg-amber-900/20 border border-amber-900/50'
-                    }`}>
-                    <div className="flex items-center gap-2 font-medium">
-                        <AlertCircle className={`w-4 h-4 ${errors.some(e => e.startsWith('❌')) ? 'text-red-400' : 'text-amber-400'}`} />
-                        <span className={errors.some(e => e.startsWith('❌')) ? 'text-red-400' : 'text-amber-400'}>
-                            {errors.some(e => e.startsWith('❌')) ? 'Parsing Error' : 'Warnings'}
+                <div className={`p-3.5 rounded-xl space-y-2 ${
+                    hasBlockingError
+                        ? 'bg-red-950/30 border border-red-900/40'
+                        : 'bg-amber-950/20 border border-amber-900/30'
+                }`}>
+                    <div className="flex items-center gap-2">
+                        <AlertCircle className={`w-3.5 h-3.5 ${hasBlockingError ? 'text-red-400' : 'text-amber-400'}`} />
+                        <span className={`text-xs font-medium ${hasBlockingError ? 'text-red-400' : 'text-amber-400'}`}>
+                            {hasBlockingError ? 'Cannot save quiz' : 'Heads up'}
                         </span>
                     </div>
-                    <ul className="list-disc list-inside text-xs space-y-1">
+                    <ul className="space-y-1 pl-5">
                         {errors.slice(0, 5).map((err, i) => (
-                            <li key={i} className={err.startsWith('❌') ? 'text-red-300' : 'text-amber-300'}>{err}</li>
+                            <li key={i} className={`text-[11px] list-disc ${err.startsWith('❌') ? 'text-red-300/80' : 'text-amber-300/70'}`}>
+                                {err.replace(/^[❌⚠️]\s*/, '')}
+                            </li>
                         ))}
-                        {errors.length > 5 && <li className="text-zinc-500">...and {errors.length - 5} more.</li>}
+                        {errors.length > 5 && <li className="text-[11px] text-zinc-500 list-disc">...and {errors.length - 5} more</li>}
                     </ul>
                 </div>
             )}
 
-            {/* PREVIEW */}
+            {/* Questions Preview */}
             {parsedQuestions.length > 0 && (
-                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="flex items-center justify-between text-emerald-400 font-medium">
-                        <div className="flex items-center gap-2">
-                            <CheckCircle className="w-4 h-4" />
-                            <span>Preview ({parsedQuestions.length} Questions)</span>
+                <div className="space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-300">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm font-medium text-zinc-300">
+                            <Hash className="w-3.5 h-3.5 text-violet-400" />
+                            <span>Preview</span>
+                            <span className="text-zinc-500 font-normal">({parsedQuestions.length})</span>
                         </div>
-                        {errors.length === 0 && <span className="text-xs bg-emerald-500/10 px-2 py-1 rounded">✓ All Valid</span>}
+                        {!hasBlockingError && errors.length === 0 && (
+                            <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">Ready to save</span>
+                        )}
                     </div>
 
-                    <div className="space-y-4 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
+                    <div className="space-y-3 max-h-96 overflow-y-auto pr-1 custom-scrollbar">
                         {parsedQuestions.map((q) => (
-                            <Card key={q.id} className="bg-zinc-900/50 border-zinc-800">
-                                <CardContent className="p-4 space-y-3">
+                            <Card key={q.id} className="bg-zinc-900/40 border-zinc-800/60 overflow-hidden">
+                                <CardContent className="p-3.5 space-y-2.5">
                                     <div className="flex items-start gap-2">
-                                        <span className="text-zinc-500 text-sm font-mono shrink-0">{q.id}.</span>
-                                        <p className="text-sm font-medium text-zinc-200">
+                                        <span className="text-[11px] text-zinc-500 font-mono bg-zinc-800/50 px-1.5 py-0.5 rounded shrink-0">{q.id}</span>
+                                        <p className="text-[13px] font-medium text-zinc-200 leading-relaxed">
                                             <MathText text={q.text} />
                                         </p>
                                         {q.type === 'true_false' && (
-                                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0">T/F</span>
+                                            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0 uppercase tracking-wider font-medium">T/F</span>
                                         )}
                                     </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                                         {q.options.map((opt, idx) => (
                                             <div
                                                 key={idx}
-                                                className={`text-xs p-2 rounded border ${idx === q.correctAnswerIndex
-                                                    ? 'bg-emerald-900/20 border-emerald-900/50 text-emerald-300'
-                                                    : 'bg-zinc-950 border-zinc-800 text-zinc-400'
-                                                    }`}
+                                                className={`text-[11px] px-2.5 py-1.5 rounded-lg border flex items-center gap-2 ${
+                                                    idx === q.correctAnswerIndex
+                                                        ? 'bg-emerald-950/30 border-emerald-800/40 text-emerald-300'
+                                                        : 'bg-zinc-950/50 border-zinc-800/40 text-zinc-400'
+                                                }`}
                                             >
-                                                <span className="font-mono mr-2 opacity-50">
-                                                    {String.fromCharCode(97 + idx)})
+                                                <span className={`font-mono text-[10px] shrink-0 ${
+                                                    idx === q.correctAnswerIndex ? 'text-emerald-500' : 'text-zinc-600'
+                                                }`}>
+                                                    {String.fromCharCode(65 + idx)}
                                                 </span>
                                                 <MathText text={opt} />
+                                                {idx === q.correctAnswerIndex && (
+                                                    <CheckCircle className="w-3 h-3 text-emerald-500 shrink-0 ml-auto" />
+                                                )}
                                             </div>
                                         ))}
                                     </div>
+                                    {q.correctAnswerIndex === -1 && (
+                                        <div className="text-[10px] text-amber-500/70 flex items-center gap-1">
+                                            <AlertCircle className="w-3 h-3" />
+                                            No answer set
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
                         ))}

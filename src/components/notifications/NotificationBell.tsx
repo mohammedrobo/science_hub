@@ -7,6 +7,7 @@ import { getNotifications, clearAllNotifications, type Notification } from '@/ap
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { useTranslations } from 'next-intl';
 
 interface NotificationBellProps {
     userRole?: 'super_admin' | 'admin' | 'leader' | 'student';
@@ -18,6 +19,7 @@ export function NotificationBell({ userRole = 'student' }: NotificationBellProps
     const [unreadCount, setUnreadCount] = useState(0);
     const [isClearing, setIsClearing] = useState(false);
     const canManage = userRole === 'super_admin' || userRole === 'admin' || userRole === 'leader';
+    const t = useTranslations('notifications');
 
     // Initial fetch
     useEffect(() => {
@@ -52,8 +54,8 @@ export function NotificationBell({ userRole = 'student' }: NotificationBellProps
 
     const handleClearAll = async () => {
         const confirmMsg = (userRole === 'super_admin' || userRole === 'admin')
-            ? 'Clear ALL notifications from all users? This cannot be undone.'
-            : 'Clear all notifications for your section? This cannot be undone.';
+            ? t('clearAllAdmin')
+            : t('clearAllLeader');
         
         if (!confirm(confirmMsg)) return;
         
@@ -64,7 +66,7 @@ export function NotificationBell({ userRole = 'student' }: NotificationBellProps
         if (result.error) {
             toast.error(result.error);
         } else {
-            toast.success(result.message || 'Notifications cleared');
+            toast.success(result.message || t('notificationsCleared'));
             // Refresh notifications
             const data = await getNotifications();
             setNotifications(data);
@@ -88,9 +90,9 @@ export function NotificationBell({ userRole = 'student' }: NotificationBellProps
                 sideOffset={8}
             >
                 <div className="p-3 border-b border-zinc-800 font-medium text-sm flex justify-between items-center bg-zinc-900/80 backdrop-blur-sm">
-                    <span className="text-zinc-100">Notifications</span>
+                    <span className="text-zinc-100">{t('title')}</span>
                     <div className="flex items-center gap-2">
-                        {unreadCount > 0 && <span className="text-xs text-primary">{unreadCount} new</span>}
+                        {unreadCount > 0 && <span className="text-xs text-primary">{t('new', { count: unreadCount })}</span>}
                         {canManage && notifications.length > 0 && (
                             <Button
                                 variant="ghost"
@@ -99,8 +101,8 @@ export function NotificationBell({ userRole = 'student' }: NotificationBellProps
                                 disabled={isClearing}
                                 className="h-6 px-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10"
                             >
-                                <Trash2 className="w-3 h-3 mr-1" />
-                                Clear
+                                <Trash2 className="w-3 h-3 me-1" />
+                                {t('clear')}
                             </Button>
                         )}
                     </div>
@@ -109,21 +111,21 @@ export function NotificationBell({ userRole = 'student' }: NotificationBellProps
                     {notifications.length === 0 ? (
                         <div className="p-8 text-center text-zinc-500 text-sm">
                             <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                            No notifications yet
+                            {t('noNotifications')}
                         </div>
                     ) : (
                         notifications.map((n) => (
                             <div key={n.id} className="p-3 border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors">
                                 <div className="flex justify-between items-start mb-1">
                                     <h4 className="font-semibold text-sm text-foreground">{n.title}</h4>
-                                    <span className="text-[10px] text-zinc-500 whitespace-nowrap ml-2">
+                                    <span className="text-[10px] text-zinc-500 whitespace-nowrap ms-2">
                                         {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
                                     </span>
                                 </div>
                                 <p className="text-xs text-zinc-400 line-clamp-2">{n.message}</p>
                                 <div className="mt-2 flex items-center justify-between flex-wrap gap-1">
                                     <span className="text-[10px] text-primary/70 px-1.5 py-0.5 rounded-full bg-primary/10 font-medium">
-                                        {n.sender_role === 'super_admin' ? 'Super Admin' : n.sender_role === 'admin' ? 'Admin' : n.sender_full_name || 'Leader'}
+                                        {n.sender_role === 'super_admin' ? t('superAdmin') : n.sender_role === 'admin' ? t('admin') : n.sender_full_name || t('leader')}
                                     </span>
                                     <div className="flex items-center gap-1">
                                         {n.target_section ? (
@@ -132,7 +134,7 @@ export function NotificationBell({ userRole = 'student' }: NotificationBellProps
                                             </span>
                                         ) : (
                                             <span className="text-[10px] text-emerald-500 border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                                                → All
+                                                {t('toAll')}
                                             </span>
                                         )}
                                     </div>

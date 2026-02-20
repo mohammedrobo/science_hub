@@ -10,6 +10,8 @@ import {
     Loader2, AlertCircle, CheckCircle, BookOpen, ChevronDown, ChevronRight
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useTranslations } from 'next-intl';
+import { LeaderTour } from '@/components/leader/LeaderTour';
 
 interface Lesson {
     id: string;
@@ -29,6 +31,8 @@ interface CourseGroup {
 }
 
 export default function LessonsPage() {
+    const t = useTranslations('lessons');
+    const tc = useTranslations('common');
     const [lessons, setLessons] = useState<Lesson[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -62,7 +66,7 @@ export default function LessonsPage() {
     }, []);
 
     const handleDelete = async (lessonId: string, lessonTitle: string) => {
-        if (!confirm(`Are you sure you want to delete "${lessonTitle}"?\n\nThis will also delete associated quiz and student progress.`)) {
+        if (!confirm(t('deleteConfirm', { title: lessonTitle }))) {
             return;
         }
 
@@ -115,13 +119,14 @@ export default function LessonsPage() {
 
     return (
         <div className="min-h-screen bg-zinc-950">
+            <LeaderTour page="lessons" />
             {/* Header - Simple back navigation */}
             <div className="sticky top-0 z-10 bg-zinc-950/95 backdrop-blur border-b border-zinc-800">
                 <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
                     <div className="flex items-center justify-between">
                         <Link href="/leader" className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors">
                             <ArrowLeft className="w-5 h-5" />
-                            <span className="font-medium text-sm sm:text-base">Back to Dashboard</span>
+                            <span className="font-medium text-sm sm:text-base">{tc('back')}</span>
                         </Link>
                     </div>
                 </div>
@@ -132,9 +137,9 @@ export default function LessonsPage() {
                 <div className="mb-6 sm:mb-8">
                     <h1 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent flex items-center gap-2 sm:gap-3">
                         <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-amber-500" />
-                        Manage Lessons
+                        {t('title')}
                     </h1>
-                    <p className="text-zinc-500 mt-1 text-sm sm:text-base">Edit or delete lessons by subject</p>
+                    <p className="text-zinc-500 mt-1 text-sm sm:text-base">{t('noLessonsDesc').replace('Upload your first lesson to get started.', '')}</p>
                 </div>
 
                 {/* Result Message */}
@@ -170,14 +175,14 @@ export default function LessonsPage() {
                     <Card className="bg-zinc-900/50 border-zinc-800">
                         <CardContent className="py-12 text-center">
                             <BookOpen className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
-                            <p className="text-zinc-400">No lessons found</p>
+                            <p className="text-zinc-400">{t('noLessons')}</p>
                             <p className="text-zinc-500 text-sm mt-2">
-                                Go to <Link href="/admin/upload" className="text-amber-400 hover:underline">Upload Lesson</Link> to add content
+                                {t('noLessonsDesc')}
                             </p>
                         </CardContent>
                     </Card>
                 ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-4" data-tour="lessons-list">
                         {groupedLessons.map((group) => (
                             <div key={group.code} className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
                                 {/* Course Header - Collapsible */}
@@ -197,7 +202,7 @@ export default function LessonsPage() {
                                         </div>
                                     </div>
                                     <Badge variant="outline" className="text-zinc-400 border-zinc-600">
-                                        {group.lessons.length} lesson{group.lessons.length !== 1 ? 's' : ''}
+                                        {group.lessons.length} {group.lessons.length !== 1 ? t('lessons') : t('lesson')}
                                     </Badge>
                                 </button>
 
@@ -218,28 +223,28 @@ export default function LessonsPage() {
                                                     <div className="flex flex-wrap gap-2 mt-2">
                                                         {lesson.video_url && (
                                                             <Badge variant="outline" className="text-red-400 border-red-400/30 text-xs">
-                                                                <Video className="w-3 h-3 mr-1" /> Video
+                                                                <Video className="w-3 h-3 me-1" /> {t('hasVideo')}
                                                             </Badge>
                                                         )}
                                                         {lesson.pdf_url && (
                                                             <Badge variant="outline" className="text-blue-400 border-blue-400/30 text-xs">
-                                                                <FileText className="w-3 h-3 mr-1" /> PDF
+                                                                <FileText className="w-3 h-3 me-1" /> {t('hasPdf')}
                                                             </Badge>
                                                         )}
                                                         {lesson.quiz_id && (
                                                             <Badge variant="outline" className="text-green-400 border-green-400/30 text-xs">
-                                                                <BrainCircuit className="w-3 h-3 mr-1" /> Quiz
+                                                                <BrainCircuit className="w-3 h-3 me-1" /> {t('hasQuiz')}
                                                             </Badge>
                                                         )}
                                                     </div>
                                                 </div>
 
                                                 {/* Actions */}
-                                                <div className="flex items-center gap-2 flex-shrink-0 pl-8 sm:pl-0">
+                                                <div className={`flex items-center gap-2 flex-shrink-0 pl-8 sm:pl-0`} {...(idx === 0 ? { 'data-tour': 'lesson-actions' } : {})}>
                                                     <Link href={`/admin/lessons/${lesson.id}/edit`}>
                                                         <Button variant="outline" size="sm" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 h-9 px-3 text-xs sm:text-sm">
-                                                            <Edit className="w-4 h-4 sm:mr-1" />
-                                                            <span className="hidden sm:inline">Edit</span>
+                                                            <Edit className="w-4 h-4 sm:me-1" />
+                                                            <span className="hidden sm:inline">{tc('edit')}</span>
                                                         </Button>
                                                     </Link>
                                                     <Button
@@ -253,8 +258,8 @@ export default function LessonsPage() {
                                                             <Loader2 className="w-4 h-4 animate-spin" />
                                                         ) : (
                                                             <>
-                                                                <Trash2 className="w-4 h-4 sm:mr-1" />
-                                                                <span className="hidden sm:inline">Delete</span>
+                                                                <Trash2 className="w-4 h-4 sm:me-1" />
+                                                                <span className="hidden sm:inline">{tc('delete')}</span>
                                                             </>
                                                         )}
                                                     </Button>

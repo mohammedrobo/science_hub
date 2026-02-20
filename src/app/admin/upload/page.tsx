@@ -11,8 +11,12 @@ import { Upload, ArrowLeft, Video, FileText, BookOpen, CheckCircle, AlertCircle,
 import { supabase } from '@/lib/supabase/client';
 import { QuizUploader } from '@/components/admin/QuizUploader';
 import { QuizQuestion } from '@/lib/quiz-parser';
+import { useTranslations } from 'next-intl';
+import { LeaderTour } from '@/components/leader/LeaderTour';
 
 export default function UploadPage() {
+    const t = useTranslations('upload');
+    const tc = useTranslations('common');
     const [selectedCourse, setSelectedCourse] = useState('');
     const [subSection, setSubSection] = useState('');
     const [title, setTitle] = useState('');
@@ -126,22 +130,23 @@ export default function UploadPage() {
 
     return (
         <div className="min-h-screen bg-zinc-950">
+            <LeaderTour page="upload" />
             {/* Header - Simple back navigation */}
             <div className="sticky top-0 z-10 bg-zinc-950/95 backdrop-blur border-b border-zinc-800">
                 <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
                     <div className="flex items-center justify-between">
                         <Link href="/leader" className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors">
                             <ArrowLeft className="w-5 h-5" />
-                            <span className="font-medium text-sm sm:text-base">Back</span>
+                            <span className="font-medium text-sm sm:text-base">{tc('back')}</span>
                         </Link>
                         <h1 className="text-base sm:text-lg font-bold text-blue-400 flex items-center gap-2">
                             <Upload className="w-4 h-4 sm:w-5 sm:h-5" />
-                            <span className="hidden xs:inline">Upload</span> Lesson
+                            <span className="hidden xs:inline">{t('title')}</span>
                         </h1>
                         <Link href="/">
                             <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-white">
                                 <Home className="w-5 h-5" />
-                                <span className="ml-2 hidden sm:inline">Home</span>
+                                <span className="ms-2 hidden sm:inline">{tc('back')}</span>
                             </Button>
                         </Link>
                     </div>
@@ -154,7 +159,7 @@ export default function UploadPage() {
                     <CardHeader className="border-b border-zinc-800 px-4 sm:px-6">
                         <CardTitle className="text-base sm:text-lg text-zinc-100 flex items-center gap-2">
                             <BookOpen className="w-5 h-5 text-violet-400" />
-                            New Lesson
+                            {t('title')}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6">
@@ -162,23 +167,24 @@ export default function UploadPage() {
                             {/* Course Selection */}
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-zinc-300">
-                                    Select Course <span className="text-red-400">*</span>
+                                    {t('selectCourse')} <span className="text-red-400">*</span>
                                 </label>
                                 <select
                                     value={selectedCourse}
                                     onChange={(e) => setSelectedCourse(e.target.value)}
                                     className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-4 py-3 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                                     required
+                                    data-tour="course-select"
                                 >
-                                    <option value="">-- Choose a course --</option>
-                                    <optgroup label="Term 1 (Closed)">
+                                    <option value="">-- {t('chooseCourse')} --</option>
+                                    <optgroup label={`${t('semester1')} (Closed)`}>
                                         {semester1Courses.map(course => (
                                             <option key={course.id} value={course.id}>
                                                 {course.code} - {course.name}
                                             </option>
                                         ))}
                                     </optgroup>
-                                    <optgroup label="Term 2 (Active)">
+                                    <optgroup label={`${t('semester2')} (Active)`}>
                                         {semester2Courses.map(course => (
                                             <option key={course.id} value={course.id}>
                                                 {course.code} - {course.name}
@@ -217,7 +223,7 @@ export default function UploadPage() {
                             {/* Lesson Title */}
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-zinc-300">
-                                    Lesson Title <span className="text-red-400">*</span>
+                                    {t('lessonTitle')} <span className="text-red-400">*</span>
                                 </label>
                                 <input
                                     type="text"
@@ -226,6 +232,7 @@ export default function UploadPage() {
                                     placeholder="e.g., Lecture 5: Chemical Bonding"
                                     className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-4 py-3 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                                     required
+                                    data-tour="lesson-title"
                                 />
                             </div>
 
@@ -233,8 +240,8 @@ export default function UploadPage() {
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
                                     <Video className="w-4 h-4 text-red-400" />
-                                    YouTube Link
-                                    <span className="text-zinc-500 text-xs">(optional)</span>
+                                    {t('videoUrl')}
+                                    <span className="text-zinc-500 text-xs">({tc('optional')})</span>
                                 </label>
                                 <input
                                     type="url"
@@ -242,15 +249,16 @@ export default function UploadPage() {
                                     onChange={(e) => setVideoUrl(e.target.value)}
                                     placeholder="https://youtu.be/..."
                                     className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-4 py-3 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                                    data-tour="video-url"
                                 />
                             </div>
 
                             {/* PDF Section */}
-                            <div className="space-y-4 pt-4 border-t border-zinc-800">
+                            <div className="space-y-4 pt-4 border-t border-zinc-800" data-tour="pdf-section">
                                 <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
                                     <FileText className="w-4 h-4 text-blue-400" />
-                                    PDF Document
-                                    <span className="text-zinc-500 text-xs">(optional)</span>
+                                    {t('pdfFile')}
+                                    <span className="text-zinc-500 text-xs">({tc('optional')})</span>
                                 </label>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -277,7 +285,7 @@ export default function UploadPage() {
                             </div>
 
                             {/* Quiz Section */}
-                            <div className="space-y-4 pt-4 border-t border-zinc-800">
+                            <div className="space-y-4 pt-4 border-t border-zinc-800" data-tour="quiz-section">
                                 <QuizUploader
                                     onQuizDataChange={setQuizData}
                                 />
@@ -303,18 +311,19 @@ export default function UploadPage() {
                             {/* Submit Button */}
                             <Button
                                 type="submit"
-                                disabled={isSubmitting} // This now blocks on BOTH upload AND AI parsing
+                                disabled={isSubmitting}
                                 className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white py-6 text-base font-semibold shadow-lg shadow-violet-900/30"
+                                data-tour="submit-btn"
                             >
                                 {isSubmitting ? (
                                     <>
-                                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                                        {pdfFile ? 'Uploading & Saving...' : 'Processing...'}
+                                        <Loader2 className="w-5 h-5 me-2 animate-spin" />
+                                        {pdfFile ? t('uploading') : tc('loading')}
                                     </>
                                 ) : (
                                     <>
-                                        <Upload className="w-5 h-5 mr-2" />
-                                        Add Lesson
+                                        <Upload className="w-5 h-5 me-2" />
+                                        {t('title')}
                                     </>
                                 )}
                             </Button>

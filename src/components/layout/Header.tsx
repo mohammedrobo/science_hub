@@ -6,10 +6,13 @@ import { getSession } from '@/app/login/actions';
 import { MobileMenu } from './MobileMenu';
 import { getHeaderStats } from '@/lib/gamification';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { getTranslations } from 'next-intl/server';
 
 export async function Header() {
     const session = await getSession();
     const isAdmin = session?.role === 'super_admin' || session?.role === 'admin';
+    const t = await getTranslations('nav');
 
     let profilePictureUrl: string | undefined;
     let userNameInitial = "U";
@@ -46,30 +49,30 @@ export async function Header() {
 
                     <Link href="/tools/gpa" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-zinc-400 hover:text-orange-400 hover:bg-orange-500/10 transition-all">
                         <Calculator className="h-3.5 w-3.5 text-orange-500" />
-                        GPA Calc
+                        {t('gpaCalc')}
                     </Link>
                     <Link href="/progress" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-zinc-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all">
                         <BarChart3 className="h-3.5 w-3.5 text-emerald-500" />
-                        Progress
+                        {t('progress')}
                     </Link>
                     <Link href="/leaderboard" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-zinc-400 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all">
                         <Trophy className="h-3.5 w-3.5 text-yellow-500" />
-                        Leaderboard
+                        {t('leaderboard')}
                     </Link>
                     <Link href="/schedule" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-zinc-400 hover:text-violet-400 hover:bg-violet-500/10 transition-all">
                         <Calendar className="h-3.5 w-3.5 text-violet-500" />
-                        Schedule
+                        {t('schedule')}
                     </Link>
                     <Link href="/updates" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-zinc-400 hover:text-fuchsia-400 hover:bg-fuchsia-500/10 transition-all">
                         <Sparkles className="h-3.5 w-3.5 text-fuchsia-500" />
-                        What's New
+                        {t('whatsNew')}
                     </Link>
 
                     {/* Admin Button */}
                     {isAdmin && (
                         <Link href="/admin" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-zinc-400 hover:text-amber-400 hover:bg-amber-500/10 transition-all">
                             <Shield className="h-3.5 w-3.5 text-amber-500" />
-                            Admin
+                            {t('admin')}
                         </Link>
                     )}
                 </nav>
@@ -77,6 +80,9 @@ export async function Header() {
                 <div className="flex items-center gap-3 shrink-0">
                     <div className="shrink-0">
                         <SemesterToggle />
+                    </div>
+                    <div className="shrink-0 hidden sm:block">
+                        <LanguageSwitcher />
                     </div>
                     <div className="shrink-0">
                         <NotificationBell userRole={session?.role as 'super_admin' | 'admin' | 'leader' | 'student'} />

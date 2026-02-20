@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Trophy, Target, Zap, BrainCircuit, Sparkles, ArrowLeft, TrendingUp, BookOpen, Award, BarChart3, ChevronRight, CheckCircle2, PieChart } from 'lucide-react';
 import { getGrade } from '@/lib/utils';
+import { getTranslations } from 'next-intl/server';
 
 function getRankColor(rank: string): string {
     const colors: Record<string, string> = {
@@ -39,6 +40,8 @@ function getNextRankXP(rank: string): { nextRank: string; xpRequired: number } {
 
 export default async function ProfilePage() {
     const session = await readSession();
+    const t = await getTranslations('profile');
+    const tc = await getTranslations('common');
 
     if (!session) {
         redirect('/login');
@@ -64,7 +67,7 @@ export default async function ProfilePage() {
                 <Button variant="ghost" asChild className="pl-0 hover:bg-transparent hover:text-primary">
                     <Link href="/" className="flex items-center gap-2">
                         <ArrowLeft className="h-4 w-4" />
-                        <span>Back to Home</span>
+                        <span>{tc('backToHome')}</span>
                     </Link>
                 </Button>
             </div>
@@ -74,7 +77,7 @@ export default async function ProfilePage() {
                 <h1 className="text-2xl sm:text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                     Student Profile
                 </h1>
-                <p className="text-muted-foreground">Track your journey and level up</p>
+                <p className="text-muted-foreground">{t('trackJourney')}</p>
             </div>
 
             {/* Profile Picture Upload */}
@@ -94,7 +97,7 @@ export default async function ProfilePage() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-2xl">
                         <Trophy className="h-6 w-6 text-yellow-500" />
-                        Current Rank
+                        {t('currentRank')}
                     </CardTitle>
                 </CardHeader>
 
@@ -125,7 +128,7 @@ export default async function ProfilePage() {
                                 {stats.totalXp} XP
                             </span>
                             <span className="text-zinc-400">
-                                {stats.currentRank === 'SSS' ? 'MAX RANK' : `Next: ${nextRank} (${xpRequired} XP)`}
+                                {stats.currentRank === 'SSS' ? t('maxRank') : t('nextRankLabel', { rank: nextRank, xp: xpRequired })}
                             </span>
                         </div>
 
@@ -149,7 +152,7 @@ export default async function ProfilePage() {
                                 <Trophy className="h-6 w-6 text-primary" />
                             </div>
                             <div>
-                                <p className="text-sm text-muted-foreground">Class Rank</p>
+                                <p className="text-sm text-muted-foreground">{t('classRank')}</p>
                                 <p className="text-2xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
                                     {stats.currentRank}-Rank
                                 </p>
@@ -166,7 +169,7 @@ export default async function ProfilePage() {
                                 <TrendingUp className="h-6 w-6 text-orange-500" />
                             </div>
                             <div>
-                                <p className="text-sm text-muted-foreground">GPA</p>
+                                <p className="text-sm text-muted-foreground">{t('gpa')}</p>
                                 <p className="text-2xl font-bold bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent">
                                     {stats.cumulativeGPA}
                                 </p>
@@ -183,7 +186,7 @@ export default async function ProfilePage() {
                                 <Zap className="h-6 w-6 text-yellow-500" />
                             </div>
                             <div>
-                                <p className="text-sm text-muted-foreground">Total XP</p>
+                                <p className="text-sm text-muted-foreground">{t('totalXp')}</p>
                                 <p className="text-2xl font-bold text-white">{stats.totalXp.toLocaleString()}</p>
                             </div>
                         </div>
@@ -198,7 +201,7 @@ export default async function ProfilePage() {
                                 <CheckCircle2 className="h-6 w-6 text-emerald-500" />
                             </div>
                             <div>
-                                <p className="text-sm text-muted-foreground">Completion</p>
+                                <p className="text-sm text-muted-foreground">{t('completion')}</p>
                                 <p className="text-2xl font-bold text-emerald-400">
                                     {overallCompletion.overallPercent}%
                                 </p>
@@ -215,7 +218,7 @@ export default async function ProfilePage() {
                                 <BookOpen className="h-6 w-6 text-blue-500" />
                             </div>
                             <div>
-                                <p className="text-sm text-muted-foreground">Lessons</p>
+                                <p className="text-sm text-muted-foreground">{t('lessons')}</p>
                                 <p className="text-2xl font-bold text-white">{stats.completedLessons}</p>
                             </div>
                         </div>
@@ -230,7 +233,7 @@ export default async function ProfilePage() {
                                 <BrainCircuit className="h-6 w-6 text-green-500" />
                             </div>
                             <div>
-                                <p className="text-sm text-muted-foreground">Missions Aced</p>
+                                <p className="text-sm text-muted-foreground">{t('missionsAced')}</p>
                                 <p className="text-2xl font-bold text-white">{stats.completedQuizzes}</p>
                             </div>
                         </div>
@@ -245,20 +248,20 @@ export default async function ProfilePage() {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-white">
                             <Sparkles className="w-5 h-5 text-yellow-400" />
-                            Predictive Evaluation (GPA)
+                            {t('predictiveEvaluation')}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="relative z-10">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-8">
                             {/* Cumulative GPA Main Display */}
                             <div className="flex flex-col items-center justify-center p-6 bg-zinc-950/50 rounded-xl border border-zinc-800 shadow-inner">
-                                <span className="text-sm text-muted-foreground uppercase tracking-widest mb-2">Projected GPA</span>
+                                <span className="text-sm text-muted-foreground uppercase tracking-widest mb-2">{t('projectedGpa')}</span>
                                 <div className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 drop-shadow-2xl">
                                     {stats.cumulativeGPA}
                                 </div>
                                 <span className="text-xs text-primary mt-2 flex items-center gap-1">
                                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                                    Calculated from Quiz Performance
+                                    {t('calculatedFrom')}
                                 </span>
                             </div>
 
@@ -266,7 +269,7 @@ export default async function ProfilePage() {
                             <div className="md:col-span-2 flex flex-col justify-center gap-4">
                                 <div className="space-y-4 p-4 border border-zinc-800 rounded-lg bg-zinc-900/30">
                                     <div className="flex justify-between items-end">
-                                        <h4 className="text-zinc-400 font-medium">Quiz Performance (Current Term)</h4>
+                                        <h4 className="text-zinc-400 font-medium">{t('quizPerformance')}</h4>
                                         <span className="text-2xl font-bold text-white">{stats.gpaS2}</span>
                                     </div>
                                     <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
@@ -278,7 +281,7 @@ export default async function ProfilePage() {
                                 </div>
 
                                 <p className="text-xs text-zinc-500 italic mt-2">
-                                    * Projected GPA is now exclusively calculated based on your performance in Quizzes and Missions.
+                                    {t('gpaDisclaimer')}
                                 </p>
                             </div>
                         </div>
@@ -295,7 +298,7 @@ export default async function ProfilePage() {
                         <CardHeader className="pb-3">
                             <CardTitle className="flex items-center gap-2 text-base">
                                 <Award className="h-5 w-5 text-amber-400" />
-                                Top Performing Subject
+                                {t('topPerformingSubject')}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -309,7 +312,7 @@ export default async function ProfilePage() {
                                 </div>
                                 <div className="text-right shrink-0">
                                     <p className="text-2xl font-bold text-amber-400">{strongest.averageScore}%</p>
-                                    <p className="text-xs text-zinc-500">avg score</p>
+                                    <p className="text-xs text-zinc-500">{t('avgScore')}</p>
                                 </div>
                             </div>
 
@@ -348,10 +351,10 @@ export default async function ProfilePage() {
                                 </div>
                                 <div>
                                     <h3 className="text-lg font-bold text-white group-hover:text-primary transition-colors">
-                                        View Detailed Progress
+                                        {t('viewDetailedProgress')}
                                     </h3>
                                     <p className="text-sm text-zinc-400">
-                                        Interactive charts · Course breakdown · Quiz analytics · Score trends
+                                        {t('detailedProgressDesc')}
                                     </p>
                                 </div>
                             </div>

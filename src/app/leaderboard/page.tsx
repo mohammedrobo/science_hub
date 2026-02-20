@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Medal, Crown } from 'lucide-react';
 import { unstable_cache } from 'next/cache';
+import { getTranslations } from 'next-intl/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,6 +63,8 @@ export default async function LeaderboardPage() {
     const leaderboard = await getLeaderboard();
     const top3 = leaderboard.slice(0, 3);
     const rest = leaderboard.slice(3);
+    const t = await getTranslations('leaderboard');
+    const tc = await getTranslations('common');
 
     return (
         <div className="container mx-auto py-6 sm:py-10 px-3 sm:px-4 max-w-5xl">
@@ -69,18 +72,18 @@ export default async function LeaderboardPage() {
             {/* Header Section */}
             <div className="mb-8">
                 <Link href="/">
-                    <Button variant="ghost" className="pl-0 hover:bg-transparent hover:text-primary mb-4 text-zinc-400">
-                        ← Back to Home
+                    <Button variant="ghost" className="ps-0 hover:bg-transparent hover:text-primary mb-4 text-zinc-400">
+                        {tc('backToHome')}
                     </Button>
                 </Link>
 
                 <div className="text-center">
                     <h1 className="text-2xl sm:text-4xl font-extrabold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 bg-clip-text text-transparent inline-flex items-center gap-2 sm:gap-3">
                         <Trophy className="w-6 h-6 sm:w-10 sm:h-10 text-yellow-500" />
-                        Hall of Students
+                        {t('hallOfStudents')}
                     </h1>
                     <p className="text-muted-foreground mt-3 text-lg">
-                        The top ranked students in the Batch.
+                        {t('topRankedDesc')}
                     </p>
                 </div>
             </div>
@@ -95,7 +98,7 @@ export default async function LeaderboardPage() {
                             <div className="mx-auto w-16 h-16 rounded-full bg-slate-800 border-2 border-slate-500 flex items-center justify-center mb-2">
                                 <span className="text-2xl font-bold text-slate-300">2</span>
                             </div>
-                            <CardTitle className="text-slate-200">{top3[1]?.full_name || 'Empty'}</CardTitle>
+                            <CardTitle className="text-slate-200">{top3[1]?.full_name || tc('empty')}</CardTitle>
                             {/* <p className="text-sm text-zinc-500">@{top3[1]?.username}</p> */}
                         </CardHeader>
                         <CardContent className="text-center">
@@ -118,7 +121,7 @@ export default async function LeaderboardPage() {
                             <div className="mx-auto w-20 h-20 rounded-full bg-yellow-900/20 border-2 border-yellow-500 flex items-center justify-center mb-2 shadow-lg">
                                 <Crown className="w-10 h-10 text-yellow-500" />
                             </div>
-                            <CardTitle className="text-yellow-100 text-xl">{top3[0]?.full_name || 'Empty'}</CardTitle>
+                            <CardTitle className="text-yellow-100 text-xl">{top3[0]?.full_name || tc('empty')}</CardTitle>
                             {/* <p className="text-sm text-yellow-500/70">@{top3[0]?.username}</p> */}
                         </CardHeader>
                         <CardContent className="text-center">
@@ -140,7 +143,7 @@ export default async function LeaderboardPage() {
                             <div className="mx-auto w-16 h-16 rounded-full bg-amber-950/40 border-2 border-amber-700 flex items-center justify-center mb-2">
                                 <span className="text-2xl font-bold text-amber-600">3</span>
                             </div>
-                            <CardTitle className="text-amber-100/80">{top3[2]?.full_name || 'Empty'}</CardTitle>
+                            <CardTitle className="text-amber-100/80">{top3[2]?.full_name || tc('empty')}</CardTitle>
                             {/* <p className="text-sm text-zinc-500">@{top3[2]?.username}</p> */}
                         </CardHeader>
                         <CardContent className="text-center">
@@ -171,7 +174,7 @@ export default async function LeaderboardPage() {
                     </div>
                 ))}
                 {rest.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">No more students found.</div>
+                    <div className="text-center py-8 text-muted-foreground">{t('noMoreStudents')}</div>
                 )}
             </div>
 
@@ -182,9 +185,9 @@ export default async function LeaderboardPage() {
                         <TableHeader>
                             <TableRow className="border-zinc-800 hover:bg-zinc-900/50">
                                 <TableHead className="w-[80px] text-center">#</TableHead>
-                                <TableHead>Student Name</TableHead>
-                                <TableHead>Rank</TableHead>
-                                <TableHead className="text-right">Total XP</TableHead>
+                                <TableHead>{t('studentName')}</TableHead>
+                                <TableHead>{t('rank')}</TableHead>
+                                <TableHead className="text-end">{t('totalXp')}</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -208,7 +211,7 @@ export default async function LeaderboardPage() {
                                             {user.current_rank}
                                         </Badge>
                                     </TableCell>
-                                    <TableCell className="text-right font-mono text-blue-400">
+                                    <TableCell className="text-end font-mono text-blue-400">
                                         {(user.total_xp ?? 0).toLocaleString()}
                                     </TableCell>
                                 </TableRow>
@@ -216,7 +219,7 @@ export default async function LeaderboardPage() {
                             {rest.length === 0 && (
                                 <TableRow>
                                     <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                                        No more students found.
+                                        {t('noMoreStudents')}
                                     </TableCell>
                                 </TableRow>
                             )}

@@ -118,8 +118,11 @@ export async function createLesson(data: {
 
             // 2. Add Questions
             const createdQuizId = quiz.id; // capture for closure
-            const questionsPayload = data.quiz_data.questions.map((q, idx) => {
-                // Use parser's type if available, otherwise infer from options
+            // Filter out questions with out-of-bounds or missing answers
+            const validQuestions = data.quiz_data.questions.filter(q =>
+                q.correctAnswerIndex >= 0 && q.correctAnswerIndex < q.options.length
+            );
+            const questionsPayload = validQuestions.map((q, idx) => {
                 const inferredTF = q.options.length === 2 &&
                     q.options.map(o => o.toLowerCase().trim()).sort().join(',') === 'false,true';
                 const qType = q.type || (inferredTF ? 'true_false' : 'mcq');
@@ -128,7 +131,7 @@ export async function createLesson(data: {
                     text: q.text,
                     type: qType,
                     options: q.options,
-                    correct_answer: q.correctAnswerIndex >= 0 ? q.options[q.correctAnswerIndex] : q.options[0],
+                    correct_answer: q.options[q.correctAnswerIndex],
                     order_index: idx
                 };
             });
@@ -385,6 +388,7 @@ export async function resetFullAccount(username: string) {
             password: hashedOriginalPassword,
             is_first_login: true,
             has_onboarded: false,
+            has_leader_onboarded: false,
             nickname: null,
             access_role: newRole
         })
@@ -664,9 +668,11 @@ export async function updateLesson(
                 quizId = newQuiz.id;
             }
 
-            // Add new questions
-            const questionsPayload = data.quiz_data.questions.map((q, idx) => {
-                // Use parser's type if available, otherwise infer from options
+            // Add new questions — filter out questions with missing/invalid answers
+            const validQuestions = data.quiz_data.questions.filter(q =>
+                q.correctAnswerIndex >= 0 && q.correctAnswerIndex < q.options.length
+            );
+            const questionsPayload = validQuestions.map((q, idx) => {
                 const inferredTF = q.options.length === 2 &&
                     q.options.map(o => o.toLowerCase().trim()).sort().join(',') === 'false,true';
                 const qType = q.type || (inferredTF ? 'true_false' : 'mcq');
@@ -675,7 +681,7 @@ export async function updateLesson(
                     text: q.text,
                     type: qType,
                     options: q.options,
-                    correct_answer: q.correctAnswerIndex >= 0 ? q.options[q.correctAnswerIndex] : q.options[0],
+                    correct_answer: q.options[q.correctAnswerIndex],
                     order_index: idx
                 };
             });

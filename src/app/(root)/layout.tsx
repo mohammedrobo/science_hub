@@ -1,6 +1,7 @@
 import { Header } from '@/components/layout/Header';
 import { SessionGuard } from '@/components/auth/SessionGuard';
 import { readSession } from '@/lib/auth/session-read';
+import { getTranslations } from 'next-intl/server';
 
 export default async function MainLayout({
     children,
@@ -8,6 +9,7 @@ export default async function MainLayout({
     children: React.ReactNode;
 }) {
     const session = await readSession();
+    const t = await getTranslations('common');
     
     return (
         <SessionGuard sessionToken={session?.sessionToken}>
@@ -17,7 +19,7 @@ export default async function MainLayout({
                     {children}
                 </main>
                 <footer className="py-6 text-center text-sm text-muted-foreground border-t mt-auto">
-                    © 2025 Science Hub. University Learning Platform.
+                    {t('copyright')}
                 </footer>
             </div>
         </SessionGuard>

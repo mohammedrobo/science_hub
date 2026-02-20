@@ -10,6 +10,7 @@ import { cn, getGrade } from '@/lib/utils';
 import Link from 'next/link';
 import { getQuiz } from '@/app/quiz/actions';
 import { MathText } from '@/components/MathText';
+import { useTranslations } from 'next-intl';
 
 // Types for our Real Data
 interface Question {
@@ -32,6 +33,7 @@ export default function QuizPage() {
     const router = useRouter();
     const rawId = params?.id;
     const id = Array.isArray(rawId) ? rawId[0] : rawId as string;
+    const t = useTranslations('quiz');
 
     const [quiz, setQuiz] = useState<QuizData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -53,13 +55,13 @@ export default function QuizPage() {
             try {
                 const data = await getQuiz(id);
                 if (!data) {
-                    setError("Mission data corrupted or not found.");
+                    setError(t('missionCorrupted'));
                 } else {
                     setQuiz(data);
                 }
             } catch (err) {
                 console.error(err);
-                setError("Failed to establish link with mission control.");
+                setError(t('connectionFailed'));
             } finally {
                 setLoading(false);
             }
@@ -102,7 +104,7 @@ export default function QuizPage() {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
                 <Loader2 className="w-10 h-10 text-primary animate-spin" />
-                <p className="text-zinc-500 animate-pulse">Initializing simulation...</p>
+                <p className="text-zinc-500 animate-pulse">{t('initializingSimulation')}</p>
             </div>
         );
     }
@@ -114,9 +116,9 @@ export default function QuizPage() {
                 <div className="bg-red-500/10 p-6 rounded-full mb-6">
                     <AlertCircle className="w-12 h-12 text-red-500" />
                 </div>
-                <h1 className="text-2xl font-bold text-white mb-2">Mission Failure</h1>
+                <h1 className="text-2xl font-bold text-white mb-2">{t('missionFailure')}</h1>
                 <p className="text-zinc-400 max-w-md mb-8">{error || "Unknown Error"}</p>
-                <Button onClick={() => router.back()} variant="outline">Abort & Return</Button>
+                <Button onClick={() => router.back()} variant="outline">{t('abortReturn')}</Button>
             </div>
         );
     }
@@ -174,7 +176,7 @@ export default function QuizPage() {
                     <div className="absolute inset-0 bg-primary/5 blur-3xl rounded-full pointer-events-none" />
                     <div className="relative z-10">
                         <Trophy className={`w-16 h-16 mx-auto mb-4 ${percentage >= 80 ? 'text-yellow-400' : 'text-primary'}`} />
-                        <h1 className="text-3xl font-bold mb-2">MISSION COMPLETE</h1>
+                        <h1 className="text-3xl font-bold mb-2">{t('missionComplete')}</h1>
                         <div className={`text-5xl font-black mb-4 ${color} tracking-wider font-mono`}>{grade} <span className="text-2xl opacity-50 block mt-1">{label}</span></div>
                         <p className="text-zinc-400 text-lg mb-6">
                             Score: <span className="text-white font-bold">{correctCount}</span> / {quiz.questions.length} ({percentage}%)
@@ -182,10 +184,10 @@ export default function QuizPage() {
 
                         <div className="flex flex-wrap gap-4 justify-center">
                             <Button onClick={handleRetry} variant="outline" className="h-10">
-                                <RotateCcw className="mr-2 w-4 h-4" /> Replay
+                                <RotateCcw className="me-2 w-4 h-4" /> {t('replay')}
                             </Button>
                             <Button onClick={() => router.push(`/course/${quiz.course_id}`)} className="h-10">
-                                Return to Course
+                                {t('returnToCourse')}
                             </Button>
                         </div>
                     </div>
@@ -195,7 +197,7 @@ export default function QuizPage() {
                 <div className="space-y-4">
                     <h2 className="text-xl font-bold flex items-center gap-2">
                         <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                        Mission Debrief & corrections
+                        {t('missionDebrief')}
                     </h2>
 
                     {quiz.questions.map((q, idx) => {
@@ -220,8 +222,8 @@ export default function QuizPage() {
                                                 : "bg-red-950/20 border-red-900/50 text-red-300"
                                         )}>
                                             <div className="flex flex-col">
-                                                <span className="text-xs opacity-70 mb-1">Your Answer</span>
-                                                <span className="font-medium"><MathText text={userAnswer || "Skipped"} /></span>
+                                                <span className="text-xs opacity-70 mb-1">{t('yourAnswer')}</span>
+                                                <span className="font-medium"><MathText text={userAnswer || t('skipped')} /></span>
                                             </div>
                                             {isCorrect ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
                                         </div>
@@ -230,7 +232,7 @@ export default function QuizPage() {
                                         {!isCorrect && (
                                             <div className="p-3 rounded-md text-sm border border-emerald-900/50 bg-emerald-950/20 text-emerald-300 flex items-center justify-between">
                                                 <div className="flex flex-col">
-                                                    <span className="text-xs opacity-70 mb-1">Correct Answer</span>
+                                                    <span className="text-xs opacity-70 mb-1">{t('correctAnswer')}</span>
                                                     <span className="font-medium"><MathText text={q.correct_answer} /></span>
                                                 </div>
                                                 <Check className="w-4 h-4" />
@@ -251,14 +253,14 @@ export default function QuizPage() {
         <div className="container max-w-3xl mx-auto py-6 sm:py-10 px-3 sm:px-4">
                 <div className="mb-8 space-y-4">
                 <Link href={`/course/${quiz.course_id}`} className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors mb-4">
-                    <ArrowLeft className="w-4 h-4 mr-1" />
-                    Abort Mission
+                    <ArrowLeft className="w-4 h-4 me-1" />
+                    {t('abortMission')}
                 </Link>
 
                 <div className="flex justify-between items-end">
                     <div>
                         <h1 className="text-xl sm:text-2xl font-bold text-white mb-2">{quiz.title}</h1>
-                        <p className="text-muted-foreground text-sm max-w-xl">{quiz.description || "Complete all questions to verify your knowledge."}</p>
+                        <p className="text-muted-foreground text-sm max-w-xl">{quiz.description || t('completeAllQuestions')}</p>
                     </div>
                     <div className="text-right">
                         <span className="text-2xl font-bold text-primary">Q{currentQuestionIndex + 1}</span>
@@ -319,7 +321,7 @@ export default function QuizPage() {
                                     disabled={!selectedAnswer}
                                     className="w-full sm:w-auto h-12 px-6 bg-primary hover:bg-primary/90 text-white font-bold"
                                 >
-                                    {currentQuestionIndex < quiz.questions.length - 1 ? 'NEXT QUESTION' : 'COMPLETE MISSION'} <ChevronRight className="ml-2 w-4 h-4" />
+                                    {currentQuestionIndex < quiz.questions.length - 1 ? t('nextQuestion') : t('completeMission')} <ChevronRight className="ms-2 w-4 h-4" />
                                 </Button>
                             </div>
                         </CardFooter>

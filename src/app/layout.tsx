@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Manrope, Fraunces } from "next/font/google";
+import { Manrope, Fraunces, IBM_Plex_Sans_Arabic } from "next/font/google";
 import "./globals.css";
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale, getMessages } from 'next-intl/server';
 
 const fontSans = Manrope({
   variable: "--font-sans",
@@ -12,6 +14,12 @@ const fontSerif = Fraunces({
   variable: "--font-serif",
   weight: ["400", "600", "700"],
   subsets: ["latin"],
+});
+
+const fontArabic = IBM_Plex_Sans_Arabic({
+  variable: "--font-arabic",
+  weight: ["400", "500", "600", "700"],
+  subsets: ["arabic"],
 });
 
 const description = "Your digital science companion";
@@ -54,29 +62,35 @@ import { WhatsNewDialog } from "@/components/WhatsNewDialog";
 import { PageTracker } from "@/components/safety/PageTracker";
 import { ActivityTracker } from "@/components/safety/ActivityTracker";
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+  const dir = locale === 'ar' ? 'rtl' : 'ltr';
+
   return (
-    <html lang="en">
+    <html lang={locale} dir={dir}>
       <body
-        className={`${fontSans.variable} ${fontSerif.variable} antialiased bg-background text-foreground min-h-[100dvh] relative overflow-x-hidden`}
+        className={`${fontSans.variable} ${fontSerif.variable} ${fontArabic.variable} antialiased bg-background text-foreground min-h-[100dvh] relative overflow-x-hidden ${locale === 'ar' ? 'font-arabic' : ''}`}
         suppressHydrationWarning={true}
       >
-        <div className="relative w-full overflow-x-hidden min-h-[100dvh] flex flex-col">
-          <PageTracker />
-          <ActivityTracker />
-          {children}
+        <NextIntlClientProvider messages={messages}>
+          <div className="relative w-full overflow-x-hidden min-h-[100dvh] flex flex-col">
+            <PageTracker />
+            <ActivityTracker />
+            {children}
 
-          <FeedbackButton />
-          <Toaster />
-        </div>
-        <ServiceWorkerRegistration />
+            <FeedbackButton />
+            <Toaster />
+          </div>
+          <ServiceWorkerRegistration />
 
-        <InstallPrompt />
-        <WhatsNewDialog />
+          <InstallPrompt />
+          <WhatsNewDialog />
+        </NextIntlClientProvider>
       </body>
     </html>
   );

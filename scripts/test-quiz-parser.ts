@@ -1,5 +1,5 @@
 
-import { parseQuizMarkdown } from '../src/lib/quiz-parser';
+import { parseQuizText } from '../src/lib/quiz-parser';
 
 const testCases = [
   {
@@ -63,7 +63,7 @@ Answer Key:
 
 testCases.forEach(tc => {
   console.log(`\n--- Testing: ${tc.name} ---`);
-  const result = parseQuizMarkdown(tc.input);
+  const result = parseQuizText(tc.input);
   console.log("Questions found:", result.questions.length);
   console.log("Errors:", result.errors);
   if (result.questions.length > 0) {

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 
 interface CourseCardProps {
     course: Course;
@@ -14,6 +15,7 @@ interface CourseCardProps {
 
 export function CourseCard({ course, progress = 0 }: CourseCardProps) {
     const isComplete = progress >= 100;
+    const t = useTranslations('courses');
 
     // Term 1 courses (semester 1) are closed/locked
     const isClosed = course.semester === 1;
@@ -52,7 +54,7 @@ export function CourseCard({ course, progress = 0 }: CourseCardProps) {
             )}>
                 {/* Course Code Badge */}
                 <div className={cn(
-                    "absolute top-0 left-0 text-white text-[10px] font-bold px-3 py-1 rounded-br-sm z-20 tracking-wider shadow-sm",
+                    "absolute top-0 start-0 text-white text-[10px] font-bold px-3 py-1 rounded-br-sm z-20 tracking-wider shadow-sm",
                     isClosed ? "bg-zinc-600 shadow-zinc-900/20" : "bg-violet-600 shadow-violet-900/20"
                 )}>
                     {course.code}
@@ -60,9 +62,9 @@ export function CourseCard({ course, progress = 0 }: CourseCardProps) {
 
                 {/* Closed Badge */}
                 {isClosed && (
-                    <div className="absolute top-0 right-0 bg-red-600/90 text-white text-[10px] font-bold px-3 py-1 rounded-bl-sm z-20 tracking-wider flex items-center gap-1">
+                    <div className="absolute top-0 end-0 bg-red-600/90 text-white text-[10px] font-bold px-3 py-1 rounded-bl-sm z-20 tracking-wider flex items-center gap-1">
                         <Lock className="h-3 w-3" />
-                        CLOSED
+                        {t('closed')}
                     </div>
                 )}
 
@@ -109,20 +111,20 @@ export function CourseCard({ course, progress = 0 }: CourseCardProps) {
                     </h3>
 
                     <p className="text-sm text-zinc-400 line-clamp-3 mb-4 flex-1">
-                        {course.description || 'Course details available in the syllabus.'}
+                        {course.description || t('syllabusDefault')}
                     </p>
 
                     <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
                         {isClosed ? (
                             <span className="text-xs font-bold text-red-400 uppercase tracking-wider flex items-center gap-1">
                                 <Lock className="h-3 w-3" />
-                                Closed
+                                {t('closedLower')}
                             </span>
                         ) : (
                             <span className="text-xs font-bold text-violet-400 uppercase tracking-wider flex items-center gap-1">
-                                {progress === 0 && "Start Course"}
-                                {progress > 0 && progress < 100 && "Continue"}
-                                {progress >= 100 && "Review Course"}
+                                {progress === 0 && t('startCourse')}
+                                {progress > 0 && progress < 100 && t('continue')}
+                                {progress >= 100 && t('reviewCourse')}
                                 <ChevronRight className="h-3 w-3" />
                             </span>
                         )}

@@ -6,6 +6,8 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/s
 import { Button } from '@/components/ui/button';
 import { Menu, Calculator, Trophy, Crown, User, LogOut, Shield, Calendar, Sparkles, BarChart3 } from 'lucide-react';
 import { LogoutButton } from '@/components/auth/LogoutButton';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { useTranslations } from 'next-intl';
 
 interface MobileMenuProps {
     isAdmin: boolean;
@@ -14,7 +16,7 @@ interface MobileMenuProps {
     profilePictureUrl?: string;
     rank: string;
     xp: number;
-    userRole?: string; // Explicit role prop
+    userRole?: string;
 }
 
 function getRankColor(rank: string): string {
@@ -33,21 +35,20 @@ function getRankColor(rank: string): string {
 
 export function MobileMenu({ isAdmin, session, userNameInitial, profilePictureUrl, rank, xp, userRole }: MobileMenuProps) {
     const [open, setOpen] = useState(false);
+    const t = useTranslations('nav');
 
     const closeMenu = () => setOpen(false);
-
-    // ... (rest of render until Nav) ...
 
     return (
         <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-9 w-9">
                     <Menu className="h-5 w-5" />
-                    <span className="sr-only">Open menu</span>
+                    <span className="sr-only">{t('openMenu')}</span>
                 </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[85vw] sm:w-[400px] border-l border-border bg-background p-0">
-                <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+            <SheetContent side="right" className="w-[85vw] sm:w-[400px] border-s border-border bg-background p-0">
+                <SheetTitle className="sr-only">{t('navigationMenu')}</SheetTitle>
                 <div className="flex flex-col h-full">
                     {/* Header with User Info */}
                     <div className="p-6 border-b border-border">
@@ -75,8 +76,8 @@ export function MobileMenu({ isAdmin, session, userNameInitial, profilePictureUr
                         <div className="flex items-center gap-3">
                             <Trophy className="h-5 w-5 text-yellow-500" />
                             <div>
-                                <p className="text-sm font-medium text-foreground">Rank: {rank}</p>
-                                <p className="text-xs text-muted-foreground">{xp} XP</p>
+                                <p className="text-sm font-medium text-foreground">{t('rank')}: {rank}</p>
+                                <p className="text-xs text-muted-foreground">{xp} {t('xp')}</p>
                             </div>
                         </div>
                     </div>
@@ -90,7 +91,7 @@ export function MobileMenu({ isAdmin, session, userNameInitial, profilePictureUr
                             className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground hover:bg-muted transition-colors"
                         >
                             <BarChart3 className="h-5 w-5 text-emerald-500" />
-                            <span className="font-medium">My Progress</span>
+                            <span className="font-medium">{t('myProgress')}</span>
                         </Link>
                         <Link
                             href="/tools/gpa"
@@ -98,7 +99,7 @@ export function MobileMenu({ isAdmin, session, userNameInitial, profilePictureUr
                             className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground hover:bg-muted transition-colors"
                         >
                             <Calculator className="h-5 w-5 text-primary" />
-                            <span className="font-medium">GPA Calculator</span>
+                            <span className="font-medium">{t('gpaCalculator')}</span>
                         </Link>
                         <Link
                             href="/leaderboard"
@@ -106,7 +107,7 @@ export function MobileMenu({ isAdmin, session, userNameInitial, profilePictureUr
                             className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground hover:bg-muted transition-colors"
                         >
                             <Trophy className="h-5 w-5 text-primary" />
-                            <span className="font-medium">Leaderboard</span>
+                            <span className="font-medium">{t('leaderboard')}</span>
                         </Link>
                         <Link
                             href="/schedule"
@@ -114,7 +115,7 @@ export function MobileMenu({ isAdmin, session, userNameInitial, profilePictureUr
                             className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground hover:bg-muted transition-colors"
                         >
                             <Calendar className="h-5 w-5 text-violet-500" />
-                            <span className="font-medium">Schedule</span>
+                            <span className="font-medium">{t('schedule')}</span>
                         </Link>
                         <Link
                             href="/updates"
@@ -122,8 +123,11 @@ export function MobileMenu({ isAdmin, session, userNameInitial, profilePictureUr
                             className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground hover:bg-muted transition-colors"
                         >
                             <Sparkles className="h-5 w-5 text-fuchsia-500" />
-                            <span className="font-medium">What's New</span>
+                            <span className="font-medium">{t('whatsNew')}</span>
                         </Link>
+
+                        {/* Language Switcher */}
+                        <LanguageSwitcher variant="full" />
 
                         {/* Admin Link */}
                         {isAdmin && (
@@ -133,7 +137,7 @@ export function MobileMenu({ isAdmin, session, userNameInitial, profilePictureUr
                                 className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground hover:bg-muted transition-colors"
                             >
                                 <Crown className="h-5 w-5 text-amber-500" />
-                                <span className="font-medium">Admin Panel</span>
+                                <span className="font-medium">{t('adminPanel')}</span>
                             </Link>
                         )}
 
@@ -145,7 +149,7 @@ export function MobileMenu({ isAdmin, session, userNameInitial, profilePictureUr
                                 className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground hover:bg-muted transition-colors"
                             >
                                 <Shield className="h-5 w-5 text-violet-500" />
-                                <span className="font-medium">Leader Dashboard</span>
+                                <span className="font-medium">{t('leaderDashboard')}</span>
                             </Link>
                         )}
                     </nav>
@@ -158,7 +162,7 @@ export function MobileMenu({ isAdmin, session, userNameInitial, profilePictureUr
                             className="flex items-center gap-3 px-4 py-3 rounded-lg bg-card border border-border hover:bg-muted/50 transition-colors"
                         >
                             <User className="h-5 w-5 text-muted-foreground" />
-                            <span className="font-medium text-foreground">View Profile</span>
+                            <span className="font-medium text-foreground">{t('viewProfile')}</span>
                         </Link>
                         <div className="rounded-lg bg-card border border-border hover:bg-muted/50 transition-colors">
                             <LogoutButton />

@@ -19,6 +19,7 @@ import { VideoErrorBoundary } from '@/components/courses/VideoErrorBoundary';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { CompleteButton } from '@/components/courses/CompleteButton';
+import { useTranslations } from 'next-intl';
 
 interface CourseClientProps {
     id: string;
@@ -34,6 +35,7 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
     const [lessons] = useState<Lesson[]>(initialLessons);
     const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
     const [quizProgress] = useState<Record<string, { score: number }>>(initialProgress);
+    const t = useTranslations('courses');
 
     // Check if this course has sub-sections (e.g., P102 with doctors, C102 with topics)
     const subSectionConfig = COURSE_SUBSECTIONS[id];
@@ -160,14 +162,14 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                                 <span className="text-red-500/80 flex items-center gap-1 font-medium bg-red-500/10 px-2 py-0.5 rounded text-[10px] sm:text-xs">
                                     <Lock className="w-3 h-3" />
                                     {index > 0 && lessons[index - 1].quiz_id
-                                        ? `Score 50%+ on "${getDisplayTitle(lessons[index - 1].title)}" Quiz to Unlock`
-                                        : "Complete previous lesson to unlock"}
+                                        ? t('scoreToUnlock', { title: getDisplayTitle(lessons[index - 1].title) })
+                                        : t('completePreviousLesson')}
                                 </span>
                             ) : (
                                 <>
-                                    {(lesson.video_url || (lesson.video_parts && lesson.video_parts.length > 0)) && <span className="flex items-center gap-1"><PlayCircle className="w-3 h-3" /> Video</span>}
-                                    {lesson.pdf_url && <span className="flex items-center gap-1"><FileText className="w-3 h-3" /> PDF Resources</span>}
-                                    {lesson.quiz_id && <span className="flex items-center gap-1"><BrainCircuit className="w-3 h-3" /> Quiz</span>}
+                                    {(lesson.video_url || (lesson.video_parts && lesson.video_parts.length > 0)) && <span className="flex items-center gap-1"><PlayCircle className="w-3 h-3" /> {t('video')}</span>}
+                                    {lesson.pdf_url && <span className="flex items-center gap-1"><FileText className="w-3 h-3" /> {t('pdfResources')}</span>}
+                                    {lesson.quiz_id && <span className="flex items-center gap-1"><BrainCircuit className="w-3 h-3" /> {t('quiz')}</span>}
                                 </>
                             )}
                         </div>
@@ -175,7 +177,7 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
 
                     {isActive && (
                         <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded animate-pulse">
-                            PLAYING
+                            {t('playing')}
                         </span>
                     )}
                 </div>
@@ -193,12 +195,12 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                                     isActive ? "bg-primary hover:bg-primary/90" : "bg-zinc-800 hover:bg-zinc-700"
                                 )}
                             >
-                                <PlayCircle className="mr-2 h-4 w-4" />
-                                {isActive ? "Replay Video" : "Play Video"}
+                                <PlayCircle className="me-2 h-4 w-4" />
+                                {isActive ? t('replayVideo') : t('playVideo')}
                             </Button>
                         ) : (
                             <Button disabled variant="outline" className="h-10 justify-start border-zinc-800 opacity-50">
-                                <Lock className="mr-2 h-4 w-4" /> Video Locked
+                                <Lock className="me-2 h-4 w-4" /> {t('videoLocked')}
                             </Button>
                         )}
 
@@ -207,14 +209,14 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
 
                             {lesson.pdf_url && (
                                 <Button variant="outline" size="icon" className="h-10 w-10 border-zinc-700 hover:border-violet-500 hover:text-violet-500" asChild>
-                                    <a href={lesson.pdf_url} target="_blank" rel="noopener noreferrer" title="View PDF">
+                                    <a href={lesson.pdf_url} target="_blank" rel="noopener noreferrer" title={t('viewPdf')}>
                                         <FileText className="h-4 w-4" />
                                     </a>
                                 </Button>
                             )}
                             {lesson.quiz_id && (
                                 <Button variant="outline" size="icon" className="h-10 w-10 border-zinc-700 hover:border-green-500 hover:text-green-500" asChild>
-                                    <Link href={`/quiz/${lesson.quiz_id}`} title="Take Quiz">
+                                    <Link href={`/quiz/${lesson.quiz_id}`} title={t('takeQuiz')}>
                                         <BrainCircuit className="h-4 w-4" />
                                     </Link>
                                 </Button>
@@ -236,8 +238,8 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                     {/* Back button */}
                     <div className="hidden sm:block mb-4">
                         <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors group">
-                            <ChevronLeft className="h-4 w-4 mr-1 group-hover:-translate-x-1 transition-transform" />
-                            Back to Hub
+                            <ChevronLeft className="h-4 w-4 me-1 group-hover:-translate-x-1 transition-transform" />
+                            {t('backToHub')}
                         </Link>
                     </div>
 
@@ -263,7 +265,7 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                                     <p className="text-zinc-400 mb-8">{course.description}</p>
                                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium animate-pulse">
                                         <Sparkles className="w-4 h-4" />
-                                        Select a lecture below to begin transmission
+                                        {t('selectLecture')}
                                     </div>
                                 </div>
                             </div>
@@ -273,10 +275,10 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                     <div className="mt-6 flex items-start justify-between gap-4">
                         <div>
                             <h3 className="text-lg sm:text-2xl font-bold text-white mb-1">
-                                {currentLesson ? getDisplayTitle(currentLesson.title) : "Ready to Start"}
+                                {currentLesson ? getDisplayTitle(currentLesson.title) : t('readyToStart')}
                             </h3>
                             <p className="text-muted-foreground text-sm">
-                                {currentLesson ? `Now Playing • Mission ${currentLesson.order_index + 1}` : "Select a mission to begin"}
+                                {currentLesson ? t('nowPlaying', { index: currentLesson.order_index + 1 }) : t('selectMission')}
                             </p>
                         </div>
                     </div>
@@ -289,17 +291,17 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-lg sm:text-xl font-bold text-white tracking-wide flex items-center gap-2">
                             <span className="w-1.5 h-6 bg-primary rounded-full shadow-[0_0_10px_var(--color-primary)]"></span>
-                            COURSE CONTENT
+                            {t('courseContent')}
                         </h2>
                         <span className="text-sm text-muted-foreground bg-zinc-900 px-3 py-1 rounded-md border border-zinc-800">
-                            {lessons.length} Lectures
+                            {lessons.length} {t('lectures')}
                         </span>
                     </div>
 
                     <div className="space-y-6">
                         {lessons.length === 0 ? (
                             <div className="text-center py-12 border border-zinc-800 rounded-lg bg-zinc-900/50">
-                                <p className="text-muted-foreground">No lectures visible.</p>
+                                <p className="text-muted-foreground">{t('noLecturesVisible')}</p>
                             </div>
                         ) : groupedData ? (
                             // Grouped by sub-section (e.g., by doctor or topic)
@@ -314,7 +316,7 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                                             <div className="flex items-center gap-3 py-2 px-4 bg-gradient-to-r from-violet-600/20 to-transparent rounded-lg border-l-4 border-violet-500">
                                                 <span className="text-lg font-bold text-white">{option.name}</span>
                                                 <span className="text-xs text-zinc-400 bg-zinc-800 px-2 py-0.5 rounded">
-                                                    {sectionLessons.length} {sectionLessons.length === 1 ? 'Lecture' : 'Lectures'}
+                                                    {sectionLessons.length} {sectionLessons.length === 1 ? t('lecture') : t('lectures')}
                                                 </span>
                                             </div>
 
@@ -334,7 +336,7 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                                 {groupedData.ungrouped.length > 0 && (
                                     <div className="space-y-3">
                                         <div className="flex items-center gap-3 py-2 px-4 bg-gradient-to-r from-zinc-600/20 to-transparent rounded-lg border-l-4 border-zinc-500">
-                                            <span className="text-lg font-bold text-white">Other Lectures</span>
+                                            <span className="text-lg font-bold text-white">{t('otherLectures')}</span>
                                         </div>
                                         <Accordion type="single" collapsible className="w-full space-y-3">
                                             {groupedData.ungrouped.map((lesson) => {

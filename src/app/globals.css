@@ -383,6 +383,33 @@ video {
     font-family: var(--font-sans);
   }
 
+  /* Arabic font class - applied to body when locale is 'ar' */
+  .font-arabic {
+    font-family: var(--font-arabic), var(--font-sans);
+  }
+
+  .font-arabic h1,
+  .font-arabic h2,
+  .font-arabic h3,
+  .font-arabic h4,
+  .font-arabic h5,
+  .font-arabic h6 {
+    font-family: var(--font-arabic), var(--font-serif);
+  }
+
+  .font-arabic button,
+  .font-arabic input,
+  .font-arabic textarea,
+  .font-arabic select {
+    font-family: var(--font-arabic), var(--font-sans);
+  }
+
+  /* RTL-specific spacing overrides */
+  [dir="rtl"] .rtl\:space-x-reverse > :not(:last-child) {
+    margin-right: 0;
+    margin-left: var(--tw-space-x-reverse);
+  }
+
   * {
     @apply border-border outline-ring/50;
   }

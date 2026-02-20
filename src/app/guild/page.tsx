@@ -7,6 +7,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { redirect } from 'next/navigation';
 import { EditNicknameDialog } from '@/components/guild/EditNicknameDialog';
+import { getTranslations } from 'next-intl/server';
+import { GuildTourMount } from './tour-mount';
 
 export default async function GuildPage() {
     const session = await readSession();
@@ -57,26 +59,29 @@ export default async function GuildPage() {
     // Filter users for the Quest Board (Super Admins, Admins and Leaders)
     const leaderUsers = Object.values(userMap).filter((u: any) => ['super_admin', 'admin', 'leader'].includes(u.access_role));
 
+    const t = await getTranslations('guild');
+
     return (
         <div className="min-h-screen bg-zinc-950 text-zinc-100 selection:bg-violet-900/30">
+            <GuildTourMount />
             {/* Header */}
             <header className="h-14 sm:h-[73px] border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-xl sticky top-0 z-50">
                 <div className="container mx-auto px-3 sm:px-4 h-full flex items-center justify-between">
                     <div className="flex items-center gap-2 sm:gap-3">
-                        <Link href="/leader" className="p-2 hover:bg-zinc-800 rounded-lg transition-colors flex items-center justify-center" title="Back to Command">
+                        <Link href="/leader" className="p-2 hover:bg-zinc-800 rounded-lg transition-colors flex items-center justify-center" title={t('backToCommand')}>
                             <LayoutDashboard className="w-5 h-5 sm:w-5 sm:h-5 text-zinc-400" />
                         </Link>
-                        <Link href="/" className="p-2 hover:bg-zinc-800 rounded-lg transition-colors flex items-center justify-center" title="Go Home">
+                        <Link href="/" className="p-2 hover:bg-zinc-800 rounded-lg transition-colors flex items-center justify-center" title={t('goHome')}>
                             <Home className="w-5 h-5 sm:w-5 sm:h-5 text-zinc-400" />
                         </Link>
                         <div className="h-6 w-px bg-zinc-700 mx-1" />
                         <h1 className="text-lg sm:text-xl font-bold font-serif bg-gradient-to-r from-violet-400 via-fuchsia-400 to-violet-400 bg-clip-text text-transparent tracking-tight">
-                            Guild Hall
+                            {t('title')}
                         </h1>
                     </div>
 
                     {/* User Actions */}
-                    <div className="flex items-center gap-1 sm:gap-2">
+                    <div className="flex items-center gap-1 sm:gap-2" data-tour="nickname-btn">
                         <EditNicknameDialog
                             currentUser={session.username}
                             currentNickname={userMap[session.username]?.nickname}
@@ -90,9 +95,9 @@ export default async function GuildPage() {
                 <div className="flex flex-col lg:grid lg:grid-cols-12 gap-4 sm:gap-4 lg:h-[calc(100vh-90px)]">
 
                     {/* Left: Quest Board */}
-                    <div className="lg:col-span-5 xl:col-span-4 h-[380px] sm:h-[420px] lg:h-full bg-zinc-900/50 rounded-xl border border-zinc-800 p-3 sm:p-4 flex flex-col overflow-hidden">
+                    <div className="lg:col-span-5 xl:col-span-4 h-[380px] sm:h-[420px] lg:h-full bg-zinc-900/50 rounded-xl border border-zinc-800 p-3 sm:p-4 flex flex-col overflow-hidden" data-tour="quest-board">
                         <div className="flex justify-between items-center mb-3 px-1">
-                            <h2 className="text-zinc-400 text-xs font-semibold uppercase tracking-widest">Quest Board</h2>
+                            <h2 className="text-zinc-400 text-xs font-semibold uppercase tracking-widest">{t('questBoard')}</h2>
                         </div>
                         <QuestBoard
                             initialQuests={quests}
@@ -103,7 +108,7 @@ export default async function GuildPage() {
                     </div>
 
                     {/* Right: Guild Chat */}
-                    <div className="lg:col-span-7 xl:col-span-8 h-[400px] sm:h-[450px] lg:h-full flex flex-col">
+                    <div className="lg:col-span-7 xl:col-span-8 h-[400px] sm:h-[450px] lg:h-full flex flex-col" data-tour="guild-chat">
                         <ChatBox
                             initialMessages={messages}
                             currentUser={session.username}
