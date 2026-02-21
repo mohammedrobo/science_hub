@@ -39,8 +39,25 @@ const MAX_INPUT_LINES = 10_000;
 function preprocess(raw: string): string {
     let text = raw;
 
+    // 0. Normalize non-breaking spaces, zero-width chars, and other invisible Unicode
+    text = text.replace(/[\u00A0\u200B\u200C\u200D\uFEFF]/g, ' ');
+
     // 1. Normalize line endings
     text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+    // 1b. Strip HTML tags — quizzes copied from web editors / rich text
+    //     Convert <br> to newline first, then remove all other tags
+    text = text.replace(/<br\s*\/?>/gi, '\n');
+    text = text.replace(/<\/?(?:b|strong|em|i|u|mark|span|div|p|code|pre|font|s|del|ins|small|big|abbr|cite|q|var|kbd|samp|wbr|details|summary|section|article|aside|header|footer|main|nav|figure|figcaption|ul|ol|li|dl|dt|dd|h[1-6]|a|sup|sub|ruby|rt|rp|bdi|bdo|data|time|dfn|output|meter|progress)(\s[^>]*)?\/?>|<\/?table(\s[^>]*)?\/?>|<\/?t(?:head|body|foot|r|h|d)(\s[^>]*)?\/?>|<\!--[\s\S]*?-->/gi, '');
+
+    // 1c. Convert emoji number indicators to regular digits
+    text = text.replace(/([\u0030-\u0039])\uFE0F\u20E3/g, '$1.');
+
+    // 1d. Remove markdown images: ![alt](url) — these are never quiz content
+    text = text.replace(/!\[[^\]]*\]\([^)]*\)/g, '');
+
+    // 1e. Convert markdown links to just their text: [text](url) → text
+    text = text.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1');
 
     // 2. Remove conversational greetings/closings — ONLY in the first & last 5 non-empty lines
     const conversationalPatterns = [
@@ -90,6 +107,18 @@ function preprocess(raw: string): string {
     // 3b. Strip blockquote markers (> ) from the start of lines
     text = text.replace(/^(\s*)>\s?/gm, '$1');
 
+    // 3b2. Convert markdown checkbox lists to regular options with markers
+    //      - [x] Option  →  - ✅ Option (correct)   - [ ] Option  →  - Option
+    text = text.replace(/^(\s*)[-*]\s*\[x\]\s*/gmi, '$1- ✅ ');
+    text = text.replace(/^(\s*)[-*]\s*\[\s\]\s*/gm, '$1- ');
+
+    // 3b3. Convert heading-based questions to plain numbered format
+    //      ## 1. What is... → 1. What is...   ### Question 1: ... → Question 1: ...
+    text = text.replace(/^#{1,6}\s+(\d+[.\)\-:])/gm, '$1');
+    text = text.replace(/^#{1,6}\s+(Q\.?\s*\d+)/gmi, '$1');
+    text = text.replace(/^#{1,6}\s+(Question\s*\d+)/gmi, '$1');
+    text = text.replace(/^#{1,6}\s+(\u0627\u0644\u0633\u0624\u0627\u0644\s*\d+)/gmi, '$1');
+
     // 3c. Remove section headers that are NOT answer keys
     text = text.replace(/^#{1,6}\s+\*{0,2}(?:part|section|topic|chapter|category)\s+\d*\*{0,2}\s*[:\-\u2013\u2014]?\s*.*/gmi, (match) => {
         if (/answer|solution|\u0627\u0644\u0625\u062c\u0627\u0628/i.test(match)) return match;
@@ -98,6 +127,9 @@ function preprocess(raw: string): string {
 
     // Remove horizontal rules
     text = text.replace(/^\s*[-*_=]{3,}\s*$/gm, '');
+
+    // 3c2. Strip markdown table separator rows (---|---)
+    text = text.replace(/^\s*\|?\s*[:|-]+\s*(\|[:|-]+\s*)+\|?\s*$/gm, '');
 
     // 3d. Shield math delimiters BEFORE bold-stripping so * inside formulas isn't corrupted
     //     Temporarily replace $...$ and $$...$$ with placeholders
@@ -114,22 +146,33 @@ function preprocess(raw: string): string {
     });
 
     // 3e. Bold-stripping (now safe — formulas are shielded)
-    // Remove bold wrappers around question numbers: **1.** -> 1.
-    text = text.replace(/^\*{1,2}(\d+[\.\)\-])\*{1,2}\s*/gm, '$1 ');
+    // Remove bold/italic wrappers around question numbers: **1.** or ***1.*** -> 1.
+    text = text.replace(/^\*{1,3}(\d+[\.\)\-])\*{1,3}\s*/gm, '$1 ');
 
-    // Unwrap fully bold questions: **1. What is X?** -> 1. What is X?
-    text = text.replace(/^\*{1,2}((?:\d+|Q\d+|Question\s*\d+)[\.\)\-:\s].+?)\*{1,2}\s*$/gmi, '$1');
+    // Unwrap fully bold/italic questions: **1. What is X?** or ***1. What is X?*** -> 1. What is X?
+    text = text.replace(/^\*{1,3}((?:\d+|Q\d+|Question\s*\d+)[\.\)\-:\s].+?)\*{1,3}\s*$/gmi, '$1');
+
+    // Unwrap bold/italic around option letters: *a)* text → a) text, _b)_ text → b) text
+    text = text.replace(/^[_*]{1,3}([a-zA-Z][.\)\-:])[_*]{1,3}\s*/gm, '$1 ');
 
     // Remove standalone bold markers on lines
     text = text.replace(/^\s*\*{2,}\s*$/gm, '');
 
-    // Unwrap bold around "Answer Key:" variants
-    text = text.replace(/^\*{1,2}((?:answer\s*key|answers?|correct\s*answers?|solutions?)\s*:?)\*{1,2}\s*:?\s*$/gmi, '$1:');
+    // Unwrap bold/italic around "Answer Key:" variants
+    text = text.replace(/^\*{1,3}((?:answer\s*key|answers?|correct\s*answers?|solutions?)\s*:?)\*{1,3}\s*:?\s*$/gmi, '$1:');
 
     // 3f. Restore shielded math
     for (let i = 0; i < mathShield.length; i++) {
         text = text.replace(`__MATH_SHIELD_${i}__`, mathShield[i]);
     }
+
+    // 3g. Unescape markdown escape characters (but NOT LaTeX backslash commands)
+    //     \* → *, \_ → _, \# → #, \` → `, \~ → ~, \> → >, \| → |, \. → ., \) → )
+    //     Must run AFTER math restoration to avoid corrupting LaTeX
+    text = text.replace(/\\([*_#`~>|.\)\-!])/g, '$1');
+
+    // 3h. Strip leading list markers before question numbers: - **1.** → 1.
+    text = text.replace(/^\s*[-•]\s+\*{0,2}(\d+[.\)\-:])/gm, '$1');
 
     return text;
 }
@@ -436,10 +479,15 @@ const INLINE_CORRECT_PATTERNS: RegExp[] = [
 ];
 
 function stripCorrectMarker(text: string): { cleaned: string; isCorrect: boolean } {
+    // Check for trailing correct markers
     for (const p of INLINE_CORRECT_PATTERNS) {
         if (p.test(text)) {
             return { cleaned: text.replace(p, '').trim(), isCorrect: true };
         }
+    }
+    // Check for leading ✅ marker (e.g. from checkbox conversion: - [x] -> - ✅ Option)
+    if (/^[\u2705\u2714\u2713]+\s+/.test(text)) {
+        return { cleaned: text.replace(/^[\u2705\u2714\u2713]+\s+/, '').trim(), isCorrect: true };
     }
     return { cleaned: text, isCorrect: false };
 }
@@ -1121,6 +1169,8 @@ export function parseQuizText(text: string): QuizParseResult {
             if (lastType === 'question') {
                 currentQ.text += ' ' + cleanLine;
             } else if (lastType === 'option' && currentQ.options.length > 0) {
+                // Don't append very long lines — they're likely standalone paragraphs
+                if (cleanLine.length > 200) continue;
                 const idx = currentQ.options.length - 1;
                 currentQ.options[idx] += ' ' + cleanLine;
             }

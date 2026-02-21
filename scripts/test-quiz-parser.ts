@@ -1565,6 +1565,279 @@ Answer Key:
             ],
         },
     },
+
+    // ════════════════════════════════════════════════════════════════
+    // NEW TESTS — ADVANCED MARKDOWN / HTML / AI OUTPUT ROBUSTNESS
+    // ════════════════════════════════════════════════════════════════
+
+    {
+        name: '73. HTML Tags — <b>, <em>, <br> in Quiz Content',
+        input: `<b>1. What is the capital of Egypt?</b><br>
+<em>a)</em> <strong>Cairo</strong><br>
+<em>b)</em> Alexandria<br>
+<em>c)</em> Luxor<br>
+<em>d)</em> Aswan<br>
+
+<b>Answer Key:</b><br>
+1. a`,
+        expect: {
+            questionCount: 1,
+            answeredCount: 1,
+            textContains: [
+                { index: 0, substring: 'capital of Egypt' },
+            ],
+            correctAnswer: [{ index: 0, answer: 0 }],
+        },
+    },
+
+    {
+        name: '74. Markdown Images and Links Removed',
+        input: `![quiz banner](https://example.com/banner.png)
+
+1. What is [photosynthesis](https://en.wikipedia.org/wiki/Photosynthesis)?
+a) A chemical reaction in plants
+b) A type of rock
+c) A weather pattern
+d) An animal behavior
+
+Answer Key:
+1. a`,
+        expect: {
+            questionCount: 1,
+            answeredCount: 1,
+            textContains: [
+                { index: 0, substring: 'photosynthesis' },
+            ],
+        },
+    },
+
+    {
+        name: '75. Heading-Based Questions (## 1. Question)',
+        input: `## 1. What is the speed of light?
+a) 150,000 km/s
+b) 300,000 km/s
+c) 200,000 km/s
+d) 100,000 km/s
+
+### 2. What is the chemical symbol for gold?
+a) Ag
+b) Au
+c) Fe
+d) Cu
+
+## Answer Key:
+1. b
+2. b`,
+        expect: {
+            questionCount: 2,
+            answeredCount: 2,
+            correctAnswer: [
+                { index: 0, answer: 1 },
+                { index: 1, answer: 1 },
+            ],
+        },
+    },
+
+    {
+        name: '76. Markdown Checkbox Options (- [x], - [ ])',
+        input: `1. Which is a noble gas?
+- [ ] Oxygen
+- [ ] Nitrogen
+- [x] Helium
+- [ ] Hydrogen`,
+        expect: {
+            questionCount: 1,
+            answeredCount: 1,
+            correctAnswer: [{ index: 0, answer: 2 }],
+        },
+    },
+
+    {
+        name: '77. Escaped Markdown Characters',
+        input: `1\\. What is 2 \\* 3?
+a) 5
+b) 6
+c) 7
+d) 8
+
+Answer Key:
+1. b`,
+        expect: {
+            questionCount: 1,
+            answeredCount: 1,
+            textContains: [
+                { index: 0, substring: '2 * 3' },
+            ],
+        },
+    },
+
+    {
+        name: '78. Non-Breaking Spaces and Zero-Width Chars',
+        input: `1.\u00A0What\u00A0is the\u200Bcapital of France?
+a)\u00A0London
+b)\u00A0Paris
+c)\u00A0Berlin
+d)\u00A0Madrid
+
+Answer Key:
+1. b`,
+        expect: {
+            questionCount: 1,
+            answeredCount: 1,
+            correctAnswer: [{ index: 0, answer: 1 }],
+        },
+    },
+
+    {
+        name: '79. Complex ChatGPT-Style Output with Mixed Formatting',
+        input: `Sure! Here's a quiz for you:
+
+---
+
+**Quiz: General Science**
+
+**1. What is the smallest unit of matter?**
+
+**A)** Molecule
+**B)** Atom
+**C)** Proton
+**D)** Electron
+
+**2. Which planet is known as the Red Planet?**
+
+**A)** Venus
+**B)** Jupiter
+**C)** Mars
+**D)** Saturn
+
+---
+
+**Answer Key:**
+1. **B**
+2. **C**
+
+Good luck! \uD83C\uDF40`,
+        expect: {
+            questionCount: 2,
+            answeredCount: 2,
+            correctAnswer: [
+                { index: 0, answer: 1 },
+                { index: 1, answer: 2 },
+            ],
+        },
+    },
+
+    {
+        name: '80. Claude-Style Output with Headers + Bold + Explanations',
+        input: `Here is your quiz:
+
+## 1. What is DNA?
+**a)** Deoxyribonucleic acid
+**b)** Dinitroacetic acid
+**c)** Dihydroxynaphthalene acid
+**d)** None of the above
+
+## 2. The mitochondria is the powerhouse of the cell.
+True / False
+
+## Answer Key:
+1. a \u2014 DNA stands for Deoxyribonucleic acid
+2. True
+
+I hope this helps! Let me know if you need more questions.`,
+        expect: {
+            questionCount: 2,
+            answeredCount: 2,
+            types: ['mcq', 'true_false'],
+            correctAnswer: [
+                { index: 0, answer: 0 },
+            ],
+        },
+    },
+
+    {
+        name: '81. Quiz with <br> Line Breaks Inside Options',
+        input: `1. What is H2O?<br>a) Hydrogen peroxide<br>b) Water<br>c) Hydrochloric acid<br>d) Sulfuric acid
+
+Answer Key:
+1. b`,
+        expect: {
+            questionCount: 1,
+            answeredCount: 1,
+            correctAnswer: [{ index: 0, answer: 1 }],
+        },
+    },
+
+    {
+        name: '82. Italic/Bold Wrapped Option Letters',
+        input: `1. What color is the sky?
+*a)* Green
+*b)* Blue
+*c)* Red
+*d)* Yellow
+
+Answer Key:
+1. b`,
+        expect: {
+            questionCount: 1,
+            answeredCount: 1,
+            correctAnswer: [{ index: 0, answer: 1 }],
+        },
+    },
+
+    {
+        name: '83. Bullet-Prefixed Question Numbers',
+        input: `- 1. What is the largest ocean?
+  a) Atlantic
+  b) Pacific
+  c) Indian
+  d) Arctic
+
+- 2. What is the tallest mountain?
+  a) K2
+  b) Kilimanjaro
+  c) Everest
+  d) Denali
+
+Answer Key:
+1. b
+2. c`,
+        expect: {
+            questionCount: 2,
+            answeredCount: 2,
+            correctAnswer: [
+                { index: 0, answer: 1 },
+                { index: 1, answer: 2 },
+            ],
+        },
+    },
+
+    {
+        name: '84. Deeply Nested Markdown (Bold + Italic + Code) Around Questions',
+        input: `***1. What is the value of \`PI\`?***
+_a)_ 3.14
+_b)_ 2.72
+_c)_ 1.61
+_d)_ 1.41
+
+***2. What does \`console.log\` do?***
+_a)_ Prints to console
+_b)_ Reads from file
+_c)_ Sends a network request
+_d)_ Creates a variable
+
+***Answer Key:***
+1. a
+2. a`,
+        expect: {
+            questionCount: 2,
+            answeredCount: 2,
+            correctAnswer: [
+                { index: 0, answer: 0 },
+                { index: 1, answer: 0 },
+            ],
+        },
+    },
 ];
 
 // ════════════════════ TEST RUNNER ════════════════════
@@ -1658,7 +1931,7 @@ for (const tc of testCases) {
         // Debug: show first 3 questions
         for (let qi = 0; qi < Math.min(3, result.questions.length); qi++) {
             const q = result.questions[qi];
-            console.log(`  [DEBUG Q${qi+1}] type=${q.type} answer=${q.correctAnswerIndex} opts=${q.options.length} text="${q.text.substring(0,80)}..."`);
+            console.log(`  [DEBUG Q${qi + 1}] type=${q.type} answer=${q.correctAnswerIndex} opts=${q.options.length} text="${q.text.substring(0, 80)}..."`);
         }
         failures.push(tc.name);
         failed++;
