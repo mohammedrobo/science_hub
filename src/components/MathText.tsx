@@ -272,6 +272,13 @@ export const MathText = ({ text, className }: MathTextProps) => {
 
         const { content, isBlock } = extractLatex(seg.content);
 
+        // Force display-style fractions in inline math for bigger horizontal bars
+        // Without this, \frac renders with a tiny bar in textstyle mode
+        const inlineContent =
+            !isBlock && /\\(frac|dfrac|cfrac|tfrac|binom|dbinom)/.test(content) && !content.includes('\\displaystyle')
+                ? '\\displaystyle ' + content
+                : content;
+
         if (isBlock) {
             parts.push(
                 <BlockMath
@@ -297,7 +304,7 @@ export const MathText = ({ text, className }: MathTextProps) => {
                         </span>
                     )}
                 >
-                    {content}
+                    {inlineContent}
                 </InlineMath>
             );
         }

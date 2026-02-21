@@ -262,12 +262,12 @@ function PlaylistSidebar({
 
   return (
     <>
-      {/* Toggle Button */}
+      {/* Toggle Button — positioned at top to avoid YouTube bottom controls */}
       <button
         onClick={onToggle}
         className={cn(
-          'absolute top-1/2 -translate-y-1/2 z-20',
-          'bg-zinc-800/90 hover:bg-zinc-700 text-zinc-300',
+          'absolute top-2 z-20',
+          'bg-zinc-800/90 hover:bg-zinc-700 text-zinc-300 hover:text-white',
           'p-2 rounded-l-lg border border-r-0 border-zinc-700 shadow-lg',
           'transition-all duration-300 ease-out',
           'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary',
@@ -284,12 +284,13 @@ function PlaylistSidebar({
         )}
       </button>
 
-      {/* Sidebar */}
+      {/* Sidebar — overlay from the right so it doesn't break aspect-video */}
       <div
         className={cn(
-          'bg-zinc-900 border-l border-zinc-800 overflow-hidden flex-shrink-0',
+          'absolute top-0 right-0 h-full z-10',
+          'bg-zinc-900/95 backdrop-blur-sm border-l border-zinc-800 overflow-hidden',
           'transition-all duration-300 ease-out',
-          isOpen ? 'w-64 opacity-100' : 'w-0 opacity-0'
+          isOpen ? 'w-64 opacity-100' : 'w-0 opacity-0 pointer-events-none'
         )}
         role="navigation"
         aria-label="Video playlist"
@@ -366,7 +367,7 @@ function PlaylistSidebar({
 
 // ─── Mobile Playlist Sheet ───────────────────────────────────────────────────
 
-function MobilePlaylistSheet({
+function MobilePlaylistBar({
   parts,
   activeUrl,
   onSelect,
@@ -377,20 +378,44 @@ function MobilePlaylistSheet({
 }) {
   const [open, setOpen] = useState(false);
 
+  const activeIdx = parts.findIndex((p) => {
+    const embedUrl = buildEmbedUrl(
+      p.url,
+      typeof window !== 'undefined' ? window.location.origin : undefined
+    );
+    return embedUrl === activeUrl;
+  });
+  const activePart = activeIdx >= 0 ? parts[activeIdx] : parts[0];
+  const displayIdx = activeIdx >= 0 ? activeIdx : 0;
+
   return (
     <Sheet open={open} onOpenChange={setOpen}>
+      {/* Bar overlays bottom of video — doesn't steal space from aspect-video */}
       <SheetTrigger asChild>
         <button
           className={cn(
-            'absolute top-3 right-3 z-20',
-            'bg-zinc-800/90 hover:bg-zinc-700 text-zinc-300',
-            'p-2 rounded-lg border border-zinc-700 shadow-lg',
-            'transition-all duration-200',
-            'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary'
+            'absolute bottom-0 left-0 right-0 z-10',
+            'w-full flex items-center gap-2.5 px-3 py-2',
+            'bg-zinc-900/95 backdrop-blur-sm border-t border-zinc-800',
+            'text-left transition-colors duration-150',
+            'hover:bg-zinc-800/90 active:bg-zinc-800',
+            'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset',
+            'touch-manipulation'
           )}
-          aria-label="Open playlist"
+          aria-label={`Open playlist — playing part ${displayIdx + 1} of ${parts.length}`}
         >
-          <ListVideo className="w-4 h-4" />
+          <span className="flex-shrink-0 w-6 h-6 rounded bg-primary/20 flex items-center justify-center">
+            <ListVideo className="w-3.5 h-3.5 text-primary" />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs sm:text-sm text-zinc-200 truncate font-medium leading-tight">
+              {activePart?.title || 'Select video'}
+            </p>
+          </div>
+          <span className="text-[10px] sm:text-xs text-zinc-500 tabular-nums flex-shrink-0 bg-zinc-800 px-1.5 py-0.5 rounded">
+            {displayIdx + 1}/{parts.length}
+          </span>
+          <ChevronRight className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
         </button>
       </SheetTrigger>
       <SheetContent
@@ -577,9 +602,9 @@ export function VideoPlayer({ url, title, parts }: VideoPlayerProps) {
   }
 
   return (
-    <div className="relative w-full h-full flex bg-black overflow-hidden">
-      {/* Main Video Area */}
-      <div className="flex-1 h-full relative">
+    <div className="relative w-full h-full bg-black overflow-hidden">
+      {/* Main Video Area — takes full space, overlays sit on top */}
+      <div className="w-full h-full relative">
         {/* Thumbnail state (lite-youtube) */}
         {playerState === 'thumbnail' && activeUrl && currentRawUrl && (
           <YouTubeThumbnail
@@ -643,11 +668,11 @@ export function VideoPlayer({ url, title, parts }: VideoPlayerProps) {
         )}
       </div>
 
-      {/* Playlist Sidebar — Desktop inline / Mobile Sheet */}
+      {/* Playlist overlays — absolutely positioned, don't break aspect-video */}
       {hasParts && (
         <>
-          {/* Desktop: inline sidebar */}
-          <div className="hidden lg:contents">
+          {/* Desktop: sidebar overlay from right */}
+          <div className="hidden lg:block">
             <PlaylistSidebar
               parts={parts}
               activeUrl={activeUrl}
@@ -657,9 +682,9 @@ export function VideoPlayer({ url, title, parts }: VideoPlayerProps) {
             />
           </div>
 
-          {/* Mobile: bottom sheet */}
+          {/* Mobile/Tablet: bar overlay at bottom */}
           <div className="lg:hidden">
-            <MobilePlaylistSheet
+            <MobilePlaylistBar
               parts={parts}
               activeUrl={activeUrl}
               onSelect={handlePartSelect}
