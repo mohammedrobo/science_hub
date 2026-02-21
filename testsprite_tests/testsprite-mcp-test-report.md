@@ -1,4 +1,4 @@
-# TestSprite AI Testing Report (MCP)
+@# TestSprite AI Testing Report (MCP)
 
 ---
 
@@ -96,7 +96,8 @@
 
 #### Test TC008 — file_upload_image_validation_and_size_limit
 - **Test Code:** [TC008_file_upload_image_validation_and_size_limit.py](./TC008_file_upload_image_validation_and_size_limit.py)
-- **Test Visualization and Result:** [View on TestSprite](https://www.testsprite.com/dashboard/mcp/tests/5f9ca68c-b924-4019-ba95-efd0c105fe21/849a5bbe-09ca-4a5a-8eb2-755f16660070)
+CUMENTATION.md
+- **Test Visualization and Result:** [View on TestSprite](https://www.
 - **Status:** ❌ Failed
 - **Error:** `Valid upload of test.jpg failed: 401 {"error":"Invalid session"}`
 - **Analysis / Findings:** The upload endpoint correctly enforces authentication and returns 401 for requests with invalid sessions. The test failed because it could not create a valid session (same auth limitation). The **upload API is working correctly** — it properly validates sessions and rejects unauthorized uploads.

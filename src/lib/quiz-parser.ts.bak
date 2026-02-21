@@ -1,12 +1,9 @@
-import { LATEX_COMMANDS, LATEX_SYMBOLS, buildCommandRegexSource, buildSymbolRegexSource } from './latex-constants';
-
 export interface QuizQuestion {
     id: number;
     text: string;
     options: string[];
     correctAnswerIndex: number; // 0-based index, -1 if unknown
     type: 'mcq' | 'true_false' | 'fill_blank';
-    explanation?: string;
 }
 
 export interface QuizParseResult {
@@ -23,11 +20,10 @@ export interface QuizParseResult {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// QUIZ TEXT PARSER v5
+// QUIZ TEXT PARSER v4
 // Robust plain-text parser — handles ANY quiz format, ANY language
-// Supports: MCQ (a–z, roman, numbered, dash), True/False (incl. Yes/No,
-// Correct/Incorrect, Right/Wrong), Fill-blank, inline options, Arabic,
-// answer keys with explanations, and ANY math/physics/chemistry formula.
+// Supports: MCQ, True/False, inline options, Arabic, Roman numerals,
+// numbered sub-options, tables, comma-separated answer keys, etc.
 // ════════════════════════════════════════════════════════════════════════════
 
 // Maximum input limits to prevent browser freezes
@@ -43,6 +39,7 @@ function preprocess(raw: string): string {
     text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
     // 2. Remove conversational greetings/closings — ONLY in the first & last 5 non-empty lines
+    //    This prevents accidentally deleting valid questions starting with "Note:", etc.
     const conversationalPatterns = [
         /^(sure!?|here\s+(is|are)|okay|ok!?|certainly|of course|hello|hi!?|hey|great|absolutely).*/i,
         /^(good luck|hope this helps|i hope|feel free|let me know|best of luck|happy studying).*/i,
@@ -53,12 +50,14 @@ function preprocess(raw: string): string {
         /^(time\s*(allowed|limit|duration)\s*[:=]).*/i,
     ];
 
+    // Patterns that should ONLY match at the very start (first 5 non-empty lines)
     const headerOnlyPatterns = [
         /^(note\s*:|disclaimer\s*:|instructions?\s*:).*/i,
     ];
 
     const lines = text.split('\n');
 
+    // Find first and last 5 non-empty line indices
     const nonEmptyIndices: number[] = [];
     for (let i = 0; i < lines.length; i++) {
         if (lines[i].trim()) nonEmptyIndices.push(i);
@@ -70,10 +69,12 @@ function preprocess(raw: string): string {
         const trimmed = line.trim();
         if (!trimmed) return true;
 
+        // Header-only patterns: only strip from the first 5 non-empty lines
         if (headIndices.has(idx)) {
             if (headerOnlyPatterns.some(p => p.test(trimmed))) return false;
         }
 
+        // Conversational patterns: only strip from first/last 5 non-empty lines
         if (headIndices.has(idx) || tailIndices.has(idx)) {
             if (conversationalPatterns.some(p => p.test(trimmed))) return false;
         }
@@ -110,7 +111,7 @@ function preprocess(raw: string): string {
 
 // ── Balanced Brace Helpers ─────────────────────────────────────────────────
 
-/** Find the index of the closing '}' matching the '{' at `start`. Handles arbitrary nesting and escaped braces. Returns -1 if unbalanced. */
+/** Find the index of the closing '}' matching the '{' at `start`. Handles arbitrary nesting. Returns -1 if unbalanced. */
 function findMatchingBrace(text: string, start: number): number {
     if (text[start] !== '{') return -1;
     let depth = 0;
@@ -155,6 +156,7 @@ function protectLatex(text: string): { cleaned: string; restore: (s: string) => 
     let counter = 0;
 
     const protect = (match: string, prefix: string): string => {
+        // Use : separator instead of _ to avoid subscript regex matching inside placeholders
         const key = `__LATEX:${prefix}${counter++}__`;
         placeholders.set(key, match);
         return key;
@@ -174,127 +176,62 @@ function protectLatex(text: string): { cleaned: string; restore: (s: string) => 
     // 3. Display math: \[...\]
     cleaned = cleaned.replace(/\\\[([\s\S]+?)\\\]/g, (m) => protect(m, 'K'));
 
-    // 4. Inline math: $...$ — NOW supports multi-line (up to 5 lines)
-    //    Currency disambiguation: $<digits> or $<digits>,<digits> NOT treated as LaTeX
-    cleaned = cleaned.replace(/(?<!\\)\$((?:[^$]|\n(?!\n)){1,500}?)\$/g, (m, inner) => {
-        // Skip currency: $50, $1,000, $3.99
-        if (/^\$\d[\d,]*\.?\d*$/.test(m)) return m;
-        // Skip if inner is purely digits (price like $50)
-        if (/^\d[\d,]*\.?\d*$/.test(inner.trim())) return m;
-        // Allow up to 5 lines
-        const lineCount = (inner.match(/\n/g) || []).length;
-        if (lineCount > 5) return m;
-        return protect(m, 'I');
-    });
+    // 4. Inline math: $...$ (single line, non-greedy, skip escaped \$)
+    cleaned = cleaned.replace(/(?<!\\)\$([^$\n]+?)\$/g, (m) => protect(m, 'I'));
 
     // 5. Parenthesized inline: \(...\)
     cleaned = cleaned.replace(/\\\(([\s\S]+?)\\\)/g, (m) => protect(m, 'P'));
 
     // ── Phase 2: Standalone commands with arbitrary nesting depth ──
     //    Uses iterative balanced-brace matching instead of regex for braces.
+    //    This correctly handles: \frac{\frac{a}{b}}{c}, \ce{CO2 + H2O -> H2CO3},
+    //    \sqrt[3]{\frac{x}{y}}, \underset{x \to 0}{\lim}, etc.
 
-    const cmdSource = buildCommandRegexSource();
-    const cmdRegex = new RegExp(`\\\\(?:${cmdSource})(?![a-zA-Z])`, 'g');
+    const LATEX_COMMANDS = [
+        // Fractions & roots
+        'frac', 'dfrac', 'tfrac', 'cfrac', 'sqrt', 'cbrt',
+        // Accents & decorators
+        'vec', 'hat', 'bar', 'dot', 'ddot', 'tilde', 'widetilde', 'widehat',
+        'overline', 'underline', 'overbrace', 'underbrace', 'overleftarrow', 'overrightarrow',
+        'overset', 'underset', 'stackrel', 'cancel', 'bcancel', 'xcancel', 'sout',
+        // Binomials
+        'binom', 'dbinom', 'tbinom',
+        // Text in math
+        'text', 'textbf', 'textit', 'textrm', 'textsc', 'texttt', 'textsf',
+        'mathrm', 'mathbf', 'mathit', 'mathsf', 'mathtt',
+        'mathcal', 'mathbb', 'mathfrak', 'mathscr',
+        'boldsymbol', 'pmb',
+        // Chemistry (mhchem)
+        'ce', 'pu',
+        // Physics (siunitx)
+        'SI', 'si', 'num', 'qty', 'unit', 'ang',
+        // Sizing & boxing
+        'boxed', 'colorbox', 'fcolorbox', 'color', 'textcolor',
+        // Operators
+        'operatorname', 'DeclareMathOperator',
+        // Phantoms
+        'phantom', 'vphantom', 'hphantom',
+        // Extensible arrows
+        'xleftarrow', 'xrightarrow', 'xLeftarrow', 'xRightarrow',
+    ].join('|');
+
+    const cmdRegex = new RegExp(`\\\\(?:${LATEX_COMMANDS})(?![a-zA-Z])`, 'g');
     let result = '';
     let lastIdx = 0;
     let cmdMatch: RegExpExecArray | null;
 
-    // Special handling for \left...\right pairs
-    const leftRightResult: string[] = [];
-    let lrText = cleaned;
-
-    // First pass: protect \left...\right pairs (can nest)
-    // Use iterative approach for \left...\right
-    let lrPos = 0;
-    while (lrPos < lrText.length) {
-        const leftIdx = lrText.indexOf('\\left', lrPos);
-        if (leftIdx === -1) {
-            leftRightResult.push(lrText.substring(lrPos));
-            break;
-        }
-        // Check it's actually \left (not \leftarrow etc.)
-        const afterLeft = lrText.substring(leftIdx + 5);
-        const validLeftDelims = /^[\(\[\{|.\\]/;
-        if (!validLeftDelims.test(afterLeft)) {
-            leftRightResult.push(lrText.substring(lrPos, leftIdx + 5));
-            lrPos = leftIdx + 5;
-            continue;
-        }
-
-        // Find matching \right by counting \left/\right depth
-        let depth = 0;
-        let searchPos = leftIdx;
-        let rightEnd = -1;
-        while (searchPos < lrText.length) {
-            const nextLeft = lrText.indexOf('\\left', searchPos);
-            const nextRight = lrText.indexOf('\\right', searchPos);
-
-            if (nextRight === -1) break; // no matching \right
-
-            if (nextLeft !== -1 && nextLeft < nextRight) {
-                // Check if it's a real \left (not \leftarrow)
-                const checkAfter = lrText.substring(nextLeft + 5);
-                if (validLeftDelims.test(checkAfter)) {
-                    depth++;
-                    searchPos = nextLeft + 5;
-                } else {
-                    searchPos = nextLeft + 5;
-                }
-            } else {
-                if (depth === 0) {
-                    // Find the delimiter after \right
-                    const afterRight = lrText.substring(nextRight + 6);
-                    const delimMatch = afterRight.match(/^[\)\]\}|.\\]/);
-                    rightEnd = nextRight + 6 + (delimMatch ? delimMatch[0].length : 0);
-                    break;
-                }
-                depth--;
-                searchPos = nextRight + 6;
-            }
-        }
-
-        if (rightEnd !== -1) {
-            leftRightResult.push(lrText.substring(lrPos, leftIdx));
-            const fullExpr = lrText.substring(leftIdx, rightEnd);
-            leftRightResult.push(protect(fullExpr, 'LR'));
-            lrPos = rightEnd;
-        } else {
-            leftRightResult.push(lrText.substring(lrPos, leftIdx + 5));
-            lrPos = leftIdx + 5;
-        }
-    }
-    cleaned = leftRightResult.join('');
-
-    // Second pass: protect standalone commands with brace groups
-    result = '';
-    lastIdx = 0;
-    cmdRegex.lastIndex = 0;
-
     while ((cmdMatch = cmdRegex.exec(cleaned)) !== null) {
-        const cmdName = cmdMatch[0].substring(1); // remove leading backslash
-
-        // Skip \left/\right/\big etc. — already handled or don't consume braces
-        if (['left', 'right', 'bigl', 'bigr', 'Bigl', 'Bigr', 'biggl', 'biggr', 'Biggl', 'Biggr', 'middle',
-            'displaystyle', 'textstyle', 'scriptstyle', 'scriptscriptstyle',
-            'big', 'Big', 'bigg', 'Bigg',
-            'limits', 'nolimits'].includes(cmdName)) {
-            // These are modifiers that don't necessarily take brace groups
-            // Protect just the command itself
-            result += cleaned.substring(lastIdx, cmdMatch.index);
-            result += protect(cmdMatch[0], 'C');
-            lastIdx = cmdMatch.index + cmdMatch[0].length;
-            continue;
-        }
-
         result += cleaned.substring(lastIdx, cmdMatch.index);
         const cmdEnd = cmdMatch.index + cmdMatch[0].length;
         const consumed = consumeBraceGroups(cleaned, cmdEnd, 0);
         if (consumed > cmdEnd) {
+            // Command + all its argument groups (handles arbitrary nesting)
             const fullCmd = cleaned.substring(cmdMatch.index, consumed);
             result += protect(fullCmd, 'C');
             lastIdx = consumed;
             cmdRegex.lastIndex = consumed;
         } else {
+            // Command with no brace groups — protect command token only
             result += protect(cmdMatch[0], 'C');
             lastIdx = cmdEnd;
         }
@@ -303,54 +240,18 @@ function protectLatex(text: string): { cleaned: string; restore: (s: string) => 
     cleaned = result;
 
     // ── Phase 3: Standalone symbols (Greek, operators, relations, arrows, etc.) ──
-    const symSource = buildSymbolRegexSource();
-    const symRegex = new RegExp(`\\\\(?:${symSource})(?![a-zA-Z])`, 'g');
-    cleaned = cleaned.replace(symRegex, (m) => protect(m, 'S'));
+    cleaned = cleaned.replace(/\\(?:alpha|beta|gamma|delta|epsilon|varepsilon|zeta|eta|theta|vartheta|iota|kappa|lambda|mu|nu|xi|pi|varpi|rho|varrho|sigma|varsigma|tau|upsilon|phi|varphi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Upsilon|Phi|Psi|Omega|times|div|pm|mp|cdot|cdots|ldots|ddots|vdots|circ|bullet|star|ast|oplus|otimes|odot|oslash|ominus|dagger|ddagger|amalg|cap|cup|wedge|vee|land|lor|lnot|neg|leq|le|geq|ge|neq|ne|approx|cong|ncong|equiv|sim|simeq|propto|asymp|doteq|models|prec|succ|preceq|succeq|ll|gg|subset|supset|subseteq|supseteq|subsetneq|supsetneq|nsubseteq|nsupseteq|in|notin|ni|owns|emptyset|varnothing|forall|exists|nexists|partial|nabla|infty|aleph|beth|gimel|wp|ell|hbar|imath|jmath|Re|Im|sum|prod|coprod|int|iint|iiint|oint|oiint|bigcup|bigcap|bigoplus|bigotimes|bigvee|bigwedge|lim|limsup|liminf|sup|inf|max|min|arg|det|dim|exp|gcd|lcm|hom|ker|deg|log|ln|lg|sin|cos|tan|cot|sec|csc|arcsin|arccos|arctan|arcctg|sinh|cosh|tanh|coth|sech|csch|mod|bmod|pmod|Pr|rightarrow|leftarrow|Rightarrow|Leftarrow|leftrightarrow|Leftrightarrow|longrightarrow|longleftarrow|Longrightarrow|Longleftarrow|longleftrightarrow|Longleftrightarrow|uparrow|downarrow|Uparrow|Downarrow|updownarrow|Updownarrow|nearrow|searrow|swarrow|nwarrow|mapsto|longmapsto|hookrightarrow|hookleftarrow|rightharpoonup|rightharpoondown|leftharpoonup|leftharpoondown|rightleftharpoons|leftrightharpoons|to|gets|implies|impliedby|iff|therefore|because|angle|measuredangle|sphericalangle|triangle|square|Diamond|Box|lozenge|perp|parallel|nparallel|cong|ncong|not|mid|nmid|flat|natural|sharp|clubsuit|diamondsuit|heartsuit|spadesuit|checkmark|maltese|quad|qquad|enspace|thinspace|space)(?![a-zA-Z])/g, (m) => protect(m, 'S'));
 
-    // ── Phase 4: Superscripts/subscripts without $ delimiters ──
-    // Uses extractBalancedBraces for unlimited nesting depth
-    // Braced: x^{...}, CO_{2}, H^{+}
-    result = '';
-    lastIdx = 0;
-    const subSupBraceRegex = /(?<=[a-zA-Z0-9\)}\]])[\^_]\{/g;
-    let ssMatch: RegExpExecArray | null;
-    while ((ssMatch = subSupBraceRegex.exec(cleaned)) !== null) {
-        result += cleaned.substring(lastIdx, ssMatch.index);
-        const caretOrUnderscore = cleaned[ssMatch.index];
-        const braceStart = ssMatch.index + 1; // position of {
-        const braceEnd = findMatchingBrace(cleaned, braceStart + (caretOrUnderscore === '^' || caretOrUnderscore === '_' ? 0 : 0));
-        // Actually: ssMatch matches ^{ or _{, so the { is at ssMatch.index + 1
-        const actualBraceStart = ssMatch.index + 1;
-        const actualBraceEnd = findMatchingBrace(cleaned, actualBraceStart);
-        if (actualBraceEnd !== -1) {
-            const fullExpr = cleaned.substring(ssMatch.index, actualBraceEnd + 1);
-            result += protect(fullExpr, 'X');
-            lastIdx = actualBraceEnd + 1;
-            subSupBraceRegex.lastIndex = actualBraceEnd + 1;
-        } else {
-            result += cleaned.substring(lastIdx, ssMatch.index + ssMatch[0].length);
-            lastIdx = ssMatch.index + ssMatch[0].length;
-        }
-    }
-    result += cleaned.substring(lastIdx);
-    cleaned = result;
-
-    // Simple single-char: x^2, a_i, H^+, e^x, H^-, O^2
-    cleaned = cleaned.replace(/(?<=[a-zA-Z0-9\)}\]])[\^_]([a-zA-Z0-9+\-*])/g, (m) => protect(m, 'X'));
+    // 8. Superscripts/subscripts without $ delimiters: x^{2}, CO_{2}, H^+
+    //    Handles nested braces: x^{\frac{1}{2}}, _{\text{max}}
+    cleaned = cleaned.replace(/(?<=[a-zA-Z0-9)])[\^_]\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\}/g, (m) => protect(m, 'X'));
+    // Simple single-char: x^2, a_i, H^+, e^x
+    cleaned = cleaned.replace(/(?<=[a-zA-Z0-9)])[\^_]([a-zA-Z0-9+\-])/g, (m) => protect(m, 'X'));
 
     const restore = (s: string): string => {
         let result = s;
-        // Need multiple passes because placeholders can be nested
-        let maxPasses = 10;
-        while (maxPasses-- > 0) {
-            let changed = false;
-            for (const [key, val] of placeholders) {
-                if (result.includes(key)) {
-                    result = result.replaceAll(key, val);
-                    changed = true;
-                }
-            }
-            if (!changed) break;
+        for (const [key, val] of placeholders) {
+            result = result.replaceAll(key, val);
         }
         return result;
     };
@@ -361,20 +262,16 @@ function protectLatex(text: string): { cleaned: string; restore: (s: string) => 
 // ── Inline Options Splitter ────────────────────────────────────────────────
 
 function trySplitInline(line: string): { letter: string; text: string }[] | null {
-    // Support a-z range for inline options, with 1+ space separation
-    const parts = line.split(/\s{2,}(?=\*{0,2}[a-zA-Z]\s*[\.\)\-:])/);
+    const parts = line.split(/\s{2,}(?=\*{0,2}[a-hA-H]\s*[\.\)\-:])/);
     if (parts.length < 2) return null;
 
     const results: { letter: string; text: string }[] = [];
-    const optRe = /^\*{0,2}\s*([a-zA-Z])\s*[\.\)\-:]\s*\*{0,2}\s*(.+)/;
+    const optRe = /^\*{0,2}\s*([a-hA-H])\s*[\.\)\-:]\s*\*{0,2}\s*(.+)/;
 
     for (const p of parts) {
         const m = p.trim().match(optRe);
         if (m) {
-            const letter = m[1].toLowerCase();
-            if (letter >= 'a' && letter <= 'z') {
-                results.push({ letter, text: m[2].trim() });
-            }
+            results.push({ letter: m[1], text: m[2].trim() });
         }
     }
 
@@ -389,9 +286,6 @@ const INLINE_CORRECT_PATTERNS: RegExp[] = [
     /\s*\[x\]\s*$/i,
     /\s*<-{1,2}\s*$/,
     /\s*\u2190\s*$/,
-    /\s*\u2606\s*$/,   // ☆
-    /\s*\u2605\s*$/,   // ★
-    /\s*>>\s*$/,        // >>
 ];
 
 function stripCorrectMarker(text: string): { cleaned: string; isCorrect: boolean } {
@@ -417,38 +311,30 @@ function cleanText(text: string): string {
 
 // ── Apply Answer to Question (with bounds checking) ────────────────────────
 
-function applyAnswer(q: QuizQuestion, ansRaw: string, explanation?: string): void {
+function applyAnswer(q: QuizQuestion, ansRaw: string): void {
     const ans = ansRaw.trim().toLowerCase();
 
-    if (explanation) {
-        q.explanation = explanation.trim();
-    }
-
-    // MCQ letter answer (a-z) — WITH bounds check
-    if (/^[a-z]$/i.test(ans)) {
+    // MCQ letter answer (a-h) — WITH bounds check
+    if (/^[a-h]$/i.test(ans)) {
         const index = ans.charCodeAt(0) - 97;
-        if (index >= 0 && index <= 25 && (q.options.length === 0 || index < q.options.length)) {
+        if (q.options.length === 0 || index < q.options.length) {
             q.correctAnswerIndex = index;
         }
         return;
     }
 
-    // True/False answer (including Yes/No, Correct/Incorrect, Right/Wrong)
-    if (/^(true|t|yes|y|correct|right|\u0635\u062d|\u0635\u062d\u064a\u062d)$/i.test(ans)) {
+    // True/False answer
+    if (/^(true|t|\u0635\u062d|\u0635\u062d\u064a\u062d)$/i.test(ans)) {
         q.type = 'true_false';
         if (q.options.length === 0) q.options = ['True', 'False'];
-        q.correctAnswerIndex = q.options.findIndex(o =>
-            /^(true|t|yes|y|correct|right|\u0635\u062d|\u0635\u062d\u064a\u062d)$/i.test(o.trim())
-        );
+        q.correctAnswerIndex = q.options.findIndex(o => /^(true|t|\u0635\u062d|\u0635\u062d\u064a\u062d)$/i.test(o.trim()));
         if (q.correctAnswerIndex === -1) q.correctAnswerIndex = 0;
         return;
     }
-    if (/^(false|f|no|n|incorrect|wrong|\u062e\u0637\u0623|\u062e\u0627\u0637\u0626)$/i.test(ans)) {
+    if (/^(false|f|\u062e\u0637\u0623|\u062e\u0627\u0637\u0626)$/i.test(ans)) {
         q.type = 'true_false';
         if (q.options.length === 0) q.options = ['True', 'False'];
-        q.correctAnswerIndex = q.options.findIndex(o =>
-            /^(false|f|no|n|incorrect|wrong|\u062e\u0637\u0623|\u062e\u0627\u0637\u0626)$/i.test(o.trim())
-        );
+        q.correctAnswerIndex = q.options.findIndex(o => /^(false|f|\u062e\u0637\u0623|\u062e\u0627\u0637\u0626)$/i.test(o.trim()));
         if (q.correctAnswerIndex === -1) q.correctAnswerIndex = 1;
         return;
     }
@@ -460,27 +346,6 @@ function applyAnswer(q: QuizQuestion, ansRaw: string, explanation?: string): voi
         return;
     }
 }
-
-// ── Roman numeral helpers ──────────────────────────────────────────────────
-
-const romanToInt = (roman: string): number => {
-    const map: Record<string, number> = {
-        i: 1, v: 5, x: 10, l: 50, c: 100, d: 500, m: 1000,
-    };
-    let result = 0;
-    const s = roman.toLowerCase();
-    for (let j = 0; j < s.length; j++) {
-        const cur = map[s[j]] || 0;
-        const nxt = map[s[j + 1]] || 0;
-        if (cur < nxt) result -= cur;
-        else result += cur;
-    }
-    return result;
-};
-
-const isRomanNumeral = (s: string): boolean => {
-    return /^(?:m{0,3})(?:cm|cd|d?c{0,3})(?:xc|xl|l?x{0,3})(?:ix|iv|v?i{0,3})$/i.test(s) && s.length > 0;
-};
 
 // ── Main Parser ────────────────────────────────────────────────────────────
 
@@ -518,42 +383,29 @@ export function parseQuizText(text: string): QuizParseResult {
         { regex: /^\*{0,2}\s*Q\.?\s*#?\s*(\d+)\s*\*{0,2}\s*[.\-:\)]\s*(.*)/i, numGroup: 1, textGroup: 2 },
         { regex: /^\*{0,2}\s*\u0627\u0644\u0633\u0624\u0627\u0644\s*(\d+)\s*\*{0,2}\s*[.:\-\)]\s*(.*)/i, numGroup: 1, textGroup: 2 },
         { regex: /^\*{0,2}\s*(\d+)\s*\*{0,2}\s*[.\)\-:]\s*(.*\S.*)/, numGroup: 1, textGroup: 2 },
-        { regex: /^\*{0,2}\s*((?:m{0,3})(?:cm|cd|d?c{0,3})(?:xc|xl|l?x{0,3})(?:ix|iv|v?i{0,3}))\s*\*{0,2}\s*[.\)]\s*(.*\S.*)/i, numGroup: -1, textGroup: 2 },
+        { regex: /^\*{0,2}\s*((?:x{0,3})(?:ix|iv|v?i{0,3}))\s*\*{0,2}\s*[.\)]\s*(.*\S.*)/i, numGroup: -1, textGroup: 2 },
     ];
 
-    // Options: now support a-z (full alphabet)
-    const OPT_LETTER = /^(\*?\s*)\*{0,2}\s*([a-zA-Z])\s*[.\)\-:]\s*\*{0,2}\s*(.+)/;
-    const OPT_PAREN = /^(\*?\s*)\*{0,2}\s*\(([a-zA-Z])\)\s*\*{0,2}\s*(.+)/;
-    const OPT_BRACKET = /^(\*?\s*)\*{0,2}\s*\[([a-zA-Z])\]\s*\*{0,2}\s*(.+)/;
+    const OPT_LETTER = /^(\*?\s*)\*{0,2}\s*([a-hA-H])\s*[.\)\-:]\s*\*{0,2}\s*(.+)/;
+    const OPT_PAREN = /^(\*?\s*)\*{0,2}\s*\(([a-hA-H])\)\s*\*{0,2}\s*(.+)/;
+    const OPT_BRACKET = /^(\*?\s*)\*{0,2}\s*\[([a-hA-H])\]\s*\*{0,2}\s*(.+)/;
     const OPT_ARABIC = /^\*{0,2}\s*([\u0623\u0628\u062c\u062f\u0647\u0648\u0632\u062d\u0637\u064a\u0643\u0644\u0645\u0646\u0633\u0639\u0641\u0635\u0642\u0631\u0634\u062a\u062b\u062e\u0630\u0636\u0638\u063a])\s*[.\)\-:]\s*\*{0,2}\s*(.+)/;
     const OPT_DASH = /^[-\u2022*]\s+(.+)/;
-    const OPT_NUMBERED = /^(\d{1,2})\s*[.\)]\s*(.+)/;
-    // Roman numeral options: i), ii), iii), iv) etc.
-    const OPT_ROMAN = /^\*{0,2}\s*((?:x{0,3})(?:ix|iv|v?i{0,3}))\s*[.\)\-:]\s*\*{0,2}\s*(.+)/i;
+    const OPT_NUMBERED = /^(\d)\s*[.\)]\s*(.+)/;
 
-    // True/False option patterns — now includes Yes/No, Correct/Incorrect, Right/Wrong
-    const TF_VALUES = 'True|False|Yes|No|Correct|Incorrect|Right|Wrong|T|F|Y|N|\u0635\u062d|\u062e\u0637\u0623|\u0635\u062d\u064a\u062d|\u062e\u0627\u0637\u0626';
-    const bareTrueFalseOption = new RegExp(
-        `^[-\\u2022*]?\\s*\\*{0,2}\\s*\\(?\\s*(${TF_VALUES})\\s*\\)?\\s*\\*{0,2}\\s*$`, 'i'
-    );
-    const numberedTrueFalseOption = new RegExp(
-        `^\\*{0,2}\\s*(\\d+)\\s*\\*{0,2}\\s*[.\\)\\-]\\s*\\*{0,2}\\s*(${TF_VALUES})\\s*\\*{0,2}\\s*$`, 'i'
-    );
+    const bareTrueFalseOption = /^[-\u2022*]?\s*\*{0,2}\s*\(?\s*(True|False|\u0635\u062d|\u062e\u0637\u0623|\u0635\u062d\u064a\u062d|\u062e\u0627\u0637\u0626)\s*\)?\s*\*{0,2}\s*$/i;
+    const numberedTrueFalseOption = /^\*{0,2}\s*(\d+)\s*\*{0,2}\s*[.\)\-]\s*\*{0,2}\s*(True|False|\u0635\u062d|\u062e\u0637\u0623|\u0635\u062d\u064a\u062d|\u062e\u0627\u0637\u0626)\s*\*{0,2}\s*$/i;
 
     const trueFalseIndicator = [
         /^\*{0,2}\s*True\s*[\/\\|,]\s*False\s*\*{0,2}\s*$/i,
         /^\*{0,2}\s*True\s+or\s+False\s*\*{0,2}\s*$/i,
         /^\*{0,2}\s*\u0635\u062d\s*[\/\\|,]\s*\u062e\u0637\u0623\s*\*{0,2}\s*$/i,
         /^\*{0,2}\s*T\s*[\/\\|,]\s*F\s*\*{0,2}\s*$/i,
-        // Yes/No variants
-        /^\*{0,2}\s*Yes\s*[\/\\|,]\s*No\s*\*{0,2}\s*$/i,
-        /^\*{0,2}\s*Correct\s*[\/\\|,]\s*Incorrect\s*\*{0,2}\s*$/i,
-        /^\*{0,2}\s*Right\s*[\/\\|,]\s*Wrong\s*\*{0,2}\s*$/i,
     ];
 
     const inlineAnswerPatterns = [
-        /^\*{0,2}\s*(?:correct\s+)?answer\s*:\s*\*{0,2}\s*([a-zA-Z])\b/i,
-        /^\*{0,2}\s*(?:correct\s+)?answer\s*:\s*\*{0,2}\s*(True|False|Yes|No|Correct|Incorrect|Right|Wrong)\b/i,
+        /^\*{0,2}\s*(?:correct\s+)?answer\s*:\s*\*{0,2}\s*([a-hA-H])\b/i,
+        /^\*{0,2}\s*(?:correct\s+)?answer\s*:\s*\*{0,2}\s*(True|False)\b/i,
         /^\*{0,2}\s*(?:correct\s+)?answer\s*:\s*\*{0,2}\s*(.+)/i,
         /^\*{0,2}\s*\u0627\u0644\u0625\u062c\u0627\u0628\u0629\s*:\s*\*{0,2}\s*(.+)/i,
     ];
@@ -566,51 +418,41 @@ export function parseQuizText(text: string): QuizParseResult {
         new RegExp(`^\\*{0,2}(${ANSWER_KEYWORDS})\\*{0,2}\\s*:\\s*$`, 'iu'),
     ];
 
-    const TF_ANS = 'True|False|Yes|No|Correct|Incorrect|Right|Wrong|T|F|Y|N|\u0635\u062d|\u062e\u0637\u0623|\u0635\u062d\u064a\u062d|\u062e\u0627\u0637\u0626';
     const answerKeyLinePatterns: { regex: RegExp; type: 'mcq' | 'tf' }[] = [
-        { regex: new RegExp(`^(\\d+)\\s*[.\\)\\-:=]\\s*\\*{0,2}\\s*(${TF_ANS})\\s*\\*{0,2}\\s*(?:\\(.*\\))?.*$`, 'i'), type: 'tf' },
-        { regex: /^(\d+)\s*[.\)\-:=]\s*\*{0,2}\s*([a-zA-Z])\s*\*{0,2}\s*(?:\(.*\))?\s*$/i, type: 'mcq' },
-        { regex: /^(\d+)\s*[.\)\-:=]\s*\*{0,2}\s*([a-zA-Z])\s*\*{0,2}\s*$/i, type: 'mcq' },
-        // Answer key with letter followed by ) and optional descriptive text: "1. b) Spherical"
-        { regex: /^(\d+)\s*[.\)\-:=]\s*\*{0,2}\s*([a-zA-Z])\s*\)\s*.*$/i, type: 'mcq' },
-        // Answer key with (letter): "1. (b) Spherical"
-        { regex: /^(\d+)\s*[.\)\-:=]\s*\(([a-zA-Z])\)\s*.*$/i, type: 'mcq' },
-        { regex: /^Q\.?\s*(\d+)\s*[.\)\-:=]\s*\*{0,2}\s*([a-zA-Z])\s*\*{0,2}\s*$/i, type: 'mcq' },
-        { regex: new RegExp(`^Q\\.?\\s*(\\d+)\\s*[.\\)\\-:=]\\s*\\*{0,2}\\s*(${TF_ANS})\\s*\\*{0,2}\\s*$`, 'i'), type: 'tf' },
-        { regex: /^\((\d+)\)\s*\*{0,2}\s*([a-zA-Z])\s*\*{0,2}\s*$/i, type: 'mcq' },
-        { regex: /^(\d+)\.([a-zA-Z])\s*$/i, type: 'mcq' },
-        { regex: /^(\d+)\s*[.\)\-:=]\s*(?:the\s+answer\s+is\s+)\*{0,2}\s*([a-zA-Z])\s*\*{0,2}/i, type: 'mcq' },
+        { regex: /^(\d+)\s*[.\)\-:=]\s*\*{0,2}\s*(True|False|\u0635\u062d|\u062e\u0637\u0623|\u0635\u062d\u064a\u062d|\u062e\u0627\u0637\u0626)\s*\*{0,2}\s*(?:\(.*\))?.*$/i, type: 'tf' },
+        { regex: /^(\d+)\s*[.\)\-:=]\s*\*{0,2}\s*(True|False)\s*\*{0,2}/i, type: 'tf' },
+        { regex: /^(\d+)\s*[.\)\-:=]\s*\*{0,2}\s*([a-hA-H])\s*\*{0,2}\s*(?:\(.*\))?\s*$/i, type: 'mcq' },
+        { regex: /^(\d+)\s*[.\)\-:=]\s*\*{0,2}\s*([a-hA-H])\s*\*{0,2}\s*$/i, type: 'mcq' },
+        // Answer key with letter followed by ) and optional descriptive text: "1. b) Spherical", "2. c) Dumbbell"
+        { regex: /^(\d+)\s*[.\)\-:=]\s*\*{0,2}\s*([a-hA-H])\s*\)\s*.*$/i, type: 'mcq' },
+        // Answer key with (letter) and optional descriptive text: "1. (b) Spherical"
+        { regex: /^(\d+)\s*[.\)\-:=]\s*\(([a-hA-H])\)\s*.*$/i, type: 'mcq' },
+        { regex: /^Q\.?\s*(\d+)\s*[.\)\-:=]\s*\*{0,2}\s*([a-hA-H])\s*\*{0,2}\s*$/i, type: 'mcq' },
+        { regex: /^Q\.?\s*(\d+)\s*[.\)\-:=]\s*\*{0,2}\s*(True|False)\s*\*{0,2}\s*$/i, type: 'tf' },
+        { regex: /^\((\d+)\)\s*\*{0,2}\s*([a-hA-H])\s*\*{0,2}\s*$/i, type: 'mcq' },
+        { regex: /^(\d+)\.([a-hA-H])\s*$/i, type: 'mcq' },
+        { regex: /^(\d+)\s*[.\)\-:=]\s*(?:the\s+answer\s+is\s+)\*{0,2}\s*([a-hA-H])\s*\*{0,2}/i, type: 'mcq' },
         // Roman numeral answer keys
-        { regex: /^((?:m{0,3})(?:cm|cd|d?c{0,3})(?:xc|xl|l?x{0,3})(?:ix|iv|v?i{0,3}))\s*[.\)\-:=]\s*\*{0,2}\s*([a-zA-Z])\s*\*{0,2}\s*$/i, type: 'mcq' },
-        { regex: new RegExp(`^((?:m{0,3})(?:cm|cd|d?c{0,3})(?:xc|xl|l?x{0,3})(?:ix|iv|v?i{0,3}))\\s*[.\\)\\-:=]\\s*\\*{0,2}\\s*(${TF_ANS})\\s*\\*{0,2}\\s*$`, 'i'), type: 'tf' },
+        { regex: /^((?:x{0,3})(?:ix|iv|v?i{0,3}))\s*[.\)\-:=]\s*\*{0,2}\s*([a-hA-H])\s*\*{0,2}\s*$/i, type: 'mcq' },
+        { regex: /^((?:x{0,3})(?:ix|iv|v?i{0,3}))\s*[.\)\-:=]\s*\*{0,2}\s*(True|False)\s*\*{0,2}\s*$/i, type: 'tf' },
     ];
 
-    // Answer key lines with explanations: "1. b — Because mercury is liquid"
-    const answerKeyWithExplanation = /^(\d+)\s*[.\)\-:=]\s*\*{0,2}\s*([a-zA-Z])\s*\*{0,2}\s*[\-\u2013\u2014:]+\s*(.+)$/i;
-    const answerKeyTfWithExplanation = new RegExp(
-        `^(\\d+)\\s*[.\\)\\-:=]\\s*\\*{0,2}\\s*(${TF_ANS})\\s*\\*{0,2}\\s*[\\-\\u2013\\u2014:(]+\\s*(.+?)\\)?\\s*$`, 'i'
-    );
-
-    const tableAnswerPattern = new RegExp(
-        `^\\|?\\s*(\\d+)\\s*\\|\\s*\\*{0,2}\\s*([a-zA-Z]|${TF_ANS})\\s*\\*{0,2}\\s*\\|?\\s*$`, 'i'
-    );
+    const tableAnswerPattern = /^\|?\s*(\d+)\s*\|\s*\*{0,2}\s*([a-hA-H]|True|False|\u0635\u062d|\u062e\u0637\u0623|\u0635\u062d\u064a\u062d|\u062e\u0627\u0637\u0626)\s*\*{0,2}\s*\|?\s*$/i;
     const tableHeaderPattern = /^\|?\s*(Q|#|No\.?|Question|Num\.?)\s*\|\s*(Answer|Ans\.?|Correct|Solution|\u0627\u0644\u0625\u062c\u0627\u0628\u0629)\s*\|?\s*$/i;
 
     const answerSubSectionSkip = [
         /^#{1,6}\s*\*{0,2}\s*(?:part|section)\s+[a-zA-Z0-9]+\s*[\-\u2013\u2014:]\s*.*/i,
         /^\*{0,2}\s*(?:part|section)\s+[a-zA-Z0-9]+\s*[\-\u2013\u2014:]\s*.*/i,
-        /^#{1,6}\s*\*{0,2}\s*(?:multiple\s*choice|mcq|true\s*(?:or\s+|[\/ \\|,]?\s*)false|t\s*[\/ |]\s*f|yes\s*[\/|]\s*no|correct\s*[\/|]\s*incorrect|right\s*[\/|]\s*wrong|short\s*answer)\s*\*{0,2}\s*:?\s*$/i,
-        /^\*{0,2}\s*(?:multiple\s*choice|mcq|true\s*(?:or\s+|[\/ \\|,]?\s*)false|t\s*[\/ |]\s*f|yes\s*[\/|]\s*no|correct\s*[\/|]\s*incorrect|right\s*[\/|]\s*wrong|short\s*answer)\s*\*{0,2}\s*:?\s*$/i,
+        /^#{1,6}\s*\*{0,2}\s*(?:multiple\s*choice|mcq|true\s*(?:or\s+|[\/ \\|,]?\s*)false|t\s*[\/ |]\s*f|short\s*answer)\s*\*{0,2}\s*:?\s*$/i,
+        /^\*{0,2}\s*(?:multiple\s*choice|mcq|true\s*(?:or\s+|[\/ \\|,]?\s*)false|t\s*[\/ |]\s*f|short\s*answer)\s*\*{0,2}\s*:?\s*$/i,
     ];
 
-    const commaSepAnswerPattern = new RegExp(
-        `^(?:Q\\.?\\s*)?\\d+\\s*[.\\-:=]\\s*\\(?(?:${TF_ANS}|[a-zA-Z])\\)?\\s*[,;]\\s*(?:Q\\.?\\s*)?\\d+\\s*[.\\-:=]\\s*\\(?(?:${TF_ANS}|[a-zA-Z])\\)?`, 'i'
-    );
+    const commaSepAnswerPattern = /^(?:Q\.?\s*)?(\d+)\s*[.\-:=]\s*\(?(True|False|[a-hA-H])\)?\s*[,;]\s*(?:Q\.?\s*)?(\d+)\s*[.\-:=]\s*\(?(True|False|[a-hA-H])\)?/i;
 
     const subHeaderSkip = [
         /^\*{0,2}\s*(part|section)\s+\d+\s*[:\-]/i,
         /^\*{0,2}\s*(multiple\s*choice|mcq|short\s*answer|fill\s*in)\s*(questions?)?\s*(\(\d+.*\))?\s*\*{0,2}\s*:?\s*$/i,
-        /^\*{0,2}\s*(true\s*(?:or\s+|[\/\\|,]?\s*)false|t\s*[\/|]\s*f|yes\s*[\/|]\s*no|correct\s*[\/|]\s*incorrect|right\s*[\/|]\s*wrong)\s*(questions?|section|part)?\s*(\(\d+.*\))?\s*\*{0,2}\s*:?\s*$/i,
+        /^\*{0,2}\s*(true\s*(?:or\s+|[\/\\|,]?\s*)false|t\s*[\/|]\s*f)\s*(questions?|section|part)?\s*(\(\d+.*\))?\s*\*{0,2}\s*:?\s*$/i,
         /^\*{0,2}\s*\(\d+\s*(marks?|points?|questions?)\s*\)\s*\*{0,2}\s*$/i,
         /^\*{0,2}\s*\d+\s*(marks?|points?)\s*each\s*\*{0,2}\s*$/i,
     ];
@@ -670,8 +512,6 @@ export function parseQuizText(text: string): QuizParseResult {
             }
 
             const isAnswerLine = answerKeyLinePatterns.some(p => p.regex.test(line)) ||
-                answerKeyWithExplanation.test(line) ||
-                answerKeyTfWithExplanation.test(line) ||
                 tableAnswerPattern.test(line);
             if (isAnswerLine) {
                 clusterSize++;
@@ -698,46 +538,32 @@ export function parseQuizText(text: string): QuizParseResult {
     let dashOptionCount = 0;
     let sectionType: 'mcq' | 'true_false' | null = null;
 
-    // Track option letters for proper sequential detection
-    let lastOptionLetter = '';
-    // Track whether we're in a numbered sub-option sequence (started from 1)
-    let hasNumberedSubOptions = false;
-
-    const isTFPositive = (s: string): boolean =>
-        /^(true|t|yes|y|correct|right|\u0635\u062d|\u0635\u062d\u064a\u062d)$/i.test(s.trim());
-    const isTFNegative = (s: string): boolean =>
-        /^(false|f|no|n|incorrect|wrong|\u062e\u0637\u0623|\u062e\u0627\u0637\u0626)$/i.test(s.trim());
-    const isTFValue = (s: string): boolean => isTFPositive(s) || isTFNegative(s);
-
-    const normalizeTFValue = (s: string): string => isTFPositive(s) ? 'True' : 'False';
-
     const finalizeQ = () => {
         if (!currentQ || !currentQ.text.trim()) return;
 
         currentQ.text = cleanText(restore(currentQ.text));
         currentQ.options = currentQ.options.map(o => cleanText(restore(o)));
-        if (currentQ.explanation) {
-            currentQ.explanation = cleanText(restore(currentQ.explanation));
-        }
 
-        // ── Fill-blank detection ──
+        // ── Fill-blank detection ── (must run BEFORE true_false option injection)
+        // If question text has blank markers and fewer than 2 explicit options, treat as fill-in-the-blank
+        // This overrides section type (e.g., a fill-blank Q in a T/F section is still fill-blank)
         if (currentQ.options.length < 2) {
             const FILL_BLANK_MARKERS = [
-                /_{3,}/,
-                /\.{4,}/,
-                /\[blank\]/i,
-                /\{blank\}/i,
-                /\[fill\s*(?:in)?(?:\s*the)?(?:\s*blank)?\]/i,
-                /\(\s*\.\.\.\s*\)/,
-                /\u2026{2,}/,
-                /_{2,}\s*\./,
+                /_{3,}/,                    // Three or more underscores: ___
+                /\.{4,}/,                   // Four or more dots: ....
+                /\[blank\]/i,               // [blank]
+                /\{blank\}/i,               // {blank}
+                /\[fill\s*(?:in)?(?:\s*the)?(?:\s*blank)?\]/i,  // [fill in the blank]
+                /\(\s*\.\.\.\s*\)/,         // (...)
+                /\u2026{2,}/,               // Multiple ellipsis characters ……
+                /_{2,}\s*\./,               // __. (blank at end of sentence)
             ];
             if (FILL_BLANK_MARKERS.some(p => p.test(currentQ!.text))) {
                 currentQ!.type = 'fill_blank';
             }
         }
 
-        // Only inject True/False options if still true_false type
+        // Only inject True/False options if still true_false type (not overridden to fill_blank)
         if (currentQ.type === 'true_false' && currentQ.options.length === 0) {
             currentQ.options = ['True', 'False'];
         }
@@ -782,6 +608,7 @@ export function parseQuizText(text: string): QuizParseResult {
             currentQ.options = ['True', 'False'];
             questions.push({ ...currentQ });
         } else if (currentQ.type === 'fill_blank') {
+            // Fill-blank questions are valid without options
             questions.push({ ...currentQ });
         } else {
             questions.push({ ...currentQ });
@@ -794,13 +621,8 @@ export function parseQuizText(text: string): QuizParseResult {
             if (m) {
                 let num: number;
                 if (numGroup === -1) {
-                    // Roman numeral
-                    const romanStr = m[1];
-                    if (isRomanNumeral(romanStr)) {
-                        num = romanToInt(romanStr);
-                    } else {
-                        continue; // not a valid roman numeral
-                    }
+                    romanIdx++;
+                    num = romanIdx;
                 } else {
                     num = parseInt(m[numGroup]);
                 }
@@ -814,24 +636,11 @@ export function parseQuizText(text: string): QuizParseResult {
     };
 
     const matchOption = (line: string): { letter: string; text: string; markedBefore: boolean } | null => {
-        // Check for roman numeral options first (i, ii, iii, iv, etc.)
-        const romanM = line.match(OPT_ROMAN);
-        if (romanM && isRomanNumeral(romanM[1]) && romanToInt(romanM[1]) <= 20) {
-            // Only treat as roman option if we're already collecting options or current question exists
-            if (currentQ && (lastType === 'question' || lastType === 'option')) {
-                return { letter: romanM[1].toLowerCase(), text: romanM[2], markedBefore: false };
-            }
-        }
-
         for (const pat of [OPT_LETTER, OPT_PAREN, OPT_BRACKET]) {
             const m = line.match(pat);
             if (m) {
-                const letter = m[2].toLowerCase();
-                // Only accept a-z letters as options (not question labels)
-                if (letter >= 'a' && letter <= 'z') {
-                    const markedBefore = m[1]?.trim() === '*';
-                    return { letter, text: m[3], markedBefore };
-                }
+                const markedBefore = m[1]?.trim() === '*';
+                return { letter: m[2], text: m[3], markedBefore };
             }
         }
         const arabicM = line.match(OPT_ARABIC);
@@ -841,23 +650,18 @@ export function parseQuizText(text: string): QuizParseResult {
         return null;
     };
 
-    // Helper to detect if a question text contains embedded T/F indicator
-    const hasEmbeddedTF = (text: string): boolean => {
-        return /(?:true\s+or\s+false|T\s*\/\s*F|true\s*\/\s*false|yes\s+or\s+no|correct\s+or\s+incorrect|right\s+or\s+wrong)\s*[:.?]?\s*/i.test(text);
-    };
-
     for (let i = 0; i < questionLines.length; i++) {
         const line = questionLines[i];
 
         // ─── Section type detection ───
         if (subHeaderSkip.some(p => p.test(line))) {
-            if (/true\s*(?:or|[\/\\|,])?\s*false|t\s*[\/|]\s*f|yes\s*[\/|]\s*no|correct\s*[\/|]\s*incorrect|right\s*[\/|]\s*wrong/i.test(line)) sectionType = 'true_false';
+            if (/true\s*(?:or|[\/\\|,])?\s*false|t\s*[\/|]\s*f/i.test(line)) sectionType = 'true_false';
             else if (/multiple\s*choice|mcq/i.test(line)) sectionType = 'mcq';
             continue;
         }
-        // Standalone section headers
+        // Standalone section headers (e.g. "TRUE OR FALSE", "MULTIPLE CHOICE")
         if (line.length < 80 && !/^\d+[.\)\-:]/.test(line) && !/^Q\.?\s*\d/i.test(line)) {
-            if (/^#{0,6}\s*\*{0,2}\s*(?:true\s*(?:or\s+|[\/\\|,]?\s*)false|t\s*[\/|]\s*f|yes\s*(?:or\s+|[\/\\|,]?\s*)no|correct\s*(?:or\s+|[\/\\|,]?\s*)incorrect|right\s*(?:or\s+|[\/\\|,]?\s*)wrong)\s*(?:questions?)?\s*\*{0,2}\s*:?\s*$/i.test(line)) {
+            if (/^#{0,6}\s*\*{0,2}\s*(?:true\s*(?:or\s+|[\/\\|,]?\s*)false|t\s*[\/|]\s*f)\s*(?:questions?)?\s*\*{0,2}\s*:?\s*$/i.test(line)) {
                 sectionType = 'true_false';
                 continue;
             }
@@ -875,7 +679,7 @@ export function parseQuizText(text: string): QuizParseResult {
             if (ntf) {
                 const tfVal = ntf[2];
                 const { cleaned: tfCleaned, isCorrect } = stripCorrectMarker(tfVal);
-                const normalized = normalizeTFValue(tfCleaned);
+                const normalized = /^(true|t|\u0635\u062d|\u0635\u062d\u064a\u062d)$/i.test(tfCleaned) ? 'True' : 'False';
                 if (!currentQ.options.some(o => o.toLowerCase() === normalized.toLowerCase())) {
                     currentQ.options.push(normalized);
                     if (isCorrect) currentQ.correctAnswerIndex = currentQ.options.length - 1;
@@ -886,12 +690,12 @@ export function parseQuizText(text: string): QuizParseResult {
             }
         }
 
-        // ─── Bare True/False/Yes/No option lines ───
+        // ─── Bare True/False option lines ───
         if (currentQ && bareTrueFalseOption.test(line)) {
             const m = line.match(bareTrueFalseOption)!;
             const val = m[1].trim();
             const { cleaned, isCorrect } = stripCorrectMarker(val);
-            const normalized = normalizeTFValue(cleaned);
+            const normalized = /^(true|t|\u0635\u062d|\u0635\u062d\u064a\u062d)$/i.test(cleaned) ? 'True' : 'False';
 
             if (!currentQ.options.some(o => o.toLowerCase() === normalized.toLowerCase())) {
                 currentQ.options.push(normalized);
@@ -937,14 +741,7 @@ export function parseQuizText(text: string): QuizParseResult {
                 }
                 if (currentQ.options.length === 2) {
                     const sorted = currentQ.options.map(o => o.toLowerCase()).sort();
-                    if (
-                        (sorted[0] === 'false' && sorted[1] === 'true') ||
-                        (sorted[0] === 'no' && sorted[1] === 'yes') ||
-                        (sorted[0] === 'incorrect' && sorted[1] === 'correct') ||
-                        (sorted[0] === 'wrong' && sorted[1] === 'right')
-                    ) {
-                        currentQ.type = 'true_false';
-                    }
+                    if (sorted[0] === 'false' && sorted[1] === 'true') currentQ.type = 'true_false';
                 }
                 lastType = 'option';
                 dashOptionCount = 0;
@@ -964,15 +761,9 @@ export function parseQuizText(text: string): QuizParseResult {
 
             if (currentQ.options.length === 2) {
                 const sorted = currentQ.options.map(o => o.toLowerCase().trim()).sort();
-                if (
-                    (sorted[0] === 'false' && sorted[1] === 'true') ||
+                if ((sorted[0] === 'false' && sorted[1] === 'true') ||
                     (sorted[0] === '\u062e\u0637\u0623' && sorted[1] === '\u0635\u062d') ||
-                    (sorted[0] === 'f' && sorted[1] === 't') ||
-                    (sorted[0] === 'no' && sorted[1] === 'yes') ||
-                    (sorted[0] === 'n' && sorted[1] === 'y') ||
-                    (sorted[0] === 'incorrect' && sorted[1] === 'correct') ||
-                    (sorted[0] === 'wrong' && sorted[1] === 'right')
-                ) {
+                    (sorted[0] === 'f' && sorted[1] === 't')) {
                     currentQ.type = 'true_false';
                 }
             }
@@ -982,6 +773,8 @@ export function parseQuizText(text: string): QuizParseResult {
         }
 
         // ─── Dash/bullet options ───
+        // Only accept when right after a question or already collecting dashes,
+        // and line is short enough to be an option (not a paragraph)
         if (currentQ && (lastType === 'question' || dashOptionCount > 0)) {
             const dashM = line.match(OPT_DASH);
             if (dashM && dashM[1].length <= 120) {
@@ -993,7 +786,6 @@ export function parseQuizText(text: string): QuizParseResult {
                 if (currentQ.options.length === 2) {
                     const sorted = currentQ.options.map(o => o.toLowerCase().trim()).sort();
                     if (sorted[0] === 'false' && sorted[1] === 'true') currentQ.type = 'true_false';
-                    if (sorted[0] === 'no' && sorted[1] === 'yes') currentQ.type = 'true_false';
                 }
                 lastType = 'option';
                 dashOptionCount++;
@@ -1001,29 +793,17 @@ export function parseQuizText(text: string): QuizParseResult {
             }
         }
 
-        // ─── Numbered sub-options (1-26, sequential, inside question) ───
-        if (currentQ && (lastType === 'question' || lastType === 'option') && currentQ.type !== 'true_false') {
+        // ─── Numbered sub-options (1-8, sequential, inside question) ───
+        if (currentQ && currentQ.options.length > 0 && lastType === 'option' && currentQ.type !== 'true_false') {
             const numOptM = line.match(OPT_NUMBERED);
             if (numOptM) {
                 const subNum = parseInt(numOptM[1]);
                 const optCandidate = numOptM[2].trim();
-                // Allow numbered sub-options only if:
-                // - Starting from 1 (with no options yet, or first numbered sub-option)
-                // - OR continuing a numbered sequence already started
-                const canBeNumberedOpt =
-                    subNum <= 26 &&
-                    subNum === currentQ.options.length + 1 &&
-                    !optCandidate.includes('?') &&
-                    !optCandidate.endsWith(':') &&
-                    optCandidate.length <= 120 &&
-                    (subNum === 1 || hasNumberedSubOptions);
-                if (canBeNumberedOpt) {
+                if (subNum <= 8 && subNum === currentQ.options.length + 1 && !optCandidate.includes('?') && optCandidate.length <= 80) {
                     const optText = cleanText(optCandidate);
                     const { cleaned, isCorrect } = stripCorrectMarker(optText);
                     currentQ.options.push(cleaned);
                     if (isCorrect) currentQ.correctAnswerIndex = currentQ.options.length - 1;
-                    hasNumberedSubOptions = true;
-                    lastType = 'option';
                     continue;
                 }
             }
@@ -1032,13 +812,12 @@ export function parseQuizText(text: string): QuizParseResult {
         // ─── New question ───
         const qMatch = matchQuestion(line);
         if (qMatch) {
-            if (/^\s*\*{0,2}\s*[a-zA-Z]\s*\*{0,2}\s*$/.test(qMatch.text)) continue;
+            if (/^\s*\*{0,2}\s*[a-hA-H]\s*\*{0,2}\s*$/.test(qMatch.text)) continue;
 
-            // Check if this "question" is actually a T/F value for the current question
-            if (isTFValue(qMatch.text.replace(/\*{1,2}/g, '').trim())) {
+            if (/^\s*\*{0,2}\s*(True|False|\u0635\u062d|\u062e\u0637\u0623|\u0635\u062d\u064a\u062d|\u062e\u0627\u0637\u0626)\s*\*{0,2}\s*$/i.test(qMatch.text)) {
                 if (currentQ) {
-                    const tfVal = qMatch.text.replace(/\*{1,2}/g, '').trim();
-                    const normalized = normalizeTFValue(tfVal);
+                    const tfVal = qMatch.text.trim();
+                    const normalized = /^(true|t|\u0635\u062d|\u0635\u062d\u064a\u062d)$/i.test(tfVal) ? 'True' : 'False';
                     if (!currentQ.options.some(o => o.toLowerCase() === normalized.toLowerCase())) {
                         currentQ.options.push(normalized);
                     }
@@ -1050,24 +829,15 @@ export function parseQuizText(text: string): QuizParseResult {
 
             finalizeQ();
             autoId++;
-            let qType: 'mcq' | 'true_false' | 'fill_blank' = sectionType === 'true_false' ? 'true_false' : 'mcq';
-
-            // Detect embedded T/F in question text
-            if (hasEmbeddedTF(qMatch.text)) {
-                qType = 'true_false';
-            }
-
             currentQ = {
                 id: qMatch.num || autoId,
                 text: qMatch.text,
                 options: [],
                 correctAnswerIndex: -1,
-                type: qType,
+                type: sectionType === 'true_false' ? 'true_false' : 'mcq',
             };
             lastType = 'question';
             dashOptionCount = 0;
-            lastOptionLetter = '';
-            hasNumberedSubOptions = false;
             continue;
         }
 
@@ -1111,6 +881,19 @@ export function parseQuizText(text: string): QuizParseResult {
 
     // ════════════════════ STEP 4: Parse Answer Key (with positional fallback) ════════════════════
 
+    const romanToInt = (roman: string): number => {
+        const map: Record<string, number> = { i: 1, v: 5, x: 10 };
+        let result = 0;
+        const s = roman.toLowerCase();
+        for (let j = 0; j < s.length; j++) {
+            const cur = map[s[j]] || 0;
+            const nxt = map[s[j + 1]] || 0;
+            if (cur < nxt) result -= cur;
+            else result += cur;
+        }
+        return result;
+    };
+
     const findQuestion = (id: number): QuizQuestion | undefined => {
         const exact = questions.find(q => q.id === id);
         if (exact) return exact;
@@ -1136,9 +919,9 @@ export function parseQuizText(text: string): QuizParseResult {
             const ansRaw = tableM[2].trim();
             const question = findQuestion(qId);
             if (question) {
-                if (/^[a-zA-Z]$/i.test(ansRaw) && !isTFValue(ansRaw)) {
+                if (/^[a-hA-H]$/i.test(ansRaw)) {
                     const idx = ansRaw.toLowerCase().charCodeAt(0) - 97;
-                    if (idx >= 0 && idx <= 25 && (question.options.length === 0 || idx < question.options.length)) {
+                    if (question.options.length === 0 || idx < question.options.length) {
                         question.correctAnswerIndex = idx;
                     }
                 } else {
@@ -1150,18 +933,18 @@ export function parseQuizText(text: string): QuizParseResult {
 
         // Comma-separated
         if (commaSepAnswerPattern.test(line)) {
-            const pairs = line.match(new RegExp(`(?:Q\\.?\\s*)?\\d+\\s*[.\\-:=]\\s*\\(?(?:${TF_ANS}|[a-zA-Z])\\)?`, 'gi'));
+            const pairs = line.match(/(?:Q\.?\s*)?\d+\s*[.\-:=]\s*\(?(?:True|False|[a-hA-H])\)?/gi);
             if (pairs) {
                 for (const pair of pairs) {
-                    const pm = pair.match(new RegExp(`(?:Q\\.?\\s*)?(\\d+)\\s*[.\\-:=]\\s*\\(?(${TF_ANS}|[a-zA-Z])\\)?`, 'i'));
+                    const pm = pair.match(/(?:Q\.?\s*)?(\d+)\s*[.\-:=]\s*\(?(True|False|[a-hA-H])\)?/i);
                     if (pm) {
                         const qId = parseInt(pm[1]);
                         const ansRaw = pm[2].trim();
                         const question = findQuestion(qId);
                         if (question) {
-                            if (/^[a-zA-Z]$/i.test(ansRaw) && !isTFValue(ansRaw)) {
+                            if (/^[a-hA-H]$/i.test(ansRaw)) {
                                 const idx = ansRaw.toLowerCase().charCodeAt(0) - 97;
-                                if (idx >= 0 && idx <= 25 && (question.options.length === 0 || idx < question.options.length)) {
+                                if (question.options.length === 0 || idx < question.options.length) {
                                     question.correctAnswerIndex = idx;
                                 }
                             } else {
@@ -1174,36 +957,6 @@ export function parseQuizText(text: string): QuizParseResult {
             continue;
         }
 
-        // Answer key with explanation: "1. b — Because mercury is liquid"
-        const explM = line.match(answerKeyWithExplanation);
-        if (explM) {
-            const qId = parseInt(explM[1]);
-            const ansLetter = explM[2].trim();
-            const explanation = explM[3].trim();
-            const question = findQuestion(qId);
-            if (question) {
-                const index = ansLetter.toLowerCase().charCodeAt(0) - 97;
-                if (index >= 0 && index <= 25 && (question.options.length === 0 || index < question.options.length)) {
-                    question.correctAnswerIndex = index;
-                }
-                if (explanation) question.explanation = restore(explanation);
-            }
-            continue;
-        }
-
-        // Answer key T/F with explanation: "11. True (s-orbitals are symmetrical)"
-        const tfExplM = line.match(answerKeyTfWithExplanation);
-        if (tfExplM) {
-            const qId = parseInt(tfExplM[1]);
-            const ansRaw = tfExplM[2].trim();
-            const explanation = tfExplM[3].trim();
-            const question = findQuestion(qId);
-            if (question) {
-                applyAnswer(question, ansRaw, explanation);
-            }
-            continue;
-        }
-
         // Standard answer key lines
         let matched = false;
         for (const { regex, type } of answerKeyLinePatterns) {
@@ -1211,7 +964,7 @@ export function parseQuizText(text: string): QuizParseResult {
             if (m) {
                 let qId: number;
                 const idStr = m[1];
-                if (/^[ivxlcdmIVXLCDM]+$/.test(idStr) && isRomanNumeral(idStr)) {
+                if (/^[ivxIVX]+$/.test(idStr)) {
                     qId = romanToInt(idStr);
                 } else {
                     qId = parseInt(idStr);
@@ -1220,27 +973,26 @@ export function parseQuizText(text: string): QuizParseResult {
                 const question = findQuestion(qId);
 
                 if (question) {
-                    // When a single letter (t/f/y/n) matches TF but question has >2 MCQ options,
-                    // treat it as an MCQ letter answer instead
-                    const isSingleLetterTF = type === 'tf' && /^[a-zA-Z]$/i.test(answerRaw);
-                    const shouldTreatAsMCQ = isSingleLetterTF && question.options.length > 2 && question.type !== 'true_false';
-
-                    if (type === 'mcq' || shouldTreatAsMCQ) {
+                    if (type === 'mcq') {
                         const index = answerRaw.toLowerCase().charCodeAt(0) - 97;
-                        if (index >= 0 && index <= 25 && (question.options.length === 0 || index < question.options.length)) {
+                        if (index >= 0 && index <= 7 && (question.options.length === 0 || index < question.options.length)) {
                             question.correctAnswerIndex = index;
                         }
                     } else if (type === 'tf') {
                         question.type = 'true_false';
                         if (question.options.length === 0 ||
-                            (question.options.length === 2 && isTFPositive(question.options[0]))) {
+                            (question.options.length === 2 && /^(true|\u0635\u062d)/i.test(question.options[0]))) {
                             question.options = ['True', 'False'];
                         }
-                        if (isTFPositive(answerRaw)) {
-                            question.correctAnswerIndex = question.options.findIndex(o => isTFPositive(o));
+                        if (/^(true|t|\u0635\u062d|\u0635\u062d\u064a\u062d)$/i.test(answerRaw)) {
+                            question.correctAnswerIndex = question.options.findIndex(
+                                o => /^(true|t|\u0635\u062d|\u0635\u062d\u064a\u062d)$/i.test(o.trim())
+                            );
                             if (question.correctAnswerIndex === -1) question.correctAnswerIndex = 0;
                         } else {
-                            question.correctAnswerIndex = question.options.findIndex(o => isTFNegative(o));
+                            question.correctAnswerIndex = question.options.findIndex(
+                                o => /^(false|f|\u062e\u0637\u0623|\u062e\u0627\u0637\u0626)$/i.test(o.trim())
+                            );
                             if (question.correctAnswerIndex === -1) question.correctAnswerIndex = 1;
                         }
                     }
@@ -1281,14 +1033,14 @@ export function parseQuizText(text: string): QuizParseResult {
     // Normalize True/False options
     for (const q of questions) {
         if (q.type === 'true_false') {
-            const hasPositive = q.options.some(o => isTFPositive(o));
-            const hasNegative = q.options.some(o => isTFNegative(o));
-            if (hasPositive && hasNegative && q.options.length === 2) {
+            const hasTrue = q.options.some(o => /^(true|t|\u0635\u062d|\u0635\u062d\u064a\u062d)$/i.test(o.trim()));
+            const hasFalse = q.options.some(o => /^(false|f|\u062e\u0637\u0623|\u062e\u0627\u0637\u0626)$/i.test(o.trim()));
+            if (hasTrue && hasFalse && q.options.length === 2) {
                 const correctVal = q.correctAnswerIndex >= 0 ? q.options[q.correctAnswerIndex]?.trim().toLowerCase() : null;
                 q.options = ['True', 'False'];
-                if (correctVal && isTFPositive(correctVal)) {
+                if (correctVal && /^(true|t|\u0635\u062d|\u0635\u062d\u064a\u062d)$/i.test(correctVal)) {
                     q.correctAnswerIndex = 0;
-                } else if (correctVal && isTFNegative(correctVal)) {
+                } else if (correctVal && /^(false|f|\u062e\u0637\u0623|\u062e\u0627\u0637\u0626)$/i.test(correctVal)) {
                     q.correctAnswerIndex = 1;
                 }
             }

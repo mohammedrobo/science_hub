@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
-import { AlertCircle, CheckCircle, BrainCircuit, ChevronDown, ChevronUp, FileText, Hash, ListChecks, ToggleLeft } from 'lucide-react';
+import { AlertCircle, CheckCircle, BrainCircuit, ChevronDown, ChevronUp, FileText, Hash, ListChecks, ToggleLeft, PenLine } from 'lucide-react';
 import { parseQuizText, QuizQuestion } from '@/lib/quiz-parser';
 import { MathText } from '@/components/MathText';
 
@@ -16,7 +16,7 @@ export function QuizUploader({ onQuizDataChange }: QuizUploaderProps) {
     const [parsedQuestions, setParsedQuestions] = useState<QuizQuestion[]>([]);
     const [errors, setErrors] = useState<string[]>([]);
     const [showHelp, setShowHelp] = useState(false);
-    const [stats, setStats] = useState<{ totalDetected: number; withAnswers: number; withoutAnswers: number; truefalseCount: number; mcqCount: number } | null>(null);
+    const [stats, setStats] = useState<{ totalDetected: number; withAnswers: number; withoutAnswers: number; truefalseCount: number; mcqCount: number; fillBlankCount: number } | null>(null);
 
     const onChangeRef = useRef(onQuizDataChange);
     onChangeRef.current = onQuizDataChange;
@@ -77,6 +77,12 @@ export function QuizUploader({ onQuizDataChange }: QuizUploaderProps) {
                                 <div className="flex items-center gap-1 text-[11px] text-blue-400">
                                     <ToggleLeft className="w-3 h-3" />
                                     <span>{stats.truefalseCount} T/F</span>
+                                </div>
+                            )}
+                            {stats.fillBlankCount > 0 && (
+                                <div className="flex items-center gap-1 text-[11px] text-amber-400">
+                                    <PenLine className="w-3 h-3" />
+                                    <span>{stats.fillBlankCount} Fill</span>
                                 </div>
                             )}
                             <div className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border ${
@@ -152,7 +158,22 @@ Answer Key:
                         <p><span className="text-zinc-400 font-medium">Mark answers:</span> Use ✅ next to the option, <code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">(Correct)</code>, <code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">*a)</code>, or a separate <span className="text-zinc-300">Answer Key</span> section at the end.</p>
                         <p><span className="text-zinc-400 font-medium">Question formats:</span> <code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">1.</code> <code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">1)</code> <code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">Q1.</code> <code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">Question 1:</code></p>
                         <p><span className="text-zinc-400 font-medium">Option formats:</span> <code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">a)</code> <code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">A.</code> <code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">(a)</code> or dash lists <code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">- option</code></p>
-                        <p><span className="text-zinc-400 font-medium">Extras:</span> LaTeX math (<code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">{'$x^2$'}</code>), Arabic, Roman numerals — all supported.</p>
+                        <p><span className="text-zinc-400 font-medium">Fill-in-blank:</span> Use <code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">___</code> or <code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">[blank]</code> in the question text.</p>
+                    </div>
+                    <div className="pt-2 border-t border-zinc-800/50 space-y-1.5 text-[11px] text-zinc-500">
+                        <p className="text-violet-400 font-medium text-[11px] uppercase tracking-wider mb-1">✨ Math & Science Formulas (LaTeX)</p>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                            <p><code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">{'$x^2$'}</code> → superscript</p>
+                            <p><code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">{'$H_2O$'}</code> → subscript</p>
+                            <p><code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">{'$\\frac{a}{b}$'}</code> → fraction</p>
+                            <p><code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">{'$\\sqrt{x}$'}</code> → square root</p>
+                            <p><code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">{'$\\vec{F}$'}</code> → vector</p>
+                            <p><code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">{'$\\alpha, \\beta$'}</code> → Greek</p>
+                            <p><code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">{'$\\ce{H2O}$'}</code> → chemistry</p>
+                            <p><code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">{'$\\leq, \\geq$'}</code> → ≤, ≥</p>
+                            <p><code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">{'$$...$$'}</code> → display math</p>
+                            <p><code className="text-zinc-400 bg-zinc-800/50 px-1 rounded">{'$\\int_a^b f(x)dx$'}</code> → integral</p>
+                        </div>
                     </div>
                 </div>
             )}
@@ -206,6 +227,9 @@ Answer Key:
                                         </p>
                                         {q.type === 'true_false' && (
                                             <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0 uppercase tracking-wider font-medium">T/F</span>
+                                        )}
+                                        {q.type === 'fill_blank' && (
+                                            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0 uppercase tracking-wider font-medium">Fill</span>
                                         )}
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">

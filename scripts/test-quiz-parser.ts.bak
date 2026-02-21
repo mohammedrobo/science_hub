@@ -1,12 +1,10 @@
+
 import { parseQuizText } from '../src/lib/quiz-parser';
 
 // ════════════════════════════════════════════════════════════════════════════
-// COMPREHENSIVE QUIZ PARSER TEST SUITE v2
+// COMPREHENSIVE QUIZ PARSER TEST SUITE
 // Tests: standard formats, LaTeX math, chemistry, physics, fill-blank,
-//        nested formulas, Arabic + LaTeX, edge cases,
-//        NEW: \left/\right, multi-line $, currency $, a-z options,
-//        roman numeral options, Yes/No, Correct/Incorrect, explanations,
-//        5-level nesting, electron configs, \cancel, \SI, advanced chemistry
+//        nested formulas, Arabic + LaTeX, edge cases
 // ════════════════════════════════════════════════════════════════════════════
 
 interface TestCase {
@@ -16,11 +14,13 @@ interface TestCase {
         questionCount?: number;
         answeredCount?: number;
         types?: ('mcq' | 'true_false' | 'fill_blank')[];
+        /** Check that question text at index i contains this substring */
         textContains?: { index: number; substring: string }[];
+        /** Check option text at [questionIndex][optionIndex] contains substring */
         optionContains?: { q: number; opt: number; substring: string }[];
+        /** Check correctAnswerIndex for question at index */
         correctAnswer?: { index: number; answer: number }[];
         noErrors?: boolean;
-        hasExplanation?: { index: number }[];
     };
 }
 
@@ -729,9 +729,8 @@ Answer Key:
             answeredCount: 1,
         },
     },
-
     {
-        name: '36. Descriptive Answer Key \u2014 letter) text format',
+        name: '36. Descriptive Answer Key — letter) text format',
         input: `Lecture 3 Quiz: Atomic Orbitals & Atomic Properties
 
 Part 1: Multiple Choice Questions (MCQ)
@@ -792,7 +791,7 @@ Part 2: True or False
 11. True or False: Atomic orbitals represent a volume of space where there is a certain probability of finding an electron.
 12. True or False: For an s-orbital, the probability depends heavily on the specific direction from the nucleus.
 13. True or False: The number of radial nodes in an ns orbital is calculated as (n - 1).
-14. True or False: A p-subshell consists of three orbitals oriented at 90\u00B0 to each other.
+14. True or False: A p-subshell consists of three orbitals oriented at 90° to each other.
 15. True or False: Unlike s-orbitals, p-orbitals have directional properties.
 16. True or False: Every electron spin creates a tiny magnetic field.
 17. True or False: Except for hydrogen, the effective nuclear charge is always less than the full nuclear charge.
@@ -844,496 +843,6 @@ Answer Key
             ],
         },
     },
-
-    // ════════════════════════════════════════════════════════════════
-    // NEW TESTS — v5 PARSER FEATURES
-    // ════════════════════════════════════════════════════════════════
-
-    {
-        name: '37. \\left/\\right Delimiters \u2014 Parentheses',
-        input: `1. Simplify $\\left(\\frac{x}{y}\\right)^2$:
-a) $\\frac{x^2}{y^2}$
-b) $\\frac{x}{y^2}$
-c) $\\frac{2x}{y}$
-d) $\\frac{x^2}{y}$
-
-Answer Key:
-1. a`,
-        expect: {
-            questionCount: 1,
-            answeredCount: 1,
-            textContains: [
-                { index: 0, substring: '\\left(' },
-                { index: 0, substring: '\\right)' },
-            ],
-        },
-    },
-
-    {
-        name: '38. \\left/\\right with Brackets and Absolute Value',
-        input: `1. Evaluate $\\left|\\frac{-3}{2}\\right| + \\left[\\frac{7}{3}\\right]$:
-a) $\\frac{7}{2}$
-b) $\\frac{11}{6}$
-c) $\\frac{13}{6}$
-d) $3$
-
-Answer Key:
-1. a`,
-        expect: {
-            questionCount: 1,
-            answeredCount: 1,
-            textContains: [
-                { index: 0, substring: '\\left|' },
-                { index: 0, substring: '\\right|' },
-            ],
-        },
-    },
-
-    {
-        name: '39. Currency $ vs LaTeX $ Disambiguation',
-        input: `1. If an item costs $50 and tax is $\\frac{8}{100}$, what is the total?
-a) $54
-b) $53
-c) $55
-d) $52
-
-Answer Key:
-1. a`,
-        expect: {
-            questionCount: 1,
-            answeredCount: 1,
-            textContains: [
-                { index: 0, substring: '\\frac{8}{100}' },
-            ],
-        },
-    },
-
-    {
-        name: '40. Options Beyond h \u2014 Full Alphabet (a-l)',
-        input: `1. Which element has atomic number 6?
-a) Hydrogen
-b) Helium
-c) Lithium
-d) Beryllium
-e) Boron
-f) Carbon
-g) Nitrogen
-h) Oxygen
-i) Fluorine
-j) Neon
-k) Sodium
-l) Magnesium
-
-Answer Key:
-1. f`,
-        expect: {
-            questionCount: 1,
-            answeredCount: 1,
-            correctAnswer: [
-                { index: 0, answer: 5 },  // f = index 5
-            ],
-        },
-    },
-
-    {
-        name: '41. Yes/No True-False Variant',
-        input: `1. Is the Earth round?
-Yes / No
-
-2. Is the Sun a planet?
-Yes / No
-
-Answer Key:
-1. Yes
-2. No`,
-        expect: {
-            questionCount: 2,
-            answeredCount: 2,
-            types: ['true_false', 'true_false'],
-        },
-    },
-
-    {
-        name: '42. Correct/Incorrect True-False Variant',
-        input: `1. Water freezes at 0 degrees Celsius.
-Correct / Incorrect
-
-2. The moon is bigger than the sun.
-Correct / Incorrect
-
-Answer Key:
-1. Correct
-2. Incorrect`,
-        expect: {
-            questionCount: 2,
-            answeredCount: 2,
-            types: ['true_false', 'true_false'],
-        },
-    },
-
-    {
-        name: '43. Right/Wrong True-False Variant',
-        input: `1. Photosynthesis occurs in chloroplasts.
-Right / Wrong
-
-2. Humans have three lungs.
-Right / Wrong
-
-Answer Key:
-1. Right
-2. Wrong`,
-        expect: {
-            questionCount: 2,
-            answeredCount: 2,
-            types: ['true_false', 'true_false'],
-        },
-    },
-
-    {
-        name: '44. Answer Key with Explanations (\u2014 dash)',
-        input: `1. Which planet has the most moons?
-a) Jupiter
-b) Saturn
-c) Uranus
-d) Neptune
-
-2. What is the speed of light?
-a) 300,000 km/s
-b) 150,000 km/s
-c) 200,000 km/s
-d) 100,000 km/s
-
-Answer Key:
-1. b - Saturn has 146 confirmed moons as of 2024
-2. a - The speed of light is approximately 299,792 km/s`,
-        expect: {
-            questionCount: 2,
-            answeredCount: 2,
-            correctAnswer: [
-                { index: 0, answer: 1 },
-                { index: 1, answer: 0 },
-            ],
-        },
-    },
-
-    {
-        name: '45. \\cancel{} for Simplification',
-        input: `1. Simplify $\\frac{\\cancel{x} \\cdot y}{\\cancel{x} \\cdot z}$:
-a) $\\frac{y}{z}$
-b) $\\frac{x}{z}$
-c) $\\frac{y}{x}$
-d) $yz$
-
-Answer Key:
-1. a`,
-        expect: {
-            questionCount: 1,
-            answeredCount: 1,
-            textContains: [
-                { index: 0, substring: '\\cancel{x}' },
-            ],
-        },
-    },
-
-    {
-        name: '46. 5-Level Nested Fractions',
-        input: `1. Evaluate $\\frac{\\frac{\\frac{\\frac{\\frac{1}{2}}{3}}{4}}{5}}{6}$:
-a) $\\frac{1}{720}$
-b) $\\frac{1}{360}$
-c) $\\frac{1}{120}$
-d) $\\frac{1}{60}$
-
-Answer Key:
-1. a`,
-        expect: {
-            questionCount: 1,
-            answeredCount: 1,
-            textContains: [
-                { index: 0, substring: '\\frac{\\frac{\\frac{\\frac{\\frac{1}{2}}{3}}{4}}{5}}{6}' },
-            ],
-        },
-    },
-
-    {
-        name: '47. \\displaystyle and \\textstyle Modifiers',
-        input: `1. Which rendering is correct for $\\displaystyle\\sum_{i=1}^{n} i^2$?
-a) $\\frac{n(n+1)(2n+1)}{6}$
-b) $\\frac{n(n+1)}{2}$
-c) $n^2$
-d) $\\frac{n^3}{3}$
-
-Answer Key:
-1. a`,
-        expect: {
-            questionCount: 1,
-            answeredCount: 1,
-            textContains: [
-                { index: 0, substring: '\\displaystyle' },
-            ],
-        },
-    },
-
-    {
-        name: '48. \\mathbb and \\mathcal Commands',
-        input: `1. The set of real numbers is denoted by:
-a) $\\mathbb{R}$
-b) $\\mathbb{Z}$
-c) $\\mathcal{R}$
-d) $\\mathfrak{R}$
-
-Answer Key:
-1. a`,
-        expect: {
-            questionCount: 1,
-            answeredCount: 1,
-            textContains: [
-                { index: 0, substring: 'real numbers' },
-            ],
-            optionContains: [
-                { q: 0, opt: 0, substring: '\\mathbb{R}' },
-            ],
-        },
-    },
-
-    {
-        name: '49. \\begin{cases} Environment',
-        input: `1. The function is defined as:
-$$f(x) = \\begin{cases} x^2 & \\text{if } x \\geq 0 \\\\ -x & \\text{if } x < 0 \\end{cases}$$
-What is $f(-3)$?
-a) $9$
-b) $3$
-c) $-9$
-d) $-3$
-
-Answer Key:
-1. b`,
-        expect: {
-            questionCount: 1,
-            answeredCount: 1,
-            textContains: [
-                { index: 0, substring: '\\begin{cases}' },
-            ],
-        },
-    },
-
-    {
-        name: '50. Numbered Sub-Options (1-12)',
-        input: `1. Which of the following is a noble gas?
-1) Hydrogen
-2) Helium
-3) Lithium
-4) Beryllium
-5) Boron
-6) Carbon
-
-Answer Key:
-1. b`,
-        expect: {
-            questionCount: 1,
-            answeredCount: 1,
-        },
-    },
-
-    {
-        name: '51. Embedded "True or False:" in Question Text',
-        input: `1. True or False: The mitochondria is the powerhouse of the cell.
-
-2. True or False: DNA stands for Deoxyribonucleic Acid.
-
-Answer Key:
-1. True
-2. True`,
-        expect: {
-            questionCount: 2,
-            answeredCount: 2,
-            types: ['true_false', 'true_false'],
-        },
-    },
-
-    {
-        name: '52. T/F Answer Key with Explanations in Parentheses',
-        input: `1. True or False: Light travels faster in water than in vacuum.
-2. True or False: The chemical symbol for gold is Au.
-
-Answer Key:
-1. False (Light is slower in water due to refraction)
-2. True (Au comes from the Latin word aurum)`,
-        expect: {
-            questionCount: 2,
-            answeredCount: 2,
-            types: ['true_false', 'true_false'],
-        },
-    },
-
-    {
-        name: '53. \\overset and \\underset Operators',
-        input: `1. What does $\\overset{\\text{def}}{=}$ mean?
-a) Approximately equal
-b) Defined as
-c) Greater than
-d) Not equal
-
-Answer Key:
-1. b`,
-        expect: {
-            questionCount: 1,
-            answeredCount: 1,
-            textContains: [
-                { index: 0, substring: '\\overset{' },
-            ],
-        },
-    },
-
-    {
-        name: '54. \\SI{} Units (siunitx)',
-        input: `1. The acceleration due to gravity is \\SI{9.8}{m/s^2}. What force acts on a 10 kg object?
-a) 98 N
-b) 49 N
-c) 9.8 N
-d) 19.6 N
-
-Answer Key:
-1. a`,
-        expect: {
-            questionCount: 1,
-            answeredCount: 1,
-            textContains: [
-                { index: 0, substring: '\\SI{9.8}' },
-            ],
-        },
-    },
-
-    {
-        name: '55. Nested \\left/\\right with \\frac Inside',
-        input: `1. Simplify $\\left(\\frac{\\left(\\frac{a}{b}\\right)}{\\left(\\frac{c}{d}\\right)}\\right)$:
-a) $\\frac{ad}{bc}$
-b) $\\frac{ac}{bd}$
-c) $\\frac{ab}{cd}$
-d) $\\frac{cd}{ab}$
-
-Answer Key:
-1. a`,
-        expect: {
-            questionCount: 1,
-            answeredCount: 1,
-            textContains: [
-                { index: 0, substring: '\\left(' },
-            ],
-        },
-    },
-
-    {
-        name: '56. Unicode Chemistry Symbols \u2014 Equilibrium Arrow',
-        input: `1. The equilibrium symbol \u21CC indicates:
-a) Forward reaction only
-b) Reversible reaction
-c) Irreversible reaction
-d) No reaction
-
-Answer Key:
-1. b`,
-        expect: {
-            questionCount: 1,
-            answeredCount: 1,
-        },
-    },
-
-    {
-        name: '57. \\overbrace and \\underbrace Annotations',
-        input: `1. In $\\underbrace{a + a + \\cdots + a}_{n \\text{ times}} = na$, what is the value when $a=3, n=5$?
-a) $8$
-b) $15$
-c) $12$
-d) $25$
-
-Answer Key:
-1. b`,
-        expect: {
-            questionCount: 1,
-            answeredCount: 1,
-            textContains: [
-                { index: 0, substring: '\\underbrace{' },
-            ],
-        },
-    },
-
-    {
-        name: '58. \\lfloor \\rfloor and \\lceil \\rceil Symbols',
-        input: `1. What is $\\lfloor 3.7 \\rfloor + \\lceil 2.1 \\rceil$?
-a) 5
-b) 6
-c) 7
-d) 4
-
-Answer Key:
-1. b`,
-        expect: {
-            questionCount: 1,
-            answeredCount: 1,
-            textContains: [
-                { index: 0, substring: '\\lfloor' },
-                { index: 0, substring: '\\rceil' },
-            ],
-        },
-    },
-
-    {
-        name: '59. \\boxed{} Answer Highlighting',
-        input: `1. The solution is $\\boxed{x = 5}$. Which equation has this solution?
-a) $x + 3 = 8$
-b) $x - 3 = 8$
-c) $2x = 8$
-d) $x^2 = 25$
-
-Answer Key:
-1. a`,
-        expect: {
-            questionCount: 1,
-            answeredCount: 1,
-            textContains: [
-                { index: 0, substring: '\\boxed{x = 5}' },
-            ],
-        },
-    },
-
-    {
-        name: '60. Multi-line $ delimiter spanning 2 lines',
-        input: `1. Consider the equation $x^2 +
-2x + 1 = 0$. How many real roots does it have?
-a) 0
-b) 1
-c) 2
-d) 3
-
-Answer Key:
-1. b`,
-        expect: {
-            questionCount: 1,
-            answeredCount: 1,
-            textContains: [
-                { index: 0, substring: 'x^2' },
-            ],
-        },
-    },
-
-    {
-        name: '61. Yes/No Section Header Detection',
-        input: `Yes or No
-
-1. Is water wet?
-2. Is fire cold?
-3. Is the sky blue?
-
-Answer Key:
-1. Yes
-2. No
-3. Yes`,
-        expect: {
-            questionCount: 3,
-            answeredCount: 3,
-            types: ['true_false', 'true_false', 'true_false'],
-        },
-    },
 ];
 
 // ════════════════════ TEST RUNNER ════════════════════
@@ -1373,7 +882,7 @@ for (const tc of testCases) {
         for (const { index, substring } of tc.expect.textContains) {
             if (index < result.questions.length) {
                 if (!result.questions[index].text.includes(substring)) {
-                    errors.push(`  Q${index + 1} text missing: "${substring}"\n    actual: "${result.questions[index].text.substring(0, 150)}..."`);
+                    errors.push(`  Q${index + 1} text missing: "${substring}"\n    actual: "${result.questions[index].text.substring(0, 100)}..."`);
                 }
             }
         }
@@ -1404,17 +913,6 @@ for (const tc of testCases) {
         errors.push(`  Expected no errors, got: ${result.errors.join('; ')}`);
     }
 
-    // Check explanations
-    if (tc.expect.hasExplanation) {
-        for (const { index } of tc.expect.hasExplanation) {
-            if (index < result.questions.length) {
-                if (!(result.questions[index] as any).explanation) {
-                    errors.push(`  Q${index + 1} missing explanation`);
-                }
-            }
-        }
-    }
-
     if (errors.length === 0) {
         console.log(`  \u2705 ${tc.name}`);
         passed++;
@@ -1423,11 +921,6 @@ for (const tc of testCases) {
         for (const e of errors) console.log(e);
         if (result.errors.length > 0) {
             console.log(`  Parser errors: ${result.errors.join('; ')}`);
-        }
-        // Debug: show first 3 questions
-        for (let qi = 0; qi < Math.min(3, result.questions.length); qi++) {
-            const q = result.questions[qi];
-            console.log(`  [DEBUG Q${qi+1}] type=${q.type} answer=${q.correctAnswerIndex} opts=${q.options.length} text="${q.text.substring(0,80)}..."`);
         }
         failures.push(tc.name);
         failed++;

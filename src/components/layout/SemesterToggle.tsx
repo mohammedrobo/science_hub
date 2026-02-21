@@ -19,7 +19,7 @@ export function SemesterToggle() {
     };
 
     if (!hasHydrated) {
-        return <div className="w-[116px] sm:w-[190px] h-[36px] bg-muted rounded-full animate-pulse" />;
+        return <div className="h-9 w-36 sm:w-48 bg-muted rounded-full animate-pulse" />;
     }
 
     const tabs = [
@@ -28,21 +28,16 @@ export function SemesterToggle() {
     ];
 
     return (
-        <div className="relative flex items-center bg-muted p-1 rounded-full border border-border">
-            {/* Sliding background pill — uses logical start for RTL support */}
-            <div
-                className={cn(
-                    "absolute top-1 bottom-1 w-[52px] sm:w-24 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full shadow-lg shadow-violet-500/25 transition-all duration-300 ease-out",
-                    semester === 1 ? "start-1" : "start-[calc(50%)]"
-                )}
-            />
+        <div className="flex bg-muted rounded-full p-1 border border-border gap-0.5">
             {tabs.map((tab) => (
                 <button
                     key={tab.id}
                     onClick={() => handleToggle(tab.id)}
                     className={cn(
-                        "relative px-3 sm:px-4 py-1.5 text-[11px] sm:text-sm font-medium w-[52px] sm:w-24 text-center rounded-full z-10 outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors duration-200",
-                        semester === tab.id ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                        "px-3.5 sm:px-5 py-1.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 whitespace-nowrap",
+                        semester === tab.id
+                            ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-500/30"
+                            : "text-muted-foreground hover:text-foreground"
                     )}
                 >
                     {tab.label}

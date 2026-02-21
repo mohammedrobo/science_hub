@@ -47,135 +47,103 @@ export function MobileMenu({ isAdmin, session, userNameInitial, profilePictureUr
                     <span className="sr-only">{t('openMenu')}</span>
                 </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[85vw] sm:w-[400px] border-s border-border bg-background p-0">
+            <SheetContent side="right" className="w-[75vw] max-w-[320px] border-s border-border bg-background p-0 gap-0">
                 <SheetTitle className="sr-only">{t('navigationMenu')}</SheetTitle>
                 <div className="flex flex-col h-full">
-                    {/* Header with User Info */}
-                    <div className="p-6 border-b border-border">
-                        <div className="flex items-center gap-3">
-                            <div className={`h-12 w-12 shrink-0 rounded-full border-2 overflow-hidden flex items-center justify-center font-bold shadow-sm ${getRankColor(rank)}`}>
+                    {/* User Header */}
+                    <div className="ps-4 pe-10 pt-4 pb-3 border-b border-border">
+                        <div className="flex items-center gap-2.5">
+                            <div className={`h-10 w-10 shrink-0 rounded-full border-2 overflow-hidden flex items-center justify-center font-bold ${getRankColor(rank)}`}>
                                 {profilePictureUrl ? (
-                                    <img
-                                        src={profilePictureUrl}
-                                        alt="Profile"
-                                        className="h-full w-full object-cover"
-                                    />
+                                    <img src={profilePictureUrl} alt="" className="h-full w-full object-cover" />
                                 ) : (
-                                    <span className="text-white">{userNameInitial}</span>
+                                    <span className="text-white text-sm">{userNameInitial}</span>
                                 )}
                             </div>
-                            <div className="overflow-hidden flex-1">
-                                <p className="text-sm font-medium truncate text-foreground">{session?.name || "Guest User"}</p>
-                                <p className="text-xs text-muted-foreground truncate">@{session?.username || "guest"}</p>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-[13px] font-semibold truncate">{session?.name || "Guest"}</p>
+                                <p className="text-[11px] text-muted-foreground truncate">@{session?.username || "guest"}</p>
                             </div>
+                        </div>
+                        <div className="flex items-center gap-2 mt-2">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold text-white ${getRankColor(rank)}`}>
+                                {rank}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">
+                                <Trophy className="h-3 w-3 text-yellow-500 inline-block me-0.5 -mt-px" />
+                                {xp} {t('xp')}
+                            </span>
                         </div>
                     </div>
 
-                    {/* Rank & XP Display */}
-                    <div className="px-6 py-4 border-b border-border bg-muted/20">
-                        <div className="flex items-center gap-3">
-                            <Trophy className="h-5 w-5 text-yellow-500" />
-                            <div>
-                                <p className="text-sm font-medium text-foreground">{t('rank')}: {rank}</p>
-                                <p className="text-xs text-muted-foreground">{xp} {t('xp')}</p>
+                    {/* Navigation */}
+                    <div className="flex-1 overflow-y-auto">
+                        <div className="px-2 py-2 space-y-0.5">
+                            <Link href="/progress" onClick={closeMenu}
+                                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/80 active:bg-muted transition-colors">
+                                <BarChart3 className="h-[18px] w-[18px] text-emerald-500 shrink-0" />
+                                <span className="text-[13px] font-medium">{t('myProgress')}</span>
+                            </Link>
+                            <Link href="/tools/gpa" onClick={closeMenu}
+                                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/80 active:bg-muted transition-colors">
+                                <Calculator className="h-[18px] w-[18px] text-orange-500 shrink-0" />
+                                <span className="text-[13px] font-medium">{t('gpaCalculator')}</span>
+                            </Link>
+                            <Link href="/leaderboard" onClick={closeMenu}
+                                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/80 active:bg-muted transition-colors">
+                                <Trophy className="h-[18px] w-[18px] text-yellow-500 shrink-0" />
+                                <span className="text-[13px] font-medium">{t('leaderboard')}</span>
+                            </Link>
+                            <Link href="/schedule" onClick={closeMenu}
+                                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/80 active:bg-muted transition-colors">
+                                <Calendar className="h-[18px] w-[18px] text-violet-500 shrink-0" />
+                                <span className="text-[13px] font-medium">{t('schedule')}</span>
+                            </Link>
+                            <Link href="/updates" onClick={closeMenu}
+                                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/80 active:bg-muted transition-colors">
+                                <Sparkles className="h-[18px] w-[18px] text-fuchsia-500 shrink-0" />
+                                <span className="text-[13px] font-medium">{t('whatsNew')}</span>
+                            </Link>
+                        </div>
+
+                        {/* Admin / Leader */}
+                        {(isAdmin || ['super_admin', 'admin', 'leader'].includes(userRole || '')) && (
+                            <div className="px-2 py-1 space-y-0.5 border-t border-border/40 mx-2 mt-1 pt-2">
+                                {isAdmin && (
+                                    <Link href="/admin" onClick={closeMenu}
+                                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/80 active:bg-muted transition-colors">
+                                        <Crown className="h-[18px] w-[18px] text-amber-500 shrink-0" />
+                                        <span className="text-[13px] font-medium">{t('adminPanel')}</span>
+                                    </Link>
+                                )}
+                                {['super_admin', 'admin', 'leader'].includes(userRole || '') && (
+                                    <Link href="/leader" onClick={closeMenu}
+                                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/80 active:bg-muted transition-colors">
+                                        <Shield className="h-[18px] w-[18px] text-violet-500 shrink-0" />
+                                        <span className="text-[13px] font-medium">{t('leaderDashboard')}</span>
+                                    </Link>
+                                )}
                             </div>
+                        )}
+
+                        {/* Language */}
+                        <div className="px-2 py-1 border-t border-border/40 mx-2 mt-1 pt-2">
+                            <LanguageSwitcher variant="full" />
                         </div>
                     </div>
 
-                    {/* Navigation Links */}
-                    <nav className="flex-1 p-6 space-y-2">
-
-                        <Link
-                            href="/progress"
-                            onClick={closeMenu}
-                            className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground hover:bg-muted transition-colors"
-                        >
-                            <BarChart3 className="h-5 w-5 text-emerald-500" />
-                            <span className="font-medium">{t('myProgress')}</span>
+                    {/* Footer */}
+                    <div className="border-t border-border px-2 py-2 space-y-0.5">
+                        <Link href="/profile" onClick={closeMenu}
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/80 active:bg-muted transition-colors">
+                            <User className="h-[18px] w-[18px] text-muted-foreground shrink-0" />
+                            <span className="text-[13px] font-medium">{t('viewProfile')}</span>
                         </Link>
-                        <Link
-                            href="/tools/gpa"
-                            onClick={closeMenu}
-                            className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground hover:bg-muted transition-colors"
-                        >
-                            <Calculator className="h-5 w-5 text-primary" />
-                            <span className="font-medium">{t('gpaCalculator')}</span>
-                        </Link>
-                        <Link
-                            href="/leaderboard"
-                            onClick={closeMenu}
-                            className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground hover:bg-muted transition-colors"
-                        >
-                            <Trophy className="h-5 w-5 text-primary" />
-                            <span className="font-medium">{t('leaderboard')}</span>
-                        </Link>
-                        <Link
-                            href="/schedule"
-                            onClick={closeMenu}
-                            className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground hover:bg-muted transition-colors"
-                        >
-                            <Calendar className="h-5 w-5 text-violet-500" />
-                            <span className="font-medium">{t('schedule')}</span>
-                        </Link>
-                        <Link
-                            href="/updates"
-                            onClick={closeMenu}
-                            className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground hover:bg-muted transition-colors"
-                        >
-                            <Sparkles className="h-5 w-5 text-fuchsia-500" />
-                            <span className="font-medium">{t('whatsNew')}</span>
-                        </Link>
-
-                        {/* Language Switcher */}
-                        <LanguageSwitcher variant="full" />
-
-                        {/* Logout */}
-                        <button
-                            onClick={() => {
-                                closeMenu();
-                                signout();
-                            }}
-                            className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors w-full"
-                        >
-                            <LogOut className="h-5 w-5" />
-                            <span className="font-medium">{t('logout')}</span>
+                        <button onClick={() => { closeMenu(); signout(); }}
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-400 hover:bg-red-500/10 active:bg-red-500/20 transition-colors w-full">
+                            <LogOut className="h-[18px] w-[18px] shrink-0" />
+                            <span className="text-[13px] font-medium">{t('logout')}</span>
                         </button>
-
-                        {/* Admin Link */}
-                        {isAdmin && (
-                            <Link
-                                href="/admin"
-                                onClick={closeMenu}
-                                className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground hover:bg-muted transition-colors"
-                            >
-                                <Crown className="h-5 w-5 text-amber-500" />
-                                <span className="font-medium">{t('adminPanel')}</span>
-                            </Link>
-                        )}
-
-                        {/* Leader Link */}
-                        {['super_admin', 'admin', 'leader'].includes(userRole || '') && (
-                            <Link
-                                href="/leader"
-                                onClick={closeMenu}
-                                className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground hover:bg-muted transition-colors"
-                            >
-                                <Shield className="h-5 w-5 text-violet-500" />
-                                <span className="font-medium">{t('leaderDashboard')}</span>
-                            </Link>
-                        )}
-                    </nav>
-
-                    {/* Footer Actions */}
-                    <div className="p-6 border-t border-border bg-muted/10">
-                        <Link
-                            href="/profile"
-                            onClick={closeMenu}
-                            className="flex items-center gap-3 px-4 py-3 rounded-lg bg-card border border-border hover:bg-muted/50 transition-colors"
-                        >
-                            <User className="h-5 w-5 text-muted-foreground" />
-                            <span className="font-medium text-foreground">{t('viewProfile')}</span>
-                        </Link>
                     </div>
                 </div>
             </SheetContent>

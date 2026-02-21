@@ -1,0 +1,285 @@
+'use client';
+
+import React from 'react';
+import dynamic from 'next/dynamic';
+import 'katex/dist/katex.min.css';
+// Load mhchem extension for \ce{} and \pu{} chemistry notation
+import 'katex/contrib/mhchem';
+
+const InlineMath = dynamic(() => import('react-katex').then(mod => mod.InlineMath), {
+    ssr: false,
+});
+
+const BlockMath = dynamic(() => import('react-katex').then(mod => mod.BlockMath), {
+    ssr: false,
+});
+
+interface MathTextProps {
+    text: string;
+    className?: string;
+}
+
+// ── KaTeX Settings ─────────────────────────────────────────────────────────
+// Shared across all math rendering: macros, strict mode, error handling.
+const KATEX_SETTINGS = {
+    strict: false,       // Don't throw on unknown commands
+    trust: true,         // Allow \ce{}, \url{}, etc.
+    throwOnError: false, // Gracefully handle parse errors
+    macros: {
+        // Number sets
+        '\\R': '\\mathbb{R}',
+        '\\N': '\\mathbb{N}',
+        '\\Z': '\\mathbb{Z}',
+        '\\Q': '\\mathbb{Q}',
+        '\\C': '\\mathbb{C}',
+        // Common physics/chemistry shortcuts
+        '\\degree': '^{\\circ}',
+        '\\degC': '^{\\circ}\\text{C}',
+        '\\degF': '^{\\circ}\\text{F}',
+        '\\ohm': '\\Omega',
+        '\\micro': '\\mu',
+        '\\angstrom': '\\text{\\AA}',
+        '\\kJ': '\\text{kJ}',
+        '\\mol': '\\text{mol}',
+        '\\atm': '\\text{atm}',
+        '\\Hz': '\\text{Hz}',
+        '\\pH': '\\text{pH}',
+        // Convenience
+        '\\half': '\\frac{1}{2}',
+        '\\third': '\\frac{1}{3}',
+        '\\quarter': '\\frac{1}{4}',
+    },
+};
+
+// ── Regex Patterns ─────────────────────────────────────────────────────────
+// Brace group that handles up to 3 levels of nesting: { { { } } }
+const BRACE = '\\{(?:[^{}]|\\{(?:[^{}]|\\{[^{}]*\\})*\\})*\\}';
+const OPT_BRACKET = '(?:\\[[^\\]]*\\])?';
+
+// Standalone commands with properly nested brace groups
+// Matches: \frac{\sqrt{x}}{2}, \ce{H2O + CO2 -> H2CO3}, \SI{9.8}{m/s^2}, etc.
+const STANDALONE_LATEX_RE = new RegExp(
+    '\\\\(?:frac|dfrac|tfrac|cfrac|sqrt|cbrt|' +
+    'vec|hat|bar|dot|ddot|tilde|widetilde|widehat|' +
+    'overline|underline|overbrace|underbrace|overleftarrow|overrightarrow|' +
+    'overset|underset|stackrel|cancel|bcancel|xcancel|sout|' +
+    'binom|dbinom|tbinom|' +
+    'text|textbf|textit|textrm|textsc|texttt|textsf|' +
+    'mathrm|mathbf|mathit|mathsf|mathtt|' +
+    'mathcal|mathbb|mathfrak|mathscr|' +
+    'boldsymbol|pmb|' +
+    'ce|pu|' +
+    'SI|si|num|qty|unit|ang|' +
+    'boxed|colorbox|fcolorbox|color|textcolor|' +
+    'operatorname|' +
+    'phantom|vphantom|hphantom|' +
+    'xleftarrow|xrightarrow|xLeftarrow|xRightarrow|' +
+    'not)' +
+    '\\s*' + OPT_BRACKET + '\\s*' + BRACE + '(?:\\s*' + BRACE + ')*'
+);
+
+// Standalone symbols (Greek, operators, relations, arrows, etc.)
+const LATEX_SYMBOL_RE = /\\(?:alpha|beta|gamma|delta|epsilon|varepsilon|zeta|eta|theta|vartheta|iota|kappa|lambda|mu|nu|xi|pi|varpi|rho|varrho|sigma|varsigma|tau|upsilon|phi|varphi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Upsilon|Phi|Psi|Omega|times|div|pm|mp|cdot|cdots|ldots|ddots|vdots|circ|bullet|star|ast|oplus|otimes|odot|oslash|ominus|dagger|ddagger|leq|le|geq|ge|neq|ne|approx|cong|ncong|equiv|sim|simeq|propto|asymp|ll|gg|subset|supset|subseteq|supseteq|in|notin|ni|emptyset|varnothing|forall|exists|nexists|partial|nabla|infty|aleph|wp|ell|hbar|imath|jmath|Re|Im|sum|prod|coprod|int|iint|iiint|oint|bigcup|bigcap|lim|limsup|liminf|sup|inf|max|min|arg|det|dim|exp|gcd|lcm|hom|ker|deg|log|ln|lg|sin|cos|tan|cot|sec|csc|arcsin|arccos|arctan|sinh|cosh|tanh|coth|mod|bmod|pmod|Pr|rightarrow|leftarrow|Rightarrow|Leftarrow|leftrightarrow|Leftrightarrow|longrightarrow|longleftarrow|Longrightarrow|Longleftarrow|uparrow|downarrow|Uparrow|Downarrow|updownarrow|nearrow|searrow|swarrow|nwarrow|mapsto|longmapsto|hookrightarrow|hookleftarrow|rightharpoonup|rightharpoondown|leftharpoonup|leftharpoondown|rightleftharpoons|to|gets|implies|impliedby|iff|therefore|because|angle|measuredangle|triangle|square|Diamond|perp|parallel|nparallel|cong|not|mid|nmid|quad|qquad|enspace|thinspace|space)(?![a-zA-Z])/;
+
+// LaTeX environments
+const LATEX_ENV_RE = /\\begin\{([^}]+)\}[\s\S]*?\\end\{\1\}/;
+
+// ── Unicode Math ───────────────────────────────────────────────────────────
+// Unicode superscript/subscript maps for automatic conversion
+const UNICODE_SUP: Record<string, string> = {
+    '\u2070': '0', '\u00B9': '1', '\u00B2': '2', '\u00B3': '3',
+    '\u2074': '4', '\u2075': '5', '\u2076': '6', '\u2077': '7',
+    '\u2078': '8', '\u2079': '9', '\u207A': '+', '\u207B': '-',
+    '\u207F': 'n', '\u2071': 'i',
+};
+const UNICODE_SUB: Record<string, string> = {
+    '\u2080': '0', '\u2081': '1', '\u2082': '2', '\u2083': '3',
+    '\u2084': '4', '\u2085': '5', '\u2086': '6', '\u2087': '7',
+    '\u2088': '8', '\u2089': '9', '\u208A': '+', '\u208B': '-',
+    '\u2099': 'n', '\u2093': 'x', '\u2090': 'a', '\u2091': 'e',
+    '\u2092': 'o', '\u2095': 'h', '\u2096': 'k', '\u2097': 'l',
+    '\u2098': 'm', '\u209A': 'p', '\u209B': 's', '\u209C': 't',
+};
+
+// Unicode symbol → LaTeX replacement pairs
+const UNICODE_MATH_MAP: [RegExp, string][] = [
+    [/\u2264/g, '\\leq'], [/\u2265/g, '\\geq'], [/\u2260/g, '\\neq'],
+    [/\u2248/g, '\\approx'], [/\u00B1/g, '\\pm'], [/\u2213/g, '\\mp'],
+    [/\u00B7/g, '\\cdot'], [/\u221E/g, '\\infty'],
+    [/\u2192/g, '\\rightarrow'], [/\u2190/g, '\\leftarrow'],
+    [/\u21D2/g, '\\Rightarrow'], [/\u21D0/g, '\\Leftarrow'],
+    [/\u21D4/g, '\\Leftrightarrow'],
+    [/\u2208/g, '\\in'], [/\u2209/g, '\\notin'],
+    [/\u2282/g, '\\subset'], [/\u2283/g, '\\supset'],
+    [/\u2286/g, '\\subseteq'], [/\u2287/g, '\\supseteq'],
+    [/\u222A/g, '\\cup'], [/\u2229/g, '\\cap'],
+    [/\u2205/g, '\\emptyset'],
+    [/\u2200/g, '\\forall'], [/\u2203/g, '\\exists'],
+    [/\u2202/g, '\\partial'], [/\u2207/g, '\\nabla'],
+    [/\u2211/g, '\\sum'], [/\u220F/g, '\\prod'], [/\u222B/g, '\\int'],
+    [/\u221A/g, '\\sqrt'], [/\u221D/g, '\\propto'], [/\u2220/g, '\\angle'],
+    [/\u25B3/g, '\\triangle'], [/\u22A5/g, '\\perp'], [/\u2225/g, '\\parallel'],
+    [/\u00D7/g, '\\times'], [/\u00F7/g, '\\div'],
+];
+
+/** Pre-process Unicode math notation to LaTeX (only outside existing $ delimiters) */
+function preprocessUnicodeMath(text: string): string {
+    // Split by existing math delimiters, only process non-math segments
+    const segments: { text: string; isMath: boolean }[] = [];
+    let pos = 0;
+    const delimRe = /\$\$[\s\S]+?\$\$|\$[^$\n]+?\$|\\\([\s\S]+?\\\)|\\\[[\s\S]+?\\\]|\\begin\{[^}]+\}[\s\S]*?\\end\{[^}]+\}/g;
+    let m: RegExpExecArray | null;
+    while ((m = delimRe.exec(text)) !== null) {
+        if (m.index > pos) segments.push({ text: text.substring(pos, m.index), isMath: false });
+        segments.push({ text: m[0], isMath: true });
+        pos = m.index + m[0].length;
+    }
+    if (pos < text.length) segments.push({ text: text.substring(pos), isMath: false });
+
+    return segments.map(seg => {
+        if (seg.isMath) return seg.text;
+        let t = seg.text;
+
+        // Convert Unicode superscripts: x\u00B2 → x$^{2}$
+        const supChars = Object.keys(UNICODE_SUP);
+        const supRe = new RegExp(`([a-zA-Z0-9])([${supChars.join('')}]+)`, 'g');
+        t = t.replace(supRe, (_, base: string, sups: string) => {
+            const digits = [...sups].map(c => UNICODE_SUP[c] || c).join('');
+            return `${base}$^{${digits}}$`;
+        });
+
+        // Convert Unicode subscripts: H\u2082 → H$_{2}$
+        const subChars = Object.keys(UNICODE_SUB);
+        const subRe = new RegExp(`([a-zA-Z0-9])([${subChars.join('')}]+)`, 'g');
+        t = t.replace(subRe, (_, base: string, subs: string) => {
+            const digits = [...subs].map(c => UNICODE_SUB[c] || c).join('');
+            return `${base}$_{${digits}}$`;
+        });
+
+        // Convert standalone Unicode math symbols
+        for (const [pattern, replacement] of UNICODE_MATH_MAP) {
+            t = t.replace(pattern, `$${replacement}$`);
+        }
+
+        // Clean up adjacent $$ from consecutive replacements: $\alpha$$\beta$ → $\alpha \beta$
+        t = t.replace(/\$\$/g, ' ');
+        return t;
+    }).join('');
+}
+
+// Combined regex: match all possible math delimiters and standalone commands
+// Order matters: longer/greedy patterns first
+function buildMathRegex(): RegExp {
+    return new RegExp(
+        [
+            // Block: $$...$$
+            '(\\$\\$[\\s\\S]+?\\$\\$)',
+            // Block: \\[...\\]
+            '(\\\\\\[[\\s\\S]+?\\\\\\])',
+            // Environment: \\begin{...}...\\end{...}
+            '(' + LATEX_ENV_RE.source + ')',
+            // Inline: $...$
+            '(\\$[^\\$\\n]+?\\$)',
+            // Inline: \\(...\\)
+            '(\\\\\\([^\\)]+?\\\\\\))',
+            // Standalone commands with nested braces
+            '(' + STANDALONE_LATEX_RE.source + ')',
+            // Standalone symbols
+            '(' + LATEX_SYMBOL_RE.source + ')',
+        ].join('|'),
+        'g'
+    );
+}
+
+function extractLatex(match: string): { content: string; isBlock: boolean } {
+    // $$...$$
+    if (match.startsWith('$$') && match.endsWith('$$')) {
+        return { content: match.slice(2, -2).trim(), isBlock: true };
+    }
+    // \\[...\\]
+    if (match.startsWith('\\[') && match.endsWith('\\]')) {
+        return { content: match.slice(2, -2).trim(), isBlock: true };
+    }
+    // \\begin{...}...\\end{...}
+    if (match.startsWith('\\begin{')) {
+        return { content: match, isBlock: true };
+    }
+    // $...$
+    if (match.startsWith('$') && match.endsWith('$')) {
+        return { content: match.slice(1, -1).trim(), isBlock: false };
+    }
+    // \\(...\\)
+    if (match.startsWith('\\(') && match.endsWith('\\)')) {
+        return { content: match.slice(2, -2).trim(), isBlock: false };
+    }
+    // Standalone command or symbol — render inline
+    return { content: match, isBlock: false };
+}
+
+export const MathText = ({ text, className }: MathTextProps) => {
+    if (!text) return null;
+
+    // Pre-process Unicode math symbols (H\u2082O \u2192 H$_{2}$O, \u2265 \u2192 $\\geq$)
+    const processed = preprocessUnicodeMath(text);
+
+    const regex = buildMathRegex();
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = regex.exec(processed)) !== null) {
+        const fullMatch = match[0];
+
+        // Add text before the match
+        if (match.index > lastIndex) {
+            parts.push(<span key={`t-${lastIndex}`}>{processed.substring(lastIndex, match.index)}</span>);
+        }
+
+        const { content, isBlock } = extractLatex(fullMatch);
+
+        if (isBlock) {
+            parts.push(
+                <BlockMath
+                    key={`b-${match.index}`}
+                    settings={KATEX_SETTINGS}
+                    renderError={(error: { message: string }) => (
+                        <span className="text-amber-500 font-mono text-xs" title={error.message}>
+                            {fullMatch}
+                        </span>
+                    )}
+                >
+                    {content}
+                </BlockMath>
+            );
+        } else {
+            parts.push(
+                <InlineMath
+                    key={`i-${match.index}`}
+                    settings={KATEX_SETTINGS}
+                    renderError={(error: { message: string }) => (
+                        <span className="text-amber-500 font-mono text-xs" title={error.message}>
+                            {fullMatch}
+                        </span>
+                    )}
+                >
+                    {content}
+                </InlineMath>
+            );
+        }
+
+        lastIndex = match.index + fullMatch.length;
+    }
+
+    // Add remaining text
+    if (lastIndex < processed.length) {
+        parts.push(<span key="t-end">{processed.substring(lastIndex)}</span>);
+    }
+
+    // If no math was found, return plain text
+    if (parts.length === 0) {
+        return <span className={className}>{text}</span>;
+    }
+
+    // dir="auto" ensures RTL text with LTR math renders correctly
+    return <span className={className} dir="auto">{parts}</span>;
+};

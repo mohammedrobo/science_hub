@@ -28,10 +28,10 @@ export function LanguageSwitcher({ variant = 'icon' }: { variant?: 'icon' | 'ful
       <button
         onClick={() => switchLocale(locale === 'en' ? 'ar' : 'en')}
         disabled={isPending}
-        className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground hover:bg-muted transition-colors w-full"
+        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-foreground hover:bg-muted/80 active:bg-muted transition-colors w-full"
       >
-        <Globe className="h-5 w-5 text-sky-500" />
-        <span className="font-medium">
+        <Globe className="h-[18px] w-[18px] text-sky-500 shrink-0" />
+        <span className="text-[13px] font-medium">
           {locale === 'en' ? 'العربية' : 'English'}
         </span>
       </button>

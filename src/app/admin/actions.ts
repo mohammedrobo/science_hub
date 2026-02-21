@@ -54,7 +54,7 @@ export async function createLesson(data: {
             text: string;
             options: string[];
             correctAnswerIndex: number;
-            type?: 'mcq' | 'true_false';
+            type?: 'mcq' | 'true_false' | 'fill_blank';
         }[];
     };
 }) {
@@ -729,7 +729,7 @@ export async function updateLesson(
                 text: string;
                 options: string[];
                 correctAnswerIndex: number;
-                type?: 'mcq' | 'true_false';
+                type?: 'mcq' | 'true_false' | 'fill_blank';
             }[];
         };
     }
