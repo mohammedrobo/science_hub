@@ -274,7 +274,7 @@ export async function resetUserProgress(username: string) {
     await ensureSuperAdmin();
     const supabase = await createServiceRoleClient();
 
-    // 1. Wipe progress
+    // 1. Wipe all progress entries (lessons + quizzes)
     const { error: progressError } = await supabase
         .from('user_progress')
         .delete()
@@ -282,15 +282,17 @@ export async function resetUserProgress(username: string) {
 
     if (progressError) return { error: 'Failed to clear progress' };
 
-    // 2. Reset Stats
+    // 2. Reset stats completely (XP, rank, GPA)
     const { error: statsError } = await supabase
         .from('user_stats')
-        .update({ total_xp: 0, current_rank: 'E' })
+        .update({ total_xp: 0, current_rank: 'E', gpa_term_1: null })
         .eq('username', username);
 
     if (statsError) return { error: 'Failed to reset stats' };
 
     revalidatePath('/admin');
+    revalidatePath('/progress');
+    revalidatePath('/');
     return { success: true };
 }
 
@@ -304,6 +306,65 @@ export async function removeProfilePicture(username: string) {
         .eq('username', username);
 
     if (error) return { error: 'Failed to remove picture' };
+
+    revalidatePath('/admin');
+    return { success: true };
+}
+
+/**
+ * Reset Password Only — resets to original password from access_keys.json
+ * or falls back to 'student123'. Forces password change on next login.
+ */
+export async function resetUserPassword(username: string) {
+    await ensureSuperAdmin();
+    const supabase = await createServiceRoleClient();
+
+    // 1. Lookup original password from access_keys.json
+    let originalPassword = 'student123';
+    try {
+        const fs = await import('fs/promises');
+        const path = await import('path');
+        const pathsToTry = [
+            path.join(process.cwd(), 'secure_data', 'access_keys.json'),
+            '/home/satoru/projects/science_hub/secure_data/access_keys.json',
+        ];
+
+        let keysData = '';
+        for (const p of pathsToTry) {
+            try {
+                keysData = await fs.readFile(p, 'utf-8');
+                break;
+            } catch { }
+        }
+
+        if (keysData) {
+            const keys = JSON.parse(keysData);
+            const normalize = (s: string) => s ? s.trim().toLowerCase().normalize('NFKC') : '';
+            const userKey = keys.find((k: any) => normalize(k.username) === normalize(username));
+            if (userKey?.password) {
+                originalPassword = userKey.password.trim();
+            }
+        }
+    } catch (e) {
+        console.error('[ResetPassword] Error reading access_keys:', e);
+    }
+
+    // 2. Hash and update
+    const { hashPassword } = await import('@/lib/auth/password');
+    const hashedPassword = await hashPassword(originalPassword);
+
+    const { error } = await supabase
+        .from('allowed_users')
+        .update({
+            password: hashedPassword,
+            is_first_login: true,
+        })
+        .eq('username', username);
+
+    if (error) {
+        console.error('Reset Password Error:', error);
+        return { error: 'Failed to reset password' };
+    }
 
     revalidatePath('/admin');
     return { success: true };
@@ -479,7 +540,8 @@ export async function resetFullAccount(username: string) {
     if (unassignError) console.error('Reset guild assignments error:', unassignError);
 
     revalidatePath('/admin');
-    revalidatePath('/admin');
+    revalidatePath('/progress');
+    revalidatePath('/');
 
     return { success: true, message: `Account ${username} has been reset.` };
 }
@@ -583,6 +645,8 @@ export async function resetAllAccounts() {
     await supabase.from('guild_quests').delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
     revalidatePath('/admin');
+    revalidatePath('/progress');
+    revalidatePath('/');
 
     return {
         success: true,

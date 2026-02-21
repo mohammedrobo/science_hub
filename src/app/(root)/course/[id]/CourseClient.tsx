@@ -234,7 +234,7 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
         <div className="min-h-screen bg-background">
             {/* Top Section: The Stage (Master Player) - Sticky on mobile */}
             <div className="w-full bg-zinc-950 border-b border-zinc-800 relative z-30 shadow-2xl sticky top-0 lg:relative">
-                <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-6 max-w-6xl">
+                <div className="container mx-auto px-0 sm:px-4 py-0 sm:py-6 max-w-6xl">
                     {/* Back button */}
                     <div className="hidden sm:block mb-4">
                         <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors group">
@@ -244,7 +244,7 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                     </div>
 
                     {/* Video Player */}
-                    <div className="aspect-video w-full bg-black rounded-lg sm:rounded-xl overflow-hidden shadow-[0_0_50px_-10px_rgba(139,92,246,0.15)] border border-white/10 relative">
+                    <div className="aspect-video w-full bg-black sm:rounded-xl overflow-hidden shadow-[0_0_50px_-10px_rgba(139,92,246,0.15)] sm:border border-white/10 relative">
                         {currentLesson?.video_url || (currentLesson?.video_parts && currentLesson.video_parts.length > 0) ? (
                             <VideoErrorBoundary videoUrl={currentLesson.video_url}>
                                 <VideoPlayer

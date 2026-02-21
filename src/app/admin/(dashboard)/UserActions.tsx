@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowUpCircle, ArrowDownCircle, Crown, Trash2, ImageOff, RotateCcw, ShieldAlert, Pencil } from 'lucide-react';
+import { ArrowUpCircle, ArrowDownCircle, Crown, Trash2, ImageOff, RotateCcw, ShieldAlert, Pencil, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RoleChangeDialog } from './RoleChangeDialog';
 import { EditNameDialog } from './EditNameDialog';
-import { deleteUser, resetUserProgress, removeProfilePicture, resetFullAccount } from '../actions';
+import { deleteUser, resetUserProgress, removeProfilePicture, resetFullAccount, resetUserPassword } from '../actions';
 import { toast } from 'sonner';
 
 interface UserActionsProps {
@@ -79,6 +79,17 @@ export function UserActions({ username, fullName, currentRole, isSuperAdmin }: U
                         </Button>
                     </form>
                     <form action={async () => {
+                        if (!confirm(`Reset password for ${fullName} (${username})? They will be forced to change it on next login.`)) return;
+                        const result = await resetUserPassword(username);
+                        if ('error' in result) toast.error(result.error);
+                        else toast.success('Password reset — user must change on next login');
+                    }}>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-500 hover:text-cyan-500" title="Reset Password">
+                            <KeyRound className="w-4 h-4" />
+                        </Button>
+                    </form>
+                    <form action={async () => {
+                        if (!confirm(`Reset all progress for ${fullName} (${username})? This clears XP, rank, quiz scores and cannot be undone.`)) return;
                         const result = await resetUserProgress(username);
                         if ('error' in result) toast.error(result.error);
                         else toast.success('Progress reset');
