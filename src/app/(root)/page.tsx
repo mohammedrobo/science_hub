@@ -34,7 +34,7 @@ export default function Dashboard() {
             <div className="bg-card/80 border-b border-border mb-8 sm:mb-12">
                 <div className="container mx-auto px-4 py-10 sm:py-14">
                     <h1 className="text-3xl sm:text-5xl font-bold text-zinc-100 mb-4 tracking-tight">
-                        {t('welcomeTo')} <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-indigo-400">Science Hub</span>
+                        {t('welcomeTo')} <span className="gradient-text">Science Hub</span>
                     </h1>
 
                     <p className="text-base sm:text-lg text-zinc-400 max-w-3xl leading-relaxed mb-3">
@@ -42,9 +42,9 @@ export default function Dashboard() {
                     </p>
 
                     {/* How It Works Guide */}
-                    <div className="bg-zinc-900/40 border border-zinc-800/60 rounded-lg p-4 sm:p-5 mb-6">
+                    <div className="glass-card rounded-xl p-4 sm:p-5 mb-6">
                         <h2 className="text-sm font-semibold text-violet-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>
                             {t('howItWorks')}
                         </h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-zinc-400">
@@ -80,9 +80,9 @@ export default function Dashboard() {
                     </div>
 
                     {/* XP System Explained */}
-                    <div className="bg-zinc-900/40 border border-zinc-800/60 rounded-lg p-4 sm:p-5 mb-6">
+                    <div className="glass-card rounded-xl p-4 sm:p-5 mb-6">
                         <h2 className="text-sm font-semibold text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
                             {t('xpRankingSystem')}
                         </h2>
                         <div className="flex flex-col sm:flex-row gap-4 sm:gap-8">
@@ -131,28 +131,28 @@ export default function Dashboard() {
 
                     {/* Features Grid */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
-                        <div className="bg-zinc-900/50 border border-zinc-800 rounded-sm p-3 sm:p-4 hover:border-violet-800/50 transition-colors duration-200">
+                        <div className="glass-card glow-hover rounded-xl p-3 sm:p-4 transition-all duration-300 cursor-default">
                             <div className="text-violet-400 mb-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7" /><rect width="15" height="14" x="1" y="5" rx="2" ry="2" /></svg>
                             </div>
                             <h3 className="text-sm font-semibold text-zinc-200">{t('videoLectures')}</h3>
                             <p className="text-xs text-zinc-500 mt-1">{t('videoLecturesDesc')}</p>
                         </div>
-                        <div className="bg-zinc-900/50 border border-zinc-800 rounded-sm p-3 sm:p-4 hover:border-emerald-800/50 transition-colors duration-200">
+                        <div className="glass-card glow-hover rounded-xl p-3 sm:p-4 transition-all duration-300 cursor-default" style={{ ['--glow-color' as string]: 'rgba(16, 185, 129, 0.3)' }}>
                             <div className="text-emerald-400 mb-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><path d="m19 9-5 5-4-4-3 3" /></svg>
                             </div>
                             <h3 className="text-sm font-semibold text-zinc-200">{t('progressDashboard')}</h3>
                             <p className="text-xs text-zinc-500 mt-1">{t('progressDashboardDesc')}</p>
                         </div>
-                        <div className="bg-zinc-900/50 border border-zinc-800 rounded-sm p-3 sm:p-4 hover:border-yellow-800/50 transition-colors duration-200">
+                        <div className="glass-card glow-hover rounded-xl p-3 sm:p-4 transition-all duration-300 cursor-default">
                             <div className="text-yellow-400 mb-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" /></svg>
                             </div>
                             <h3 className="text-sm font-semibold text-zinc-200">{t('rankingLeaderboard')}</h3>
                             <p className="text-xs text-zinc-500 mt-1">{t('rankingLeaderboardDesc')}</p>
                         </div>
-                        <div className="bg-zinc-900/50 border border-zinc-800 rounded-sm p-3 sm:p-4 hover:border-fuchsia-800/50 transition-colors duration-200">
+                        <div className="glass-card glow-hover rounded-xl p-3 sm:p-4 transition-all duration-300 cursor-default">
                             <div className="text-fuchsia-400 mb-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" /><path d="m9 12 2 2 4-4" /></svg>
                             </div>
@@ -199,7 +199,7 @@ export default function Dashboard() {
 
                     {/* Sidebar: Academic Tools */}
                     <div className="lg:col-span-1 space-y-6">
-                        <div className="bg-card/95 p-6 rounded-sm border border-border shadow-sm sticky top-24 hover:shadow-md transition-shadow duration-200">
+                        <div className="glass-card p-6 rounded-xl sticky top-24 hover:shadow-lg transition-shadow duration-200">
                             <h3 className="font-bold text-lg text-violet-400 mb-4 pb-2 border-b border-border">
                                 {t('academicTools')}
                             </h3>

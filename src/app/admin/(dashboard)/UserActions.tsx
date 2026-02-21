@@ -80,8 +80,8 @@ export function UserActions({ username, fullName, currentRole, isSuperAdmin }: U
                 </Button>
             )}
 
-            {/* More actions dropdown — super_admin only */}
-            {isSuperAdmin && (
+            {/* More actions dropdown — admins can modify students/leaders, super_admin can modify anyone */}
+            {(isSuperAdmin || (currentRole !== 'admin' && currentRole !== 'super_admin')) && (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button

@@ -11,7 +11,6 @@ export interface Course {
   created_at: string;
 }
 
-// Lesson type matching lessons table
 export interface Lesson {
   id: string;
   course_id: string;
@@ -19,6 +18,7 @@ export interface Lesson {
   video_url: string | null;
   video_parts?: { title: string; url: string }[];
   pdf_url: string | null;
+  pdf_parts?: { title: string; url: string }[];
   quiz_id: string | null;
   order_index: number;
   created_at?: string;

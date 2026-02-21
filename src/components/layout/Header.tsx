@@ -32,14 +32,14 @@ export async function Header() {
     }
 
     return (
-        <header className="border-b border-border bg-background sticky top-0 z-50">
+        <header className="border-b border-border/60 bg-background/80 backdrop-blur-xl sticky top-0 z-50 shadow-[0_1px_20px_-5px_rgba(0,0,0,0.5)]">
             <div className="mx-auto px-3 sm:px-4 lg:px-6 min-h-16 flex items-center justify-between max-w-[1600px]">
-                <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
-                    <div className="bg-gradient-to-br from-violet-600 to-indigo-600 p-2 rounded text-white shadow-lg shadow-violet-500/20">
+                <Link href="/" className="flex items-center gap-2.5 group transition-all">
+                    <div className="bg-gradient-to-br from-violet-600 to-indigo-600 p-2 rounded-lg text-white shadow-lg shadow-violet-500/20 group-hover:shadow-violet-500/40 group-hover:scale-105 transition-all duration-300">
                         <BookOpen className="h-5 w-5" />
                     </div>
                     <div>
-                        <span className="hidden sm:block font-bold text-lg text-foreground tracking-tight leading-none">
+                        <span className="hidden sm:block font-bold text-lg text-foreground tracking-tight leading-none group-hover:text-violet-300 transition-colors duration-300">
                             Science Hub
                         </span>
                     </div>
@@ -47,30 +47,30 @@ export async function Header() {
 
                 <nav className="hidden lg:flex items-center gap-1 text-sm font-medium">
 
-                    <Link href="/tools/gpa" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-zinc-400 hover:text-orange-400 hover:bg-orange-500/10 transition-all">
+                    <Link href="/tools/gpa" className="nav-link-underline flex items-center gap-1.5 px-3 py-1.5 rounded-md text-zinc-400 hover:text-orange-400 hover:bg-orange-500/10 transition-all">
                         <Calculator className="h-3.5 w-3.5 text-orange-500" />
                         {t('gpaCalc')}
                     </Link>
-                    <Link href="/progress" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-zinc-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all">
+                    <Link href="/progress" className="nav-link-underline flex items-center gap-1.5 px-3 py-1.5 rounded-md text-zinc-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all">
                         <BarChart3 className="h-3.5 w-3.5 text-emerald-500" />
                         {t('progress')}
                     </Link>
-                    <Link href="/leaderboard" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-zinc-400 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all">
+                    <Link href="/leaderboard" className="nav-link-underline flex items-center gap-1.5 px-3 py-1.5 rounded-md text-zinc-400 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all">
                         <Trophy className="h-3.5 w-3.5 text-yellow-500" />
                         {t('leaderboard')}
                     </Link>
-                    <Link href="/schedule" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-zinc-400 hover:text-violet-400 hover:bg-violet-500/10 transition-all">
+                    <Link href="/schedule" className="nav-link-underline flex items-center gap-1.5 px-3 py-1.5 rounded-md text-zinc-400 hover:text-violet-400 hover:bg-violet-500/10 transition-all">
                         <Calendar className="h-3.5 w-3.5 text-violet-500" />
                         {t('schedule')}
                     </Link>
-                    <Link href="/updates" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-zinc-400 hover:text-fuchsia-400 hover:bg-fuchsia-500/10 transition-all">
+                    <Link href="/updates" className="nav-link-underline flex items-center gap-1.5 px-3 py-1.5 rounded-md text-zinc-400 hover:text-fuchsia-400 hover:bg-fuchsia-500/10 transition-all">
                         <Sparkles className="h-3.5 w-3.5 text-fuchsia-500" />
                         {t('whatsNew')}
                     </Link>
 
                     {/* Admin Button */}
                     {isAdmin && (
-                        <Link href="/admin" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-zinc-400 hover:text-amber-400 hover:bg-amber-500/10 transition-all">
+                        <Link href="/admin" className="nav-link-underline flex items-center gap-1.5 px-3 py-1.5 rounded-md text-zinc-400 hover:text-amber-400 hover:bg-amber-500/10 transition-all">
                             <Shield className="h-3.5 w-3.5 text-amber-500" />
                             {t('admin')}
                         </Link>

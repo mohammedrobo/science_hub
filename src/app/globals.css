@@ -374,6 +374,214 @@ video {
   }
 }
 
+/* ============================================
+   PREMIUM UI UTILITIES
+   ============================================ */
+
+/* Glassmorphism Card */
+.glass-card {
+  background: rgba(24, 24, 27, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(63, 63, 70, 0.4);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-card:hover {
+  border-color: rgba(139, 92, 246, 0.3);
+  box-shadow: 0 0 20px -5px rgba(139, 92, 246, 0.15);
+}
+
+/* Glow hover for interactive elements */
+.glow-hover {
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.glow-hover:hover {
+  box-shadow: 0 0 20px -5px rgba(139, 92, 246, 0.3);
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+/* Gradient text utility */
+.gradient-text {
+  background: linear-gradient(135deg, #8b5cf6, #6366f1, #06b6d4);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 6s ease infinite;
+}
+
+@keyframes gradient-shift {
+
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Pulse glow for CTAs and active elements */
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.5), 0 0 40px rgba(139, 92, 246, 0.15);
+  }
+}
+
+.pulse-glow {
+  animation: pulse-glow 2.5s ease-in-out infinite;
+}
+
+/* Drag-over state for upload zones */
+.drag-over {
+  border-color: #8b5cf6 !important;
+  background: rgba(139, 92, 246, 0.08) !important;
+  box-shadow: 0 0 30px -5px rgba(139, 92, 246, 0.3), inset 0 0 30px -10px rgba(139, 92, 246, 0.1) !important;
+}
+
+/* Upload progress bar */
+@keyframes progress-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.progress-bar-animated {
+  background: linear-gradient(90deg, #7c3aed 0%, #6366f1 30%, #8b5cf6 50%, #6366f1 70%, #7c3aed 100%);
+  background-size: 200% 100%;
+  animation: progress-shimmer 2s linear infinite;
+}
+
+/* Shake animation for validation errors */
+@keyframes shake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-4px);
+  }
+
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(4px);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* Success pop animation */
+@keyframes success-pop {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+
+  50% {
+    transform: scale(1.05);
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-success-pop {
+  animation: success-pop 0.4s ease-out forwards;
+}
+
+/* Stagger entrance for lists */
+.stagger-enter>* {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: slideUp 0.3s ease-out forwards;
+}
+
+.stagger-enter>*:nth-child(1) {
+  animation-delay: 50ms;
+}
+
+.stagger-enter>*:nth-child(2) {
+  animation-delay: 100ms;
+}
+
+.stagger-enter>*:nth-child(3) {
+  animation-delay: 150ms;
+}
+
+.stagger-enter>*:nth-child(4) {
+  animation-delay: 200ms;
+}
+
+.stagger-enter>*:nth-child(5) {
+  animation-delay: 250ms;
+}
+
+.stagger-enter>*:nth-child(6) {
+  animation-delay: 300ms;
+}
+
+.stagger-enter>*:nth-child(7) {
+  animation-delay: 350ms;
+}
+
+.stagger-enter>*:nth-child(8) {
+  animation-delay: 400ms;
+}
+
+/* Focus ring improvements */
+:focus-visible {
+  outline: 2px solid rgba(139, 92, 246, 0.6);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Nav link underline animation */
+.nav-link-underline {
+  position: relative;
+}
+
+.nav-link-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #8b5cf6, #6366f1);
+  border-radius: 1px;
+  transition: width 0.3s ease, left 0.3s ease;
+}
+
+.nav-link-underline:hover::after {
+  width: 80%;
+  left: 10%;
+}
+
 @layer base {
 
   html,
@@ -405,7 +613,7 @@ video {
   }
 
   /* RTL-specific spacing overrides */
-  [dir="rtl"] .rtl\:space-x-reverse > :not(:last-child) {
+  [dir="rtl"] .rtl\:space-x-reverse> :not(:last-child) {
     margin-right: 0;
     margin-left: var(--tw-space-x-reverse);
   }

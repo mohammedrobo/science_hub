@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { updateProfilePicture } from './actions';
-import { Camera, Loader2 } from 'lucide-react';
+import { Camera, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ProfilePictureUploadProps {
@@ -50,7 +50,7 @@ export function ProfilePictureUpload({ currentPictureUrl, username }: ProfilePic
     return (
         <div className="flex flex-col items-center gap-4">
             <div className="relative group">
-                <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-primary/50 bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-primary/40 bg-gradient-to-br from-primary to-secondary flex items-center justify-center ring-4 ring-transparent group-hover:ring-violet-500/20 transition-all duration-300 shadow-lg group-hover:shadow-violet-500/20">
                     {previewUrl ? (
                         <img
                             src={previewUrl}
@@ -65,7 +65,7 @@ export function ProfilePictureUpload({ currentPictureUrl, username }: ProfilePic
                 </div>
 
                 {/* Upload Overlay */}
-                <label className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                <label className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer">
                     <div className="text-center">
                         {isUploading ? (
                             <Loader2 className="h-8 w-8 text-white animate-spin mx-auto" />
@@ -87,7 +87,8 @@ export function ProfilePictureUpload({ currentPictureUrl, username }: ProfilePic
             </div>
 
             {error && (
-                <p className="text-sm text-red-400 bg-red-400/10 px-3 py-2 rounded-lg">
+                <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 px-4 py-2.5 rounded-xl flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
                     {error}
                 </p>
             )}

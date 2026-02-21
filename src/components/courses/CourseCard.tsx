@@ -46,23 +46,23 @@ export function CourseCard({ course, progress = 0 }: CourseCardProps) {
             )}
 
             <div className={cn(
-                "h-full flex flex-col bg-zinc-900 border border-border rounded-sm overflow-hidden relative z-10",
-                "transition-colors duration-100",
+                "h-full flex flex-col bg-zinc-900/60 backdrop-blur-sm border border-zinc-800/60 rounded-xl overflow-hidden relative z-10",
+                "transition-all duration-200",
                 isClosed
                     ? "opacity-70 grayscale-[40%]"
-                    : "group-hover:border-violet-500/50 group-hover:shadow-lg group-hover:shadow-violet-900/20"
+                    : "group-hover:border-violet-500/40 group-hover:shadow-lg group-hover:shadow-violet-900/25"
             )}>
                 {/* Course Code Badge */}
                 <div className={cn(
-                    "absolute top-0 start-0 text-white text-[10px] font-bold px-3 py-1 rounded-br-sm z-20 tracking-wider shadow-sm",
-                    isClosed ? "bg-zinc-600 shadow-zinc-900/20" : "bg-violet-600 shadow-violet-900/20"
+                    "absolute top-0 start-0 text-white text-[10px] font-bold px-3 py-1 rounded-br-lg z-20 tracking-wider shadow-sm",
+                    isClosed ? "bg-zinc-600 shadow-zinc-900/20" : "bg-gradient-to-r from-violet-600 to-indigo-600 shadow-violet-900/30"
                 )}>
                     {course.code}
                 </div>
 
                 {/* Closed Badge */}
                 {isClosed && (
-                    <div className="absolute top-0 end-0 bg-red-600/90 text-white text-[10px] font-bold px-3 py-1 rounded-bl-sm z-20 tracking-wider flex items-center gap-1">
+                    <div className="absolute top-0 end-0 bg-red-600/90 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg z-20 tracking-wider flex items-center gap-1">
                         <Lock className="h-3 w-3" />
                         {t('closed')}
                     </div>
@@ -146,7 +146,7 @@ export function CourseCard({ course, progress = 0 }: CourseCardProps) {
                 {!isClosed && (
                     <div className="h-1 bg-zinc-950 w-full mt-auto relative overflow-hidden">
                         <div
-                            className="h-full w-full bg-gradient-to-r from-violet-600 to-cyan-400 transition-transform duration-300 ease-out origin-left"
+                            className="h-full w-full bg-gradient-to-r from-violet-600 via-indigo-500 to-cyan-400 transition-transform duration-300 ease-out origin-left"
                             style={{ transform: `scaleX(${animatedProgress / 100})` }}
                         />
                     </div>

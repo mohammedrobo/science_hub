@@ -49,7 +49,7 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                 courseId: course.code, // P102 etc
                 lessonId: currentLesson.id,
                 lessonTitle: currentLesson.title,
-                pdfUrl: currentLesson.pdf_url,
+                pdfUrl: currentLesson.pdf_url || (currentLesson.pdf_parts?.[0]?.url || null),
                 videoUrl: currentLesson.video_url || (currentLesson.video_parts?.[0]?.url || null)
             });
 
@@ -120,12 +120,12 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
             key={lesson.id}
             value={lesson.id}
             className={cn(
-                "border rounded-lg overflow-hidden transition-all duration-300",
+                "border rounded-xl overflow-hidden transition-all duration-300",
                 isActive
-                    ? "border-primary/50 bg-primary/5 shadow-[0_0_15px_-5px_rgba(139,92,246,0.3)]"
+                    ? "border-violet-500/40 bg-violet-500/5 shadow-[0_0_25px_-5px_rgba(139,92,246,0.2)]"
                     : locked
                         ? "border-zinc-800/50 bg-zinc-900/20 opacity-75"
-                        : "border-zinc-800 bg-zinc-900/40 hover:border-zinc-700"
+                        : "border-zinc-800/60 bg-zinc-900/40 hover:border-zinc-700 glow-hover"
             )}
         >
             <AccordionTrigger
@@ -168,7 +168,7 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                             ) : (
                                 <>
                                     {(lesson.video_url || (lesson.video_parts && lesson.video_parts.length > 0)) && <span className="flex items-center gap-1"><PlayCircle className="w-3 h-3" /> {t('video')}</span>}
-                                    {lesson.pdf_url && <span className="flex items-center gap-1"><FileText className="w-3 h-3" /> {t('pdfResources')}</span>}
+                                    {(lesson.pdf_url || (lesson.pdf_parts && lesson.pdf_parts.length > 0)) && <span className="flex items-center gap-1"><FileText className="w-3 h-3" /> {t('pdfResources')}</span>}
                                     {lesson.quiz_id && <span className="flex items-center gap-1"><BrainCircuit className="w-3 h-3" /> {t('quiz')}</span>}
                                 </>
                             )}
@@ -207,8 +207,17 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                         <div className="flex gap-2">
                             <CompleteButton lessonId={lesson.id} />
 
-                            {lesson.pdf_url && (
-                                <Button variant="outline" size="icon" className="h-10 w-10 border-zinc-700 hover:border-violet-500 hover:text-violet-500" asChild>
+                            {/* Multiple PDFs support */}
+                            {lesson.pdf_parts && lesson.pdf_parts.length > 0 ? (
+                                lesson.pdf_parts.map((part, pIndex) => (
+                                    <Button key={pIndex} variant="outline" size="icon" className="h-10 w-10 border-zinc-700 hover:border-violet-500 hover:text-violet-500 flex-shrink-0" title={part.title || t('viewPdf')} asChild>
+                                        <a href={part.url} target="_blank" rel="noopener noreferrer">
+                                            <FileText className="h-4 w-4" />
+                                        </a>
+                                    </Button>
+                                ))
+                            ) : lesson.pdf_url && (
+                                <Button variant="outline" size="icon" className="h-10 w-10 border-zinc-700 hover:border-violet-500 hover:text-violet-500 flex-shrink-0" asChild>
                                     <a href={lesson.pdf_url} target="_blank" rel="noopener noreferrer" title={t('viewPdf')}>
                                         <FileText className="h-4 w-4" />
                                     </a>
@@ -233,7 +242,7 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
     return (
         <div className="min-h-screen bg-background">
             {/* Top Section: The Stage (Master Player) - Sticky on mobile */}
-            <div className="w-full bg-zinc-950 border-b border-zinc-800 relative z-30 shadow-2xl sticky top-0 lg:relative">
+            <div className="w-full bg-zinc-950 border-b border-zinc-800/60 relative z-30 shadow-2xl sticky top-0 lg:relative">
                 <div className="container mx-auto px-0 sm:px-4 py-0 sm:py-6 max-w-6xl">
                     {/* Back button */}
                     <div className="hidden sm:block mb-4">
@@ -244,7 +253,7 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                     </div>
 
                     {/* Video Player */}
-                    <div className="aspect-video w-full bg-black sm:rounded-xl overflow-hidden shadow-[0_0_50px_-10px_rgba(139,92,246,0.15)] sm:border border-white/10 relative">
+                    <div className="aspect-video w-full bg-black sm:rounded-2xl overflow-hidden shadow-[0_0_50px_-10px_rgba(139,92,246,0.15)] sm:border border-white/10 relative">
                         {currentLesson?.video_url || (currentLesson?.video_parts && currentLesson.video_parts.length > 0) ? (
                             <VideoErrorBoundary videoUrl={currentLesson.video_url}>
                                 <VideoPlayer
@@ -255,7 +264,7 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                             </VideoErrorBoundary>
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-zinc-900 to-black p-8 text-center relative overflow-hidden">
-                                <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.05]" />
+                                <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.03]" />
                                 <div
                                     className="relative z-10 max-w-lg"
                                     style={{ animation: 'scaleIn 0.5s ease-out forwards' }}
@@ -263,7 +272,7 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                                     <MonitorPlay className="w-20 h-20 text-primary/50 mx-auto mb-6" />
                                     <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">{course.name}</h2>
                                     <p className="text-zinc-400 mb-8">{course.description}</p>
-                                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium animate-pulse">
+                                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-sm font-medium pulse-glow">
                                         <Sparkles className="w-4 h-4" />
                                         {t('selectLecture')}
                                     </div>
@@ -290,7 +299,7 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                 <div>
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-lg sm:text-xl font-bold text-white tracking-wide flex items-center gap-2">
-                            <span className="w-1.5 h-6 bg-primary rounded-full shadow-[0_0_10px_var(--color-primary)]"></span>
+                            <span className="w-1.5 h-6 bg-gradient-to-b from-violet-500 to-indigo-500 rounded-full shadow-[0_0_10px_var(--color-primary)]"></span>
                             {t('courseContent')}
                         </h2>
                         <span className="text-sm text-muted-foreground bg-zinc-900 px-3 py-1 rounded-md border border-zinc-800">
@@ -300,7 +309,7 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
 
                     <div className="space-y-6">
                         {lessons.length === 0 ? (
-                            <div className="text-center py-12 border border-zinc-800 rounded-lg bg-zinc-900/50">
+                            <div className="text-center py-12 border border-zinc-800/60 rounded-xl bg-zinc-900/50">
                                 <p className="text-muted-foreground">{t('noLecturesVisible')}</p>
                             </div>
                         ) : groupedData ? (

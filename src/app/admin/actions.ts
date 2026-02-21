@@ -46,6 +46,7 @@ export async function createLesson(data: {
     video_url?: string;
     video_parts?: { title: string; url: string }[];
     pdf_url?: string;
+    pdf_parts?: { title: string; url: string }[];
     instructor?: string;
     section?: string;
     quiz_data?: {
@@ -153,6 +154,7 @@ export async function createLesson(data: {
                 video_url: data.video_url || null,
                 video_parts: data.video_parts && data.video_parts.length > 0 ? data.video_parts : [],
                 pdf_url: data.pdf_url || null,
+                pdf_parts: data.pdf_parts && data.pdf_parts.length > 0 ? data.pdf_parts : [],
                 instructor: data.instructor || null,
                 section: data.section || null,
                 quiz_id: quizId,
@@ -200,8 +202,19 @@ export async function getSignedUploadUrl(path: string) {
 
 export async function updateStudentName(username: string, newName: string) {
     try {
-        await ensureSuperAdmin();
+        const session = await ensureAnyAdmin();
         const supabase = await createServiceRoleClient();
+
+        if (session.role !== 'super_admin') {
+            const { data: target } = await supabase
+                .from('allowed_users')
+                .select('access_role')
+                .eq('username', username)
+                .single();
+            if (target && (target.access_role === 'admin' || target.access_role === 'super_admin')) {
+                return { error: 'Only Super Admins can modify admin accounts' };
+            }
+        }
 
         const trimmed = newName.trim();
         if (!trimmed || trimmed.length < 3) {
@@ -271,8 +284,19 @@ export async function deleteUser(username: string) {
 }
 
 export async function resetUserProgress(username: string) {
-    await ensureSuperAdmin();
+    const session = await ensureAnyAdmin();
     const supabase = await createServiceRoleClient();
+
+    if (session.role !== 'super_admin') {
+        const { data: target } = await supabase
+            .from('allowed_users')
+            .select('access_role')
+            .eq('username', username)
+            .single();
+        if (target && (target.access_role === 'admin' || target.access_role === 'super_admin')) {
+            return { error: 'Only Super Admins can modify admin accounts' };
+        }
+    }
 
     // 1. Wipe all progress entries (lessons + quizzes)
     const { error: progressError } = await supabase
@@ -297,8 +321,19 @@ export async function resetUserProgress(username: string) {
 }
 
 export async function removeProfilePicture(username: string) {
-    await ensureSuperAdmin();
+    const session = await ensureAnyAdmin();
     const supabase = await createServiceRoleClient();
+
+    if (session.role !== 'super_admin') {
+        const { data: target } = await supabase
+            .from('allowed_users')
+            .select('access_role')
+            .eq('username', username)
+            .single();
+        if (target && (target.access_role === 'admin' || target.access_role === 'super_admin')) {
+            return { error: 'Only Super Admins can modify admin accounts' };
+        }
+    }
 
     const { error } = await supabase
         .from('user_stats')
@@ -316,8 +351,19 @@ export async function removeProfilePicture(username: string) {
  * or falls back to 'student123'. Forces password change on next login.
  */
 export async function resetUserPassword(username: string) {
-    await ensureSuperAdmin();
+    const session = await ensureAnyAdmin();
     const supabase = await createServiceRoleClient();
+
+    if (session.role !== 'super_admin') {
+        const { data: target } = await supabase
+            .from('allowed_users')
+            .select('access_role')
+            .eq('username', username)
+            .single();
+        if (target && (target.access_role === 'admin' || target.access_role === 'super_admin')) {
+            return { error: 'Only Super Admins can modify admin accounts' };
+        }
+    }
 
     // 1. Lookup original password from access_keys.json
     let originalPassword = 'student123';
@@ -407,8 +453,19 @@ export async function createUser(data: { username: string; full_name: string; gr
  * - Clears onboarding status
  */
 export async function resetFullAccount(username: string) {
-    await ensureSuperAdmin();
+    const session = await ensureAnyAdmin();
     const supabase = await createServiceRoleClient();
+
+    if (session.role !== 'super_admin') {
+        const { data: target } = await supabase
+            .from('allowed_users')
+            .select('access_role')
+            .eq('username', username)
+            .single();
+        if (target && (target.access_role === 'admin' || target.access_role === 'super_admin')) {
+            return { error: 'Only Super Admins can modify admin accounts' };
+        }
+    }
 
     // 1. Lookup original password from access_keys.json
     let originalPassword = ''; // No default fallback yet
@@ -816,6 +873,7 @@ export async function updateLesson(
         video_url?: string;
         video_parts?: { title: string; url: string }[];
         pdf_url?: string;
+        pdf_parts?: { title: string; url: string }[];
         quiz_data?: {
             title: string;
             questions: {
@@ -901,6 +959,7 @@ export async function updateLesson(
         if (data.video_url !== undefined) updatePayload.video_url = data.video_url || null;
         if (data.video_parts !== undefined) updatePayload.video_parts = data.video_parts;
         if (data.pdf_url !== undefined) updatePayload.pdf_url = data.pdf_url || null;
+        if (data.pdf_parts !== undefined) updatePayload.pdf_parts = data.pdf_parts;
         if (quizId !== existingLesson.quiz_id) updatePayload.quiz_id = quizId;
 
         if (Object.keys(updatePayload).length > 0) {
