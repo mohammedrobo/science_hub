@@ -82,9 +82,15 @@ function preprocess(raw: string): string {
     });
     text = filtered.join('\n');
 
-    // 3. Strip formatting artifacts (bold, headers, rules) for clean parsing
+    // 3. Strip markdown artifacts that interfere with parsing
 
-    // Remove section headers that are NOT answer keys
+    // 3a. Strip fenced code block delimiters (``` or ~~~) — keep inner content as plain text
+    text = text.replace(/^\s*(`{3,}|~{3,})[^\n]*$/gm, '');
+
+    // 3b. Strip blockquote markers (> ) from the start of lines
+    text = text.replace(/^(\s*)>\s?/gm, '$1');
+
+    // 3c. Remove section headers that are NOT answer keys
     text = text.replace(/^#{1,6}\s+\*{0,2}(?:part|section|topic|chapter|category)\s+\d*\*{0,2}\s*[:\-\u2013\u2014]?\s*.*/gmi, (match) => {
         if (/answer|solution|\u0627\u0644\u0625\u062c\u0627\u0628/i.test(match)) return match;
         return '';
@@ -93,6 +99,21 @@ function preprocess(raw: string): string {
     // Remove horizontal rules
     text = text.replace(/^\s*[-*_=]{3,}\s*$/gm, '');
 
+    // 3d. Shield math delimiters BEFORE bold-stripping so * inside formulas isn't corrupted
+    //     Temporarily replace $...$ and $$...$$ with placeholders
+    const mathShield: string[] = [];
+    text = text.replace(/\$\$[\s\S]+?\$\$/g, (m) => {
+        mathShield.push(m);
+        return `__MATH_SHIELD_${mathShield.length - 1}__`;
+    });
+    text = text.replace(/(?<!\\)\$(?:[^$]|\n(?!\n)){1,2000}?\$/g, (m) => {
+        // Skip currency: $50, $1,000
+        if (/^\$\d[\d,]*\.?\d*$/.test(m)) return m;
+        mathShield.push(m);
+        return `__MATH_SHIELD_${mathShield.length - 1}__`;
+    });
+
+    // 3e. Bold-stripping (now safe — formulas are shielded)
     // Remove bold wrappers around question numbers: **1.** -> 1.
     text = text.replace(/^\*{1,2}(\d+[\.\)\-])\*{1,2}\s*/gm, '$1 ');
 
@@ -104,6 +125,11 @@ function preprocess(raw: string): string {
 
     // Unwrap bold around "Answer Key:" variants
     text = text.replace(/^\*{1,2}((?:answer\s*key|answers?|correct\s*answers?|solutions?)\s*:?)\*{1,2}\s*:?\s*$/gmi, '$1:');
+
+    // 3f. Restore shielded math
+    for (let i = 0; i < mathShield.length; i++) {
+        text = text.replace(`__MATH_SHIELD_${i}__`, mathShield[i]);
+    }
 
     return text;
 }
@@ -123,27 +149,42 @@ function findMatchingBrace(text: string, start: number): number {
 }
 
 /** From `pos`, consume consecutive optional-bracket [..] and brace groups {..}.
- *  Returns end index (exclusive). `minGroups` = minimum required brace groups to succeed. */
-function consumeBraceGroups(text: string, pos: number, minGroups = 1): number {
+ *  Returns end index (exclusive). `minGroups` = minimum required brace groups to succeed.
+ *  Allows crossing up to `maxNewlines` newlines between groups to handle AI-generated
+ *  formulas split across lines (e.g. \frac\n{a}\n{b}). */
+function consumeBraceGroups(text: string, pos: number, minGroups = 1, maxNewlines = 3): number {
     let cur = pos;
     let groups = 0;
+    let newlinesCrossed = 0;
     while (cur < text.length) {
-        // Skip horizontal whitespace between groups (NOT newlines — preserve line breaks)
-        while (cur < text.length && (text[cur] === ' ' || text[cur] === '\t')) cur++;
+        // Skip whitespace (including newlines up to limit) between groups
+        const wsStart = cur;
+        while (cur < text.length && (text[cur] === ' ' || text[cur] === '\t' || text[cur] === '\n' || text[cur] === '\r')) {
+            if (text[cur] === '\n') {
+                newlinesCrossed++;
+                if (newlinesCrossed > maxNewlines) { cur = wsStart; break; }
+            }
+            cur++;
+        }
+        if (newlinesCrossed > maxNewlines) break;
         // Optional bracket group [...]
         if (cur < text.length && text[cur] === '[') {
             const close = text.indexOf(']', cur + 1);
-            if (close === -1) break;
+            if (close === -1) { cur = wsStart; break; }
             cur = close + 1;
             continue;
         }
         // Brace group {...} with balanced nesting
         if (cur < text.length && text[cur] === '{') {
             const close = findMatchingBrace(text, cur);
-            if (close === -1) break;
+            if (close === -1) { cur = wsStart; break; }
             cur = close + 1;
             groups++;
-        } else break;
+        } else {
+            // No group found — rewind past any consumed whitespace/newlines
+            cur = wsStart;
+            break;
+        }
     }
     return groups >= minGroups ? cur : pos;
 }
@@ -174,9 +215,9 @@ function protectLatex(text: string): { cleaned: string; restore: (s: string) => 
     // 3. Display math: \[...\]
     cleaned = cleaned.replace(/\\\[([\s\S]+?)\\\]/g, (m) => protect(m, 'K'));
 
-    // 4. Inline math: $...$ — NOW supports multi-line (up to 5 lines)
+    // 4. Inline math: $...$ — supports multi-line (up to 5 lines), up to 2000 chars
     //    Currency disambiguation: $<digits> or $<digits>,<digits> NOT treated as LaTeX
-    cleaned = cleaned.replace(/(?<!\\)\$((?:[^$]|\n(?!\n)){1,500}?)\$/g, (m, inner) => {
+    cleaned = cleaned.replace(/(?<!\\)\$((?:[^$]|\n(?!\n)){1,2000}?)\$/g, (m, inner) => {
         // Skip currency: $50, $1,000, $3.99
         if (/^\$\d[\d,]*\.?\d*$/.test(m)) return m;
         // Skip if inner is purely digits (price like $50)
@@ -409,9 +450,6 @@ function cleanText(text: string): string {
     return text
         .replace(/^\*{1,2}\s*/, '')
         .replace(/\s*\*{1,2}$/, '')
-        .replace(/^`+\s*/, '')
-        .replace(/\s*`+$/, '')
-        .replace(/^\s*>\s*/, '')
         .trim();
 }
 
@@ -1074,7 +1112,8 @@ export function parseQuizText(text: string): QuizParseResult {
         // ─── Multiline continuation ───
         if (currentQ) {
             if (/^[-=*_]{3,}$/.test(line)) continue;
-            if (/^#{1,6}\s/.test(line)) continue;
+            // Only skip pure decorative section headers — preserve # lines that may contain formulas/content
+            if (/^#{1,6}\s+\*{0,2}(?:part|section|topic|chapter|category)\s+\d*\s*[:\-]?\s*$/i.test(line)) continue;
 
             const cleanLine = cleanText(line);
             if (!cleanLine) continue;

@@ -1334,6 +1334,237 @@ Answer Key:
             types: ['true_false', 'true_false', 'true_false'],
         },
     },
+
+    // ════════════ FORMULA & MARKDOWN ROBUSTNESS ════════════
+
+    {
+        name: '62. Bold-Wrapped Question with * Multiplication in Formula',
+        input: `**1. What is the result of $a * b * c$?**
+a) $abc$
+b) $a + b + c$
+c) $a \\times b \\times c$
+d) $a / b / c$
+
+Answer Key:
+1. c`,
+        expect: {
+            questionCount: 1,
+            answeredCount: 1,
+            textContains: [
+                { index: 0, substring: 'a * b * c' },
+            ],
+            correctAnswer: [{ index: 0, answer: 2 }],
+        },
+    },
+
+    {
+        name: '63. Multi-line Bare \\frac Split Across Lines (AI Output)',
+        input: `1. Simplify \\frac
+{x^2 + 2x}
+{x}
+a) $x + 2$
+b) $x$
+c) $2x$
+d) $x^2$
+
+Answer Key:
+1. a`,
+        expect: {
+            questionCount: 1,
+            answeredCount: 1,
+            textContains: [
+                { index: 0, substring: '\\frac' },
+            ],
+        },
+    },
+
+    {
+        name: '64. Long Inline Formula (>500 chars, <2000)',
+        input: `1. Evaluate $\\frac{\\sqrt{a^2 + b^2 + c^2 + d^2 + e^2 + f^2 + g^2 + h^2 + i^2 + j^2 + k^2 + l^2 + m^2 + n^2 + o^2 + p^2 + q^2 + r^2 + s^2 + t^2 + u^2 + v^2 + w^2 + x^2 + y^2 + z^2 + \\alpha^2 + \\beta^2 + \\gamma^2 + \\delta^2 + \\epsilon^2 + \\zeta^2 + \\eta^2 + \\theta^2 + \\iota^2 + \\kappa^2 + \\lambda^2 + \\mu^2 + \\nu^2 + \\xi^2 + \\pi^2 + \\rho^2 + \\sigma^2 + \\tau^2 + \\upsilon^2 + \\phi^2 + \\chi^2 + \\psi^2 + \\omega^2}}{2}$:
+a) A constant
+b) A variable
+c) Depends on values
+d) Undefined
+
+Answer Key:
+1. c`,
+        expect: {
+            questionCount: 1,
+            answeredCount: 1,
+            textContains: [
+                { index: 0, substring: '\\omega^2' },
+                { index: 0, substring: '\\alpha^2' },
+            ],
+        },
+    },
+
+    {
+        name: '65. Fenced Code Block Quiz (Markdown ```)',
+        input: `\`\`\`
+1. What is $\\Delta G$?
+a) Gibbs free energy change
+b) Enthalpy change
+c) Entropy change
+d) Internal energy change
+
+Answer Key:
+1. a
+\`\`\``,
+        expect: {
+            questionCount: 1,
+            answeredCount: 1,
+            textContains: [
+                { index: 0, substring: '\\Delta G' },
+            ],
+        },
+    },
+
+    {
+        name: '66. Blockquote-Formatted Quiz (> markers)',
+        input: `> 1. What is $\\vec{F} = m\\vec{a}$ known as?
+> a) Newton's First Law
+> b) Newton's Second Law
+> c) Newton's Third Law
+> d) Law of Gravitation
+>
+> Answer Key:
+> 1. b`,
+        expect: {
+            questionCount: 1,
+            answeredCount: 1,
+            textContains: [
+                { index: 0, substring: '\\vec{F}' },
+            ],
+            correctAnswer: [{ index: 0, answer: 1 }],
+        },
+    },
+
+    {
+        name: '67. Chemistry — Organic Reaction with \\ce{} Multi-line',
+        input: `1. What is the product of the reaction $\\ce{CH3CH2OH ->[\\text{H2SO4}][\\text{170°C}] ?}$
+a) $\\ce{CH2=CH2}$
+b) $\\ce{CH3OCH3}$
+c) $\\ce{CH3CHO}$
+d) $\\ce{CH3COOH}$
+
+Answer Key:
+1. a`,
+        expect: {
+            questionCount: 1,
+            answeredCount: 1,
+            textContains: [
+                { index: 0, substring: '\\ce{' },
+            ],
+        },
+    },
+
+    {
+        name: '68. Physics — Maxwell Equations with \\nabla and \\partial',
+        input: `1. Which Maxwell equation represents Gauss's law?
+a) $\\nabla \\cdot \\vec{E} = \\frac{\\rho}{\\epsilon_0}$
+b) $\\nabla \\cdot \\vec{B} = 0$
+c) $\\nabla \\times \\vec{E} = -\\frac{\\partial \\vec{B}}{\\partial t}$
+d) $\\nabla \\times \\vec{B} = \\mu_0 \\vec{J}$
+
+Answer Key:
+1. a`,
+        expect: {
+            questionCount: 1,
+            answeredCount: 1,
+            textContains: [
+                { index: 0, substring: 'Gauss' },
+            ],
+            optionContains: [
+                { q: 0, opt: 0, substring: '\\nabla' },
+                { q: 0, opt: 2, substring: '\\partial' },
+            ],
+        },
+    },
+
+    {
+        name: '69. Mixed Bold + Italic + Formula — Stress Test',
+        input: `**1. If $f(x) = x^2$, find $f'(x)$.**
+**a)** $x$
+**b)** $2x$
+**c)** $x^2$
+**d)** $2x^2$
+
+**Answer Key:**
+**1.** b`,
+        expect: {
+            questionCount: 1,
+            answeredCount: 1,
+            textContains: [
+                { index: 0, substring: "f(x) = x^2" },
+                { index: 0, substring: "f'(x)" },
+            ],
+            correctAnswer: [{ index: 0, answer: 1 }],
+        },
+    },
+
+    {
+        name: '70. Chemistry — Thermodynamics with \\Delta H, \\Delta S, \\Delta G',
+        input: `1. For $\\Delta G = \\Delta H - T\\Delta S$, if $\\Delta H = -100$ kJ/mol and $\\Delta S = 200$ J/(mol·K) at T = 298 K, is the reaction spontaneous?
+a) Yes, $\\Delta G < 0$
+b) No, $\\Delta G > 0$
+c) At equilibrium
+d) Cannot determine
+
+2. True or False: An exothermic reaction always has $\\Delta G < 0$.
+
+Answer Key:
+1. a
+2. False`,
+        expect: {
+            questionCount: 2,
+            answeredCount: 2,
+            types: ['mcq', 'true_false'],
+            textContains: [
+                { index: 0, substring: '\\Delta G' },
+                { index: 0, substring: '\\Delta H' },
+            ],
+        },
+    },
+
+    {
+        name: '71. Physics — Schrödinger Equation with \\hbar and \\psi',
+        input: `1. The time-independent Schrödinger equation is $-\\frac{\\hbar^2}{2m}\\frac{d^2\\psi}{dx^2} + V(x)\\psi = E\\psi$. What does $\\psi$ represent?
+a) Wave function
+b) Probability
+c) Energy
+d) Momentum
+
+Answer Key:
+1. a`,
+        expect: {
+            questionCount: 1,
+            answeredCount: 1,
+            textContains: [
+                { index: 0, substring: '\\hbar' },
+                { index: 0, substring: '\\psi' },
+            ],
+        },
+    },
+
+    {
+        name: '72. Math — Integral with \\int, \\sum, and Nested Fractions',
+        input: `1. Evaluate $\\int_0^{\\infty} \\frac{\\sum_{n=0}^{\\infty} \\frac{(-1)^n x^{2n}}{(2n)!}}{x^2 + 1} dx$:
+a) $\\frac{\\pi}{2}$
+b) $\\pi$
+c) $\\frac{\\pi}{4}$
+d) $2\\pi$
+
+Answer Key:
+1. a`,
+        expect: {
+            questionCount: 1,
+            answeredCount: 1,
+            textContains: [
+                { index: 0, substring: '\\int_0^{\\infty}' },
+                { index: 0, substring: '\\sum_{n=0}' },
+            ],
+        },
+    },
 ];
 
 // ════════════════════ TEST RUNNER ════════════════════

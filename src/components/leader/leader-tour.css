@@ -3,63 +3,79 @@
 .driver-popover.leader-tour-popover {
   background-color: #18181b !important;
   border: 1px solid #3f3f46 !important;
-  border-radius: 12px !important;
+  border-radius: 16px !important;
   color: #f4f4f5 !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 40px rgba(124, 58, 237, 0.15) !important;
-  max-width: 360px !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 60px rgba(124, 58, 237, 0.2) !important;
+  max-width: 420px !important;
+  backdrop-filter: blur(12px) !important;
 }
 
 .driver-popover.leader-tour-popover .driver-popover-title {
-  font-size: 16px !important;
-  font-weight: 700 !important;
+  font-size: 17px !important;
+  font-weight: 800 !important;
   color: #ffffff !important;
   font-family: var(--font-sans) !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1.3 !important;
 }
 
 .driver-popover.leader-tour-popover .driver-popover-description {
-  font-size: 14px !important;
-  color: #a1a1aa !important;
-  line-height: 1.6 !important;
+  font-size: 13.5px !important;
+  color: #d4d4d8 !important;
+  line-height: 1.7 !important;
   font-family: var(--font-sans) !important;
 }
 
+/* Rich text support inside descriptions */
+.driver-popover.leader-tour-popover .driver-popover-description strong {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
 .driver-popover.leader-tour-popover .driver-popover-progress-text {
-  color: #71717a !important;
-  font-size: 12px !important;
+  color: #52525b !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
 }
 
 .driver-popover.leader-tour-popover .driver-popover-prev-btn {
   background-color: transparent !important;
   border: 1px solid #3f3f46 !important;
   color: #a1a1aa !important;
-  border-radius: 8px !important;
-  padding: 6px 16px !important;
+  border-radius: 10px !important;
+  padding: 8px 18px !important;
   font-size: 13px !important;
-  font-weight: 500 !important;
-  transition: all 0.2s !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+  letter-spacing: 0.01em !important;
 }
 
 .driver-popover.leader-tour-popover .driver-popover-prev-btn:hover {
   background-color: #27272a !important;
   color: #f4f4f5 !important;
+  border-color: #52525b !important;
 }
 
 .driver-popover.leader-tour-popover .driver-popover-next-btn,
 .driver-popover.leader-tour-popover .driver-popover-close-btn-inside {
-  background-color: #7c3aed !important;
+  background: linear-gradient(135deg, #7c3aed, #6d28d9) !important;
   border: none !important;
   color: #ffffff !important;
-  border-radius: 8px !important;
-  padding: 6px 16px !important;
+  border-radius: 10px !important;
+  padding: 8px 20px !important;
   font-size: 13px !important;
-  font-weight: 600 !important;
-  transition: all 0.2s !important;
-  box-shadow: 0 4px 6px -1px rgba(124, 58, 237, 0.25) !important;
+  font-weight: 700 !important;
+  transition: all 0.25s ease !important;
+  box-shadow: 0 4px 12px -2px rgba(124, 58, 237, 0.4), inset 0 1px 0 rgba(255,255,255,0.1) !important;
+  letter-spacing: 0.01em !important;
 }
 
 .driver-popover.leader-tour-popover .driver-popover-next-btn:hover {
-  background-color: #8b5cf6 !important;
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed) !important;
   transform: translateY(-1px) !important;
+  box-shadow: 0 6px 16px -2px rgba(124, 58, 237, 0.5), inset 0 1px 0 rgba(255,255,255,0.15) !important;
 }
 
 .driver-popover.leader-tour-popover .driver-popover-arrow-side-left.driver-popover-arrow,
@@ -71,13 +87,13 @@
 
 /* Overlay */
 .driver-overlay {
-  background-color: rgba(0, 0, 0, 0.7) !important;
+  background-color: rgba(0, 0, 0, 0.75) !important;
 }
 
 /* Highlighted element glow */
 .driver-active-element {
-  box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.4), 0 0 20px rgba(124, 58, 237, 0.2) !important;
-  border-radius: 8px !important;
+  box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.5), 0 0 30px rgba(124, 58, 237, 0.25), 0 0 60px rgba(124, 58, 237, 0.1) !important;
+  border-radius: 10px !important;
 }
 
 /* RTL support */

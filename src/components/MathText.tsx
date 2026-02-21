@@ -115,6 +115,18 @@ function preprocessUnicodeMath(text: string): string {
             });
         }
 
+        // Convert ASCII superscripts/subscripts outside math delimiters:
+        //   x^{2n+1} → x$^{2n+1}$   CO_{2} → CO$_{2}$
+        //   x^2 → x$^{2}$   a_i → a$_{i}$   H^+ → H$^{+}$   e^- → e$^{-}$
+        // Braced form: word^{...} or word_{...}
+        t = t.replace(/([a-zA-Z0-9)])(\^|_)\{([^}]+)\}/g, (_, pre, op, inner) => {
+            return `${pre}$${op}{${inner}}$`;
+        });
+        // Simple single-char form: word^X or word_X (letter, digit, +, -)
+        t = t.replace(/([a-zA-Z0-9)])(\^|_)([a-zA-Z0-9+\-])/g, (_, pre, op, ch) => {
+            return `${pre}$${op}{${ch}}$`;
+        });
+
         // Convert standalone Unicode math symbols
         for (const [pattern, replacement] of UNICODE_MATH_MAP) {
             t = t.replace(pattern, `$${replacement}$`);
