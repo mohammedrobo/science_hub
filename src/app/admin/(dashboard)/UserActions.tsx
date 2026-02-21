@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowUpCircle, ArrowDownCircle, Crown, Trash2, ImageOff, RotateCcw, ShieldAlert } from 'lucide-react';
+import { ArrowUpCircle, ArrowDownCircle, Crown, Trash2, ImageOff, RotateCcw, ShieldAlert, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RoleChangeDialog } from './RoleChangeDialog';
+import { EditNameDialog } from './EditNameDialog';
 import { deleteUser, resetUserProgress, removeProfilePicture, resetFullAccount } from '../actions';
 import { toast } from 'sonner';
 
@@ -16,6 +17,7 @@ interface UserActionsProps {
 
 export function UserActions({ username, fullName, currentRole, isSuperAdmin }: UserActionsProps) {
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [editNameOpen, setEditNameOpen] = useState(false);
     const [targetRole, setTargetRole] = useState<'student' | 'leader' | 'admin' | 'super_admin'>('student');
 
     const openRoleDialog = (newRole: 'student' | 'leader' | 'admin' | 'super_admin') => {
@@ -48,6 +50,19 @@ export function UserActions({ username, fullName, currentRole, isSuperAdmin }: U
                     onClick={() => openRoleDialog(currentRole === 'admin' ? 'student' : 'admin')}
                 >
                     <Crown className="w-4 h-4" />
+                </Button>
+            )}
+
+            {/* Edit Name - super_admin only */}
+            {isSuperAdmin && (
+                <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-zinc-500 hover:text-blue-400"
+                    title="Edit Name"
+                    onClick={() => setEditNameOpen(true)}
+                >
+                    <Pencil className="w-4 h-4" />
                 </Button>
             )}
 
@@ -108,6 +123,13 @@ export function UserActions({ username, fullName, currentRole, isSuperAdmin }: U
                 targetRole={targetRole}
                 open={dialogOpen}
                 onOpenChange={setDialogOpen}
+            />
+
+            <EditNameDialog
+                username={username}
+                currentName={fullName}
+                open={editNameOpen}
+                onOpenChange={setEditNameOpen}
             />
         </>
     );

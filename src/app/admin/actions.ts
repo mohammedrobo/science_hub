@@ -44,6 +44,7 @@ export async function createLesson(data: {
     course_id: string;
     title: string;
     video_url?: string;
+    video_parts?: { title: string; url: string }[];
     pdf_url?: string;
     instructor?: string;
     section?: string;
@@ -150,6 +151,7 @@ export async function createLesson(data: {
                 course_id: courseId, // Use resolved UUID
                 title: data.title,
                 video_url: data.video_url || null,
+                video_parts: data.video_parts && data.video_parts.length > 0 ? data.video_parts : [],
                 pdf_url: data.pdf_url || null,
                 instructor: data.instructor || null,
                 section: data.section || null,
@@ -195,6 +197,33 @@ export async function getSignedUploadUrl(path: string) {
 }
 
 // ============ USER MANAGEMENT ============
+
+export async function updateStudentName(username: string, newName: string) {
+    try {
+        await ensureSuperAdmin();
+        const supabase = await createServiceRoleClient();
+
+        const trimmed = newName.trim();
+        if (!trimmed || trimmed.length < 3) {
+            return { error: 'Name must be at least 3 characters' };
+        }
+
+        const { error } = await supabase
+            .from('allowed_users')
+            .update({ full_name: trimmed })
+            .eq('username', username);
+
+        if (error) {
+            console.error('Update Name Error:', error);
+            return { error: 'Failed to update name' };
+        }
+
+        revalidatePath('/admin');
+        return { success: true };
+    } catch (e: any) {
+        return { error: e.message || 'Unexpected server error' };
+    }
+}
 
 
 export async function deleteUser(username: string) {
@@ -721,6 +750,7 @@ export async function updateLesson(
     data: {
         title?: string;
         video_url?: string;
+        video_parts?: { title: string; url: string }[];
         pdf_url?: string;
         quiz_data?: {
             title: string;
@@ -805,6 +835,7 @@ export async function updateLesson(
         const updatePayload: any = {};
         if (data.title !== undefined) updatePayload.title = data.title;
         if (data.video_url !== undefined) updatePayload.video_url = data.video_url || null;
+        if (data.video_parts !== undefined) updatePayload.video_parts = data.video_parts;
         if (data.pdf_url !== undefined) updatePayload.pdf_url = data.pdf_url || null;
         if (quizId !== existingLesson.quiz_id) updatePayload.quiz_id = quizId;
 
@@ -843,6 +874,7 @@ export async function getLesson(lessonId: string) {
                 id,
                 title,
                 video_url,
+                video_parts,
                 pdf_url,
                 quiz_id,
                 course_id,

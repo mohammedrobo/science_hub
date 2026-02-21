@@ -56,7 +56,7 @@ export async function getCourseContent(courseDescriptor: string) {
         title: l.title,
         course_id: courseDescriptor, // Keep the ID the frontend used if possible, or l.course_id
         video_url: l.video_url,
-        video_parts: [], // DB doesn't support parts yet
+        video_parts: l.video_parts || [],
         pdf_url: l.pdf_url,
         quiz_id: l.quiz_id,
         order_index: l.order_index

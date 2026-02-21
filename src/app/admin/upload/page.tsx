@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { COURSE_SUBSECTIONS } from '@/lib/constants';
 import { MOCK_COURSES } from '@/lib/data/mocks';
 import { createLesson, getSignedUploadUrl } from '../actions';
-import { Upload, ArrowLeft, Video, FileText, BookOpen, CheckCircle, AlertCircle, Loader2, User, Home } from 'lucide-react';
+import { Upload, ArrowLeft, Video, FileText, BookOpen, CheckCircle, AlertCircle, Loader2, User, Home, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { QuizUploader } from '@/components/admin/QuizUploader';
 import { QuizQuestion } from '@/lib/quiz-parser';
@@ -20,7 +20,7 @@ export default function UploadPage() {
     const [selectedCourse, setSelectedCourse] = useState('');
     const [subSection, setSubSection] = useState('');
     const [title, setTitle] = useState('');
-    const [videoUrl, setVideoUrl] = useState('');
+    const [videoParts, setVideoParts] = useState<{ title: string; url: string }[]>([{ title: '', url: '' }]);
     const [pdfUrl, setPdfUrl] = useState('');
     const [pdfFile, setPdfFile] = useState<File | null>(null);
     const [quizData, setQuizData] = useState<{ questions: QuizQuestion[] } | null>(null);
@@ -91,10 +91,20 @@ export default function UploadPage() {
             const subSectionName = subSectionConfig?.options.find(o => o.id === subSection)?.name;
             const finalTitle = subSectionName ? `[${subSectionName}] ${title}` : title;
 
+            // Build video data from parts
+            const validParts = videoParts.filter(p => p.url.trim());
+            const mainVideoUrl = validParts.length > 0 ? validParts[0].url : undefined;
+            // Auto-title parts that have no title
+            const finalParts = validParts.map((p, i) => ({
+                title: p.title.trim() || `Part ${i + 1}`,
+                url: p.url.trim()
+            }));
+
             const response = await createLesson({
                 course_id: selectedCourse,
                 title: finalTitle,
-                video_url: videoUrl || undefined,
+                video_url: mainVideoUrl,
+                video_parts: finalParts.length > 1 ? finalParts : [],
                 pdf_url: finalPdfUrl || undefined,
                 instructor: subSectionConfig?.type === 'instructor' ? subSection : undefined,
                 section: subSectionConfig?.type === 'section' ? subSection : undefined,
@@ -110,7 +120,7 @@ export default function UploadPage() {
                 setResult({ success: true, message: response.message });
                 // Reset form
                 setTitle('');
-                setVideoUrl('');
+                setVideoParts([{ title: '', url: '' }]);
                 setPdfUrl('');
                 setPdfFile(null);
                 setQuizData(null);
@@ -236,21 +246,75 @@ export default function UploadPage() {
                                 />
                             </div>
 
-                            {/* YouTube URL */}
-                            <div className="space-y-2">
+                            {/* YouTube URLs */}
+                            <div className="space-y-3">
                                 <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
                                     <Video className="w-4 h-4 text-red-400" />
                                     {t('videoUrl')}
                                     <span className="text-zinc-500 text-xs">({tc('optional')})</span>
                                 </label>
-                                <input
-                                    type="url"
-                                    value={videoUrl}
-                                    onChange={(e) => setVideoUrl(e.target.value)}
-                                    placeholder="https://youtu.be/..."
-                                    className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-4 py-3 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-                                    data-tour="video-url"
-                                />
+
+                                <div className="space-y-3" data-tour="video-url">
+                                    {videoParts.map((part, index) => (
+                                        <div key={index} className="flex gap-2 items-start">
+                                            <div className="flex-1 space-y-2">
+                                                {videoParts.length > 1 && (
+                                                    <input
+                                                        type="text"
+                                                        value={part.title}
+                                                        onChange={(e) => {
+                                                            const updated = [...videoParts];
+                                                            updated[index] = { ...updated[index], title: e.target.value };
+                                                            setVideoParts(updated);
+                                                        }}
+                                                        placeholder={`Part ${index + 1} title (optional)`}
+                                                        className="w-full bg-zinc-800/50 border border-zinc-700/50 rounded-md px-3 py-2 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
+                                                    />
+                                                )}
+                                                <input
+                                                    type="url"
+                                                    value={part.url}
+                                                    onChange={(e) => {
+                                                        const updated = [...videoParts];
+                                                        updated[index] = { ...updated[index], url: e.target.value };
+                                                        setVideoParts(updated);
+                                                    }}
+                                                    placeholder="https://youtu.be/..."
+                                                    className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-4 py-3 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                                                />
+                                            </div>
+                                            {videoParts.length > 1 && (
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="mt-auto h-10 w-10 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 flex-shrink-0"
+                                                    onClick={() => setVideoParts(videoParts.filter((_, i) => i !== index))}
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    ))}
+
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="border-dashed border-zinc-700 text-zinc-400 hover:text-violet-400 hover:border-violet-500/50"
+                                        onClick={() => setVideoParts([...videoParts, { title: '', url: '' }])}
+                                    >
+                                        <Plus className="w-4 h-4 me-1" />
+                                        Add another video
+                                    </Button>
+
+                                    {videoParts.length > 1 && (
+                                        <p className="text-xs text-zinc-500 flex items-center gap-1">
+                                            <Video className="w-3 h-3" />
+                                            {videoParts.filter(p => p.url.trim()).length} video(s) — will show as playlist with sidebar
+                                        </p>
+                                    )}
+                                </div>
                             </div>
 
                             {/* PDF Section */}

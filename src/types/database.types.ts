@@ -50,6 +50,7 @@ export interface Database {
                     course_id: string
                     title: string
                     video_url: string | null
+                    video_parts: { title: string; url: string }[]
                     pdf_url: string | null
                     quiz_id: string | null
                     order_index: number
@@ -60,6 +61,7 @@ export interface Database {
                     course_id: string
                     title: string
                     video_url?: string | null
+                    video_parts?: { title: string; url: string }[]
                     pdf_url?: string | null
                     quiz_id?: string | null
                     order_index?: number
@@ -70,6 +72,7 @@ export interface Database {
                     course_id?: string
                     title?: string
                     video_url?: string | null
+                    video_parts?: { title: string; url: string }[]
                     pdf_url?: string | null
                     quiz_id?: string | null
                     order_index?: number
