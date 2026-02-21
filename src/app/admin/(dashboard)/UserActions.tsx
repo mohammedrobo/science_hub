@@ -1,8 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowUpCircle, ArrowDownCircle, Crown, Trash2, ImageOff, RotateCcw, ShieldAlert, Pencil, KeyRound } from 'lucide-react';
+import { ArrowUpCircle, ArrowDownCircle, Crown, Trash2, ImageOff, RotateCcw, ShieldAlert, Pencil, KeyRound, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { RoleChangeDialog } from './RoleChangeDialog';
 import { EditNameDialog } from './EditNameDialog';
 import { deleteUser, resetUserProgress, removeProfilePicture, resetFullAccount, resetUserPassword } from '../actions';
@@ -26,8 +33,10 @@ export function UserActions({ username, fullName, currentRole, isSuperAdmin }: U
     };
 
     return (
-        <>
-            {/* Leader toggle: for non-admin/super_admin users */}
+        <div className="flex items-center justify-end gap-1">
+            {/* Primary inline buttons — always visible */}
+
+            {/* Leader toggle: students/leaders only */}
             {currentRole !== 'admin' && currentRole !== 'super_admin' && (
                 <Button
                     size="icon"
@@ -40,7 +49,7 @@ export function UserActions({ username, fullName, currentRole, isSuperAdmin }: U
                 </Button>
             )}
 
-            {/* Admin Toggle - super_admin only */}
+            {/* Admin Toggle — super_admin only */}
             {isSuperAdmin && currentRole !== 'super_admin' && (
                 <Button
                     size="icon"
@@ -53,78 +62,100 @@ export function UserActions({ username, fullName, currentRole, isSuperAdmin }: U
                 </Button>
             )}
 
-            {/* Edit Name - super_admin only */}
-            {isSuperAdmin && (
+            {/* Delete — always visible (admin can delete students/leaders, super can delete anyone) */}
+            {(isSuperAdmin || (currentRole !== 'admin' && currentRole !== 'super_admin')) && (
                 <Button
                     size="icon"
                     variant="ghost"
-                    className="h-8 w-8 text-zinc-500 hover:text-blue-400"
-                    title="Edit Name"
-                    onClick={() => setEditNameOpen(true)}
+                    className="h-8 w-8 text-zinc-500 hover:text-red-600"
+                    title="Delete User"
+                    onClick={async () => {
+                        if (!confirm(`Delete ${fullName} (${username})? This cannot be undone.`)) return;
+                        const result = await deleteUser(username);
+                        if (result && 'error' in result) toast.error(result.error);
+                        else toast.success(`User ${username} deleted`);
+                    }}
                 >
-                    <Pencil className="w-4 h-4" />
+                    <Trash2 className="w-4 h-4" />
                 </Button>
             )}
 
-            {/* Destructive actions: super_admin only */}
+            {/* More actions dropdown — super_admin only */}
             {isSuperAdmin && (
-                <>
-                    <form action={async () => {
-                        const result = await removeProfilePicture(username);
-                        if ('error' in result) toast.error(result.error);
-                        else toast.success('Profile picture removed');
-                    }}>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-500 hover:text-yellow-500" title="Remove Picture">
-                            <ImageOff className="w-4 h-4" />
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-zinc-500 hover:text-zinc-300"
+                            title="More actions"
+                        >
+                            <MoreVertical className="w-4 h-4" />
                         </Button>
-                    </form>
-                    <form action={async () => {
-                        if (!confirm(`Reset password for ${fullName} (${username})? They will be forced to change it on next login.`)) return;
-                        const result = await resetUserPassword(username);
-                        if ('error' in result) toast.error(result.error);
-                        else toast.success('Password reset — user must change on next login');
-                    }}>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-500 hover:text-cyan-500" title="Reset Password">
-                            <KeyRound className="w-4 h-4" />
-                        </Button>
-                    </form>
-                    <form action={async () => {
-                        if (!confirm(`Reset all progress for ${fullName} (${username})? This clears XP, rank, quiz scores and cannot be undone.`)) return;
-                        const result = await resetUserProgress(username);
-                        if ('error' in result) toast.error(result.error);
-                        else toast.success('Progress reset');
-                    }}>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-500 hover:text-orange-500" title="Reset Progress Only">
-                            <RotateCcw className="w-4 h-4" />
-                        </Button>
-                    </form>
-                    <form action={async () => {
-                        if (!confirm(`Full reset ${fullName} (${username})? This resets password, progress, onboarding and cannot be undone.`)) return;
-                        const result = await resetFullAccount(username);
-                        if ('error' in result) toast.error(result.error);
-                        else toast.success('Account fully reset');
-                    }}>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-500 hover:text-purple-500" title="Full Account Reset">
-                            <ShieldAlert className="w-4 h-4" />
-                        </Button>
-                    </form>
-                </>
-            )}
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-52 bg-zinc-900 border-zinc-700">
+                        <DropdownMenuItem
+                            className="gap-2 text-zinc-300 focus:text-white focus:bg-zinc-800 cursor-pointer"
+                            onClick={() => setEditNameOpen(true)}
+                        >
+                            <Pencil className="w-4 h-4 text-blue-400" />
+                            Edit Name
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            className="gap-2 text-zinc-300 focus:text-white focus:bg-zinc-800 cursor-pointer"
+                            onClick={async () => {
+                                const result = await removeProfilePicture(username);
+                                if ('error' in result) toast.error(result.error);
+                                else toast.success('Profile picture removed');
+                            }}
+                        >
+                            <ImageOff className="w-4 h-4 text-yellow-500" />
+                            Remove Picture
+                        </DropdownMenuItem>
 
-            {/* Delete: admin can delete students/leaders, super_admin can delete anyone except themselves */}
-            {(isSuperAdmin || (currentRole !== 'admin' && currentRole !== 'super_admin')) && (
-                <form action={async () => {
-                    const result = await deleteUser(username);
-                    if (result && 'error' in result) {
-                        toast.error(result.error);
-                    } else {
-                        toast.success(`User ${username} deleted`);
-                    }
-                }}>
-                    <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-500 hover:text-red-600" title="Delete User">
-                        <Trash2 className="w-4 h-4" />
-                    </Button>
-                </form>
+                        <DropdownMenuSeparator className="bg-zinc-700" />
+
+                        <DropdownMenuItem
+                            className="gap-2 text-zinc-300 focus:text-white focus:bg-zinc-800 cursor-pointer"
+                            onClick={async () => {
+                                if (!confirm(`Reset password for ${fullName} (${username})? They will be forced to change it on next login.`)) return;
+                                const result = await resetUserPassword(username);
+                                if ('error' in result) toast.error(result.error);
+                                else toast.success('Password reset — user must change on next login');
+                            }}
+                        >
+                            <KeyRound className="w-4 h-4 text-cyan-500" />
+                            Reset Password
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            className="gap-2 text-zinc-300 focus:text-white focus:bg-zinc-800 cursor-pointer"
+                            onClick={async () => {
+                                if (!confirm(`Reset all progress for ${fullName} (${username})? This clears XP, rank, quiz scores and cannot be undone.`)) return;
+                                const result = await resetUserProgress(username);
+                                if ('error' in result) toast.error(result.error);
+                                else toast.success('Progress reset');
+                            }}
+                        >
+                            <RotateCcw className="w-4 h-4 text-orange-500" />
+                            Reset Progress
+                        </DropdownMenuItem>
+
+                        <DropdownMenuSeparator className="bg-zinc-700" />
+
+                        <DropdownMenuItem
+                            className="gap-2 text-red-400 focus:text-red-300 focus:bg-red-950/50 cursor-pointer"
+                            onClick={async () => {
+                                if (!confirm(`Full reset ${fullName} (${username})? This resets password, progress, onboarding and cannot be undone.`)) return;
+                                const result = await resetFullAccount(username);
+                                if ('error' in result) toast.error(result.error);
+                                else toast.success('Account fully reset');
+                            }}
+                        >
+                            <ShieldAlert className="w-4 h-4" />
+                            Full Account Reset
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             )}
 
             <RoleChangeDialog
@@ -142,6 +173,6 @@ export function UserActions({ username, fullName, currentRole, isSuperAdmin }: U
                 open={editNameOpen}
                 onOpenChange={setEditNameOpen}
             />
-        </>
+        </div>
     );
 }

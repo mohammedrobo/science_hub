@@ -97,14 +97,12 @@ export function UserListWithFilter({ users, selectedSection, isSuperAdmin }: Use
                                     </div>
                                 </div>
                                 <div className="flex items-center justify-end mt-3 pt-2 border-t border-zinc-700/50">
-                                    <div className="flex gap-1">
                                         <UserActions
                                             username={user.username}
                                             fullName={user.full_name}
                                             currentRole={user.access_role}
                                             isSuperAdmin={isSuperAdmin}
                                         />
-                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -119,7 +117,7 @@ export function UserListWithFilter({ users, selectedSection, isSuperAdmin }: Use
                                     <th className="text-left py-3 px-4 text-zinc-400 font-medium text-sm">Username</th>
                                     <th className="text-left py-3 px-4 text-zinc-400 font-medium text-sm w-[80px]">Group</th>
                                     <th className="text-left py-3 px-4 text-zinc-400 font-medium text-sm w-[100px]">Role</th>
-                                    <th className="text-right py-3 px-4 text-zinc-400 font-medium text-sm w-[200px]">Actions</th>
+                                    <th className="text-right py-3 px-4 text-zinc-400 font-medium text-sm">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -138,14 +136,12 @@ export function UserListWithFilter({ users, selectedSection, isSuperAdmin }: Use
                                             <RoleBadge role={user.access_role} />
                                         </td>
                                         <td className="py-3 px-4 text-right">
-                                            <div className="flex justify-end gap-1">
                                                 <UserActions
                                                     username={user.username}
                                                     fullName={user.full_name}
                                                     currentRole={user.access_role}
                                                     isSuperAdmin={isSuperAdmin}
                                                 />
-                                            </div>
                                         </td>
                                     </tr>
                                 ))}
