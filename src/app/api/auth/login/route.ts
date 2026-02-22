@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { cookies, headers } from 'next/headers';
 import { createServiceRoleClient } from '@/lib/supabase/server';
-import { logActivity } from '@/lib/safety/logger';
+
 import {
     createSession,
     verifyPassword,
     hashPassword
 } from '@/lib/auth/session';
 import { checkLoginRateLimit, recordLoginFailure, clearLoginRateLimit } from '@/lib/auth/rate-limit-redis';
-import { logSecurityEvent } from '@/lib/auth/security-monitor';
+
 
 // Parse device info from user agent string
 function parseDeviceInfo(userAgent: string) {
@@ -72,13 +72,7 @@ export async function POST(request: Request) {
         // Check rate limit
         const rateLimit = await checkLoginRateLimit(rateLimitKey);
         if (rateLimit.limited) {
-            await logSecurityEvent({
-                type: 'RATE_LIMIT_EXCEEDED',
-                username: username.trim(),
-                ip,
-                userAgent,
-                details: `Blocked after exceeding login attempts. Reset in ${rateLimit.resetInSeconds}s`
-            });
+
             return NextResponse.json(
                 { error: `Too many attempts. Try again in ${Math.ceil(rateLimit.resetInSeconds / 60)} minutes.` },
                 { status: 429 }
@@ -94,13 +88,7 @@ export async function POST(request: Request) {
 
         if (userError || !user) {
             await recordLoginFailure(rateLimitKey);
-            await logSecurityEvent({
-                type: 'LOGIN_FAILED',
-                username: username.trim(),
-                ip,
-                userAgent,
-                details: 'User not found'
-            });
+
             return NextResponse.json(
                 { error: 'Invalid username or password' },
                 { status: 401 }
@@ -111,13 +99,7 @@ export async function POST(request: Request) {
         const verification = await verifyPassword(password, user.password);
         if (!verification.valid) {
             await recordLoginFailure(rateLimitKey);
-            await logSecurityEvent({
-                type: 'LOGIN_FAILED',
-                username: user.username,
-                ip,
-                userAgent,
-                details: 'Invalid password'
-            });
+
             return NextResponse.json(
                 { error: 'Invalid username or password' },
                 { status: 401 }
@@ -171,17 +153,7 @@ export async function POST(request: Request) {
             console.warn('[Login API] Could not update session info:', err);
         }
 
-        // Log successful login
-        await logActivity({
-            action: 'LOGIN',
-            username: user.username,
-            userId: user.id || undefined,
-            details: {
-                role: user.access_role,
-                device: deviceInfo.device,
-                ip: ip
-            }
-        });
+
 
         // Create signed session cookie
         await createSession({

@@ -153,14 +153,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
 
                             <div className="hidden sm:block w-px h-6 bg-zinc-800" />
 
-                            {isSuperAdmin && (
-                                <Link href="/admin/safety">
-                                    <Button variant="outline" size="sm" className="border-zinc-700 bg-zinc-900 text-red-400 hover:bg-red-950/30 hover:text-red-300">
-                                        <ShieldAlert className="w-4 h-4 sm:mr-2" />
-                                        <span className="hidden sm:inline">Safety</span>
-                                    </Button>
-                                </Link>
-                            )}
+
                             {isSuperAdmin && (
                                 <Link href="/admin/feedback">
                                     <Button variant="outline" size="sm" className="border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white">

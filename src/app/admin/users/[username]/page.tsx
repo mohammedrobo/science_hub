@@ -1,4 +1,4 @@
-import { getActivityLogs } from '../../safety/actions';
+
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -41,13 +41,7 @@ export default async function UserAuditPage({ params }: PageProps) {
         return notFound();
     }
 
-    // 2. Fetch User Logs
-    const { data: logs } = await supabase
-        .from('activity_logs')
-        .select('*')
-        .eq('username', decodedUsername)
-        .order('created_at', { ascending: false })
-        .limit(200);
+
 
     return (
         <div className="space-y-6">
@@ -95,57 +89,7 @@ export default async function UserAuditPage({ params }: PageProps) {
                 </CardHeader>
             </Card>
 
-            {/* Activity History */}
-            <Card className="bg-zinc-900 border-zinc-800">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                        <Clock className="w-5 h-5 text-zinc-400" />
-                        Activity History
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {!logs || logs.length === 0 ? (
-                        <div className="text-center py-8 text-zinc-500">
-                            No activity recorded for this user.
-                        </div>
-                    ) : (
-                        <ScrollArea className="h-[500px] pr-4">
-                            <div className="space-y-6">
-                                {logs.map((log: any) => (
-                                    <div key={log.id} className="relative pl-6 border-l border-zinc-800 py-1">
-                                        <div className={`absolute left-[-5px] top-2 w-2.5 h-2.5 rounded-full border border-zinc-900 ${log.action_type === 'LOGIN' ? 'bg-green-500' :
-                                            log.action_type.includes('FAIL') ? 'bg-red-500' :
-                                                'bg-zinc-600'
-                                            }`} />
 
-                                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1">
-                                            <div>
-                                                <div className="font-medium text-zinc-200">
-                                                    {log.action_type.replace(/_/g, ' ')}
-                                                </div>
-                                                {log.details && (
-                                                    <div className="text-sm text-zinc-500 mt-1">
-                                                        {JSON.stringify(log.details)}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="text-right shrink-0">
-                                                <div className="text-xs text-zinc-500 font-mono">
-                                                    {new Date(log.created_at).toLocaleString()}
-                                                </div>
-                                                <div className="flex items-center justify-end gap-1 text-[10px] text-zinc-600 mt-1">
-                                                    <MapPin className="w-3 h-3" />
-                                                    {log.ip_address}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </ScrollArea>
-                    )}
-                </CardContent>
-            </Card>
         </div>
     );
 }

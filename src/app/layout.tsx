@@ -59,8 +59,6 @@ import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistratio
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { FeedbackButton } from "@/components/FeedbackButton";
 import { WhatsNewDialog } from "@/components/WhatsNewDialog";
-import { PageTracker } from "@/components/safety/PageTracker";
-import { ActivityTracker } from "@/components/safety/ActivityTracker";
 import { SmoothScroll } from "@/components/SmoothScroll";
 
 export default async function RootLayout({
@@ -81,8 +79,6 @@ export default async function RootLayout({
         <NextIntlClientProvider messages={messages}>
           <div className="relative w-full overflow-x-hidden min-h-[100dvh] flex flex-col">
             <SmoothScroll />
-            <PageTracker />
-            <ActivityTracker />
             {children}
 
             <FeedbackButton />

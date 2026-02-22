@@ -4,7 +4,7 @@ import CourseClient from './CourseClient';
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import { Course } from '@/types';
-import { logActivity } from '@/lib/safety/logger';
+
 import { readSession } from '@/lib/auth/session-read';
 
 export default async function CoursePage({ params }: { params: Promise<{ id: string }> }) {
@@ -45,16 +45,7 @@ export default async function CoursePage({ params }: { params: Promise<{ id: str
         getCourseProgress(course.code)
     ]);
 
-    // Silent tracking
-    readSession().then(session => {
-        if (session) {
-            logActivity({
-                action: 'COURSE_VIEW',
-                username: session.username,
-                details: { courseId: id, courseName: course!.name }
-            });
-        }
-    });
+
 
     return (
         <CourseClient

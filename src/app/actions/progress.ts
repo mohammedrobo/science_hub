@@ -3,7 +3,7 @@
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { getSession } from '@/app/login/actions';
 import { MOCK_COURSES } from '@/lib/data/mocks';
-import { logActivity } from '@/lib/safety/logger';
+
 import { unstable_cache, updateTag } from 'next/cache';
 
 // Cache lessons list — rarely changes, avoids re-fetching on every homepage visit
@@ -102,12 +102,7 @@ export async function markContentAsCompleted(contentId: string, contentType: 'le
         return { error: 'Failed to update progress' };
     }
 
-    // Log completion silently
-    logActivity({
-        action: 'LESSON_COMPLETE',
-        username: session.username,
-        details: { contentId, contentType, xpEarned: xp },
-    });
+
 
     // Award XP
     if (xp > 0) {
@@ -186,27 +181,14 @@ export async function submitQuizResult(quizId: string, percentage: number) {
         return { error: 'Failed to save result' };
     }
 
-    // Award XP + Log Activity in parallel (independent operations)
-    await Promise.all([
-        xpToAward > 0
-            ? supabase.rpc('award_xp', {
-                  p_username: session.username,
-                  p_content_id: quizId,
-                  p_xp: xpToAward,
-              })
-            : Promise.resolve(),
-        logActivity({
-            action: 'QUIZ_SUBMIT',
-            username: session.username,
-            details: {
-                quizId,
-                score: percentage,
-                xpEarned: xpToAward,
-                grade,
-                label,
-            },
-        }),
-    ]);
+    // Award XP
+    if (xpToAward > 0) {
+        await supabase.rpc('award_xp', {
+            p_username: session.username,
+            p_content_id: quizId,
+            p_xp: xpToAward,
+        });
+    }
 
     // Revalidate cached data that depends on XP
     if (xpToAward > 0) {

@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
-import { logActivity } from '@/lib/safety/logger';
+
 import {
     createSession,
     getSession as getSecureSession,
@@ -14,7 +14,7 @@ import {
     hashPassword
 } from '@/lib/auth/session';
 import { checkLoginRateLimit, recordLoginFailure, clearLoginRateLimit } from '@/lib/auth/rate-limit-redis';
-import { logSecurityEvent } from '@/lib/auth/security-monitor';
+
 
 interface LoginState {
     error?: string;
@@ -75,13 +75,7 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     // Check rate limit (Redis-backed in production)
     const rateLimit = await checkLoginRateLimit(rateLimitKey);
     if (rateLimit.limited) {
-        await logSecurityEvent({
-            type: 'RATE_LIMIT_EXCEEDED',
-            username: username.trim(),
-            ip,
-            userAgent,
-            details: `Blocked after exceeding login attempts. Reset in ${rateLimit.resetInSeconds}s`
-        });
+
         return { error: `Too many attempts. Try again in ${Math.ceil(rateLimit.resetInSeconds / 60)} minutes.` };
     }
 
@@ -94,13 +88,7 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
 
     if (userError || !user) {
         await recordLoginFailure(rateLimitKey);
-        await logSecurityEvent({
-            type: 'LOGIN_FAILED',
-            username: username.trim(),
-            ip,
-            userAgent,
-            details: 'User not found'
-        });
+
         return { error: 'Invalid username or password' };
     }
 
@@ -109,13 +97,7 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
 
     if (!verification.valid) {
         await recordLoginFailure(rateLimitKey);
-        await logSecurityEvent({
-            type: 'LOGIN_FAILED',
-            username: user.username,
-            ip,
-            userAgent,
-            details: 'Invalid password'
-        });
+
         return { error: 'Invalid username or password' };
     }
 
@@ -172,17 +154,7 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
         console.warn('[Login] Could not update session info:', err);
     }
 
-    // Log successful login
-    await logActivity({
-        action: 'LOGIN',
-        username: user.username,
-        userId: user.id || undefined, // allowed_users might not have UUID in strict type, but usually does in Supabase
-        details: {
-            role: user.access_role,
-            device: deviceInfo.device,
-            ip: ip
-        }
-    });
+
 
     await createSession({
         username: user.username,
@@ -213,15 +185,7 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
 export async function signout() {
     // Get session before destroying it to log who is logging out
     const session = await getSecureSession();
-    if (session) {
-        await logActivity({
-            action: 'LOGOUT',
-            username: session.username,
-            details: {
-                role: session.role
-            }
-        });
-    }
+
 
     await destroySession();
     revalidatePath('/', 'layout');
@@ -289,12 +253,7 @@ export async function changePassword(_prevState: ChangePasswordState, formData: 
     // Update session
     await updateSession({ isFirstLogin: false });
 
-    // Silent tracking
-    logActivity({
-        action: 'PASSWORD_CHANGE',
-        username: session.username,
-        details: { role: session.role }
-    });
+
 
     revalidatePath('/', 'layout');
     redirect('/');

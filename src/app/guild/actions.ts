@@ -3,7 +3,7 @@
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { getSession } from '@/app/login/actions';
 import { revalidatePath } from 'next/cache';
-import { logActivity } from '@/lib/safety/logger';
+
 
 async function ensureLeaderOrAdmin() {
     const session = await getSession();
@@ -111,12 +111,7 @@ export async function sendGuildMessage(content: string) {
             return { error: 'Failed to send message' };
         }
 
-        // Silent tracking
-        logActivity({
-            action: 'CHAT_MESSAGE',
-            username: session.username,
-            details: { preview: content.substring(0, 100), chatType: 'guild' }
-        });
+
 
         // No revalidatePath needed if we rely on Realtime, but good for fallback
         return { success: true };
@@ -248,12 +243,7 @@ export async function updateUserNickname(username: string, nickname: string) {
             return { error: `Failed to update: ${error.message}` };
         }
 
-        // Silent tracking
-        logActivity({
-            action: 'NICKNAME_CHANGE',
-            username: session.username,
-            details: { targetUser: username, nickname: nickname || '(cleared)' }
-        });
+
 
         revalidatePath('/guild');
         return { success: true };
