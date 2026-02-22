@@ -10,8 +10,16 @@ import {
     AccordionItem,
     AccordionTrigger
 } from '@/components/ui/accordion';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from '@/components/ui/button';
-import { PlayCircle, FileText, BrainCircuit, ChevronLeft, Lock, Sparkles, MonitorPlay } from 'lucide-react';
+import { PlayCircle, FileText, BrainCircuit, ChevronLeft, Lock, Sparkles, MonitorPlay, ChevronDown, Download } from 'lucide-react';
 import Link from 'next/link';
 import { Course, Lesson } from '@/types';
 import { VideoPlayer } from '@/components/courses/VideoPlayer';
@@ -208,17 +216,38 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
 
                             {/* Multiple PDFs support */}
                             {lesson.pdf_parts && lesson.pdf_parts.length > 0 ? (
-                                lesson.pdf_parts.map((part, pIndex) => (
-                                    <Button key={pIndex} variant="outline" size="icon" className="h-10 w-10 border-zinc-700 hover:border-violet-500 hover:text-violet-500 flex-shrink-0" title={part.title || t('viewPdf')} asChild>
-                                        <a href={part.url} target="_blank" rel="noopener noreferrer">
-                                            <FileText className="h-4 w-4" />
-                                        </a>
-                                    </Button>
-                                ))
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" className="h-10 border-zinc-700 hover:border-violet-500 hover:text-violet-500 bg-zinc-800/50">
+                                            <FileText className="h-4 w-4 mr-2" />
+                                            {t('pdfResources')} <span className="ml-1.5 text-xs bg-zinc-700 px-1.5 py-0.5 rounded-full">{lesson.pdf_parts.length}</span>
+                                            <ChevronDown className="h-4 w-4 ml-2 opacity-50" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="start" className="w-[240px] bg-zinc-900 border-zinc-800">
+                                        <DropdownMenuLabel className="text-xs text-zinc-400 font-medium pb-1.5">Available Documents</DropdownMenuLabel>
+                                        <DropdownMenuSeparator className="bg-zinc-800" />
+                                        {lesson.pdf_parts.map((part, pIndex) => (
+                                            <DropdownMenuItem key={pIndex} className="p-0 mt-1 focus:bg-zinc-800 cursor-pointer rounded-md overflow-hidden" asChild>
+                                                <a
+                                                    href={part.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center w-full px-3 py-2.5 text-sm text-zinc-200 hover:text-violet-400 group/pdf"
+                                                >
+                                                    <FileText className="h-4 w-4 mr-2.5 text-blue-400/70 group-hover/pdf:text-violet-400" />
+                                                    <span className="flex-1 truncate">{part.title || `Document ${pIndex + 1}`}</span>
+                                                    <Download className="h-3.5 w-3.5 ml-2 opacity-0 group-hover/pdf:opacity-100 transition-opacity" />
+                                                </a>
+                                            </DropdownMenuItem>
+                                        ))}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             ) : lesson.pdf_url && (
-                                <Button variant="outline" size="icon" className="h-10 w-10 border-zinc-700 hover:border-violet-500 hover:text-violet-500 flex-shrink-0" asChild>
+                                <Button variant="outline" className="h-10 border-zinc-700 hover:border-violet-500 hover:text-violet-500 bg-zinc-800/50" asChild>
                                     <a href={lesson.pdf_url} target="_blank" rel="noopener noreferrer" title={t('viewPdf')}>
-                                        <FileText className="h-4 w-4" />
+                                        <FileText className="h-4 w-4 mr-2" />
+                                        {t('viewPdf') || 'View PDF'}
                                     </a>
                                 </Button>
                             )}

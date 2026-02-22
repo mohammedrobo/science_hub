@@ -35,8 +35,21 @@ async function ensureLeaderOrAdmin() {
 
 // ============ CMS OPERATIONS ============
 
-// ... imports
 import { MOCK_COURSES } from '@/lib/data/mocks';
+
+// Helper to extract storage path from Supabase public URL
+function extractStoragePath(url: string, bucket: string = 'pdfs'): string | null {
+    try {
+        if (!url || !url.includes(`/storage/v1/object/public/${bucket}/`)) return null;
+        const parts = url.split(`/storage/v1/object/public/${bucket}/`);
+        if (parts.length > 1) {
+            return parts[1];
+        }
+        return null;
+    } catch {
+        return null;
+    }
+}
 
 // ... existing code ...
 
@@ -815,10 +828,10 @@ export async function deleteLesson(lessonId: string) {
         await ensureLeaderOrAdmin();
         const supabase = await createServiceRoleClient();
 
-        // 1. Get lesson to find associated quiz
+        // 1. Get lesson to find associated quiz and pdfs
         const { data: lesson } = await supabase
             .from('lessons')
-            .select('quiz_id, pdf_url')
+            .select('quiz_id, pdf_url, pdf_parts')
             .eq('id', lessonId)
             .single();
 
@@ -847,6 +860,25 @@ export async function deleteLesson(lessonId: string) {
             .from('lessons')
             .delete()
             .eq('id', lessonId);
+
+        // 6. Delete PDFs from storage
+        const pathsToDelete: string[] = [];
+        if (lesson?.pdf_url) {
+            const path = extractStoragePath(lesson?.pdf_url);
+            if (path) pathsToDelete.push(path);
+        }
+        if (lesson?.pdf_parts && Array.isArray(lesson.pdf_parts)) {
+            for (const part of lesson.pdf_parts as any[]) {
+                if (part.url) {
+                    const path = extractStoragePath(part.url);
+                    if (path) pathsToDelete.push(path);
+                }
+            }
+        }
+        if (pathsToDelete.length > 0) {
+            const uniquePaths = [...new Set(pathsToDelete)];
+            await supabase.storage.from('pdfs').remove(uniquePaths);
+        }
 
         if (error) {
             console.error('Delete lesson error:', error);
@@ -893,7 +925,7 @@ export async function updateLesson(
         // Get existing lesson
         const { data: existingLesson } = await supabase
             .from('lessons')
-            .select('quiz_id, course_id')
+            .select('quiz_id, course_id, pdf_url, pdf_parts')
             .eq('id', lessonId)
             .single();
 
@@ -961,6 +993,48 @@ export async function updateLesson(
         if (data.pdf_url !== undefined) updatePayload.pdf_url = data.pdf_url || null;
         if (data.pdf_parts !== undefined) updatePayload.pdf_parts = data.pdf_parts;
         if (quizId !== existingLesson.quiz_id) updatePayload.quiz_id = quizId;
+
+        // Handle PDF Deletions
+        const pathsToDelete: string[] = [];
+        const existingPaths: string[] = [];
+
+        if (existingLesson?.pdf_url) {
+            const p = extractStoragePath(existingLesson.pdf_url);
+            if (p) existingPaths.push(p);
+        }
+        if (existingLesson?.pdf_parts && Array.isArray(existingLesson.pdf_parts)) {
+            for (const part of existingLesson.pdf_parts as any[]) {
+                if (part.url) {
+                    const p = extractStoragePath(part.url);
+                    if (p) existingPaths.push(p);
+                }
+            }
+        }
+
+        const keptPaths: string[] = [];
+        if (data.pdf_url) {
+            const p = extractStoragePath(data.pdf_url);
+            if (p) keptPaths.push(p);
+        }
+        if (data.pdf_parts && Array.isArray(data.pdf_parts)) {
+            for (const part of data.pdf_parts) {
+                if (part.url) {
+                    const p = extractStoragePath(part.url);
+                    if (p) keptPaths.push(p);
+                }
+            }
+        }
+
+        for (const p of existingPaths) {
+            if (!keptPaths.includes(p)) {
+                pathsToDelete.push(p);
+            }
+        }
+
+        if (pathsToDelete.length > 0) {
+            const uniquePaths = [...new Set(pathsToDelete)];
+            await supabase.storage.from('pdfs').remove(uniquePaths);
+        }
 
         if (Object.keys(updatePayload).length > 0) {
             const { error } = await supabase
