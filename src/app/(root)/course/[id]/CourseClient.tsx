@@ -211,7 +211,7 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                             </Button>
                         )}
 
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2 mt-2 sm:mt-0">
                             <CompleteButton lessonId={lesson.id} />
 
                             {/* Multiple PDFs support */}
@@ -252,9 +252,10 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                                 </Button>
                             )}
                             {lesson.quiz_id && (
-                                <Button variant="outline" size="icon" className="h-10 w-10 border-zinc-700 hover:border-green-500 hover:text-green-500" asChild>
+                                <Button variant="outline" className="h-10 border-zinc-700 hover:border-green-500 hover:text-green-500 bg-zinc-800/50" asChild>
                                     <Link href={`/quiz/${lesson.quiz_id}`} title={t('takeQuiz')}>
-                                        <BrainCircuit className="h-4 w-4" />
+                                        <BrainCircuit className="h-4 w-4 mr-2" />
+                                        {t('takeQuiz')}
                                     </Link>
                                 </Button>
                             )}
