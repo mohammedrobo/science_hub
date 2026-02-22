@@ -795,7 +795,9 @@ export async function getLessons(courseId?: string) {
                 id,
                 title,
                 video_url,
+                video_parts,
                 pdf_url,
+                pdf_parts,
                 quiz_id,
                 order_index,
                 created_at,
@@ -1073,6 +1075,7 @@ export async function getLesson(lessonId: string) {
                 video_url,
                 video_parts,
                 pdf_url,
+                pdf_parts,
                 quiz_id,
                 course_id,
                 course:courses(id, name, code)

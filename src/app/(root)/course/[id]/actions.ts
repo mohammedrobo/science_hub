@@ -58,6 +58,7 @@ export async function getCourseContent(courseDescriptor: string) {
         video_url: l.video_url,
         video_parts: l.video_parts || [],
         pdf_url: l.pdf_url,
+        pdf_parts: l.pdf_parts || [],
         quiz_id: l.quiz_id,
         order_index: l.order_index
     }));
