@@ -2,20 +2,24 @@ import Link from 'next/link';
 import { SemesterToggle } from './SemesterToggle';
 import { UserNav } from './UserNav';
 import { BookOpen, Sparkles, BarChart3, Calculator, Trophy, Calendar, Shield } from 'lucide-react';
-import { readSession } from '@/lib/auth/session-read';
+import { type SessionData } from '@/lib/auth/session-read';
 import { MobileMenu } from './MobileMenu';
 import { getHeaderStats } from '@/lib/gamification';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { getTranslations } from 'next-intl/server';
 
-export async function Header() {
-    const session = await readSession();
+interface HeaderProps {
+    session: SessionData | null;
+}
+
+export async function Header({ session }: HeaderProps) {
     const isAdmin = session?.role === 'super_admin' || session?.role === 'admin';
     const t = await getTranslations('nav');
 
     let profilePictureUrl: string | undefined;
     let userNameInitial = "U";
+    let displayName = session?.name || session?.username || 'User';
     let rank = "E";
     let xp = 0;
 
@@ -24,11 +28,11 @@ export async function Header() {
         profilePictureUrl = stats.profilePictureUrl;
         rank = stats.currentRank || "E";
         xp = stats.totalXp || 0;
+        displayName = stats.fullName || session.name || session.username;
+    }
 
-        const displayName = stats.fullName || session.name;
-        if (displayName) {
-            userNameInitial = displayName[0].toUpperCase();
-        }
+    if (displayName) {
+        userNameInitial = displayName[0].toUpperCase();
     }
 
     return (
@@ -88,7 +92,13 @@ export async function Header() {
                         <NotificationBell userRole={session?.role as 'super_admin' | 'admin' | 'leader' | 'student'} />
                     </div>
                     <div className="shrink-0 hidden lg:block">
-                        <UserNav />
+                        <UserNav
+                            session={session}
+                            displayName={displayName}
+                            profilePictureUrl={profilePictureUrl}
+                            rank={rank}
+                            xp={xp}
+                        />
                     </div>
 
                     {/* Mobile Menu (Client Component) */}

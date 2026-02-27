@@ -14,7 +14,7 @@ export default async function MainLayout({
     return (
         <SessionGuard sessionToken={session?.sessionToken}>
             <div className="min-h-screen bg-background flex flex-col">
-                <Header />
+                <Header session={session} />
                 <main className="flex-1 w-full">
                     {children}
                 </main>

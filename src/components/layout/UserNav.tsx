@@ -1,5 +1,4 @@
-import { readSession } from '@/lib/auth/session-read';
-import { getHeaderStats } from '@/lib/gamification';
+import { type SessionData } from '@/lib/auth/session-read';
 import { User, Trophy, Shield } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -35,18 +34,26 @@ function getRankColor(rank: string): string {
     return colors[rank] || colors['E'];
 }
 
-export async function UserNav() {
-    const session = await readSession();
+interface UserNavProps {
+    session: SessionData | null;
+    displayName: string;
+    profilePictureUrl?: string;
+    rank: string;
+    xp: number;
+}
+
+export async function UserNav({
+    session,
+    displayName,
+    profilePictureUrl,
+    rank,
+    xp,
+}: UserNavProps) {
     const t = await getTranslations('nav');
 
     if (!session) {
         return null;
     }
-
-    const stats = await getHeaderStats(session.username);
-    const displayName = stats.fullName || session.name || session.username;
-    const rank = stats.currentRank || 'E';
-    const xp = stats.totalXp || 0;
 
     return (
         <DropdownMenu>
@@ -60,10 +67,10 @@ export async function UserNav() {
                         transition-all duration-300 overflow-hidden
                         group-hover:scale-110 group-hover:shadow-lg
                     `}>
-                        {stats?.profilePictureUrl ? (
+                        {profilePictureUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
-                                src={stats.profilePictureUrl}
+                                src={profilePictureUrl}
                                 alt={displayName}
                                 className="w-full h-full object-cover"
                             />

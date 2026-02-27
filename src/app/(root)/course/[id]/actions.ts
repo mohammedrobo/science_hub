@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 import { getSession } from '@/lib/auth/session';
 import { unstable_cache } from 'next/cache';
 import { examModeValue } from '@/lib/exam-mode';
@@ -14,6 +14,7 @@ export interface LessonProgress {
 import { MOCK_COURSES } from '@/lib/data/mocks';
 
 const COURSE_CONTENT_REVALIDATE_SECONDS = examModeValue(600, 3600); // 10m normal, 60m exam mode
+const COURSE_QUIZ_PROGRESS_REVALIDATE_SECONDS = examModeValue(120, 600); // 2m normal, 10m exam mode
 
 const getCourseContentCached = unstable_cache(
     async (courseDescriptor: string) => {
@@ -76,34 +77,33 @@ export async function getCourseContent(courseDescriptor: string) {
     return getCourseContentCached(courseDescriptor);
 }
 
+const getCourseProgressCached = unstable_cache(
+    async (username: string): Promise<Record<string, { score: number; status: string }>> => {
+        const supabase = await createServiceRoleClient();
+        const { data: progress } = await supabase
+            .from('user_progress')
+            .select('content_id, score, status')
+            .eq('username', username)
+            .eq('content_type', 'quiz');
+
+        if (!progress) return {};
+
+        const progressMap: Record<string, { score: number; status: string }> = {};
+        for (const item of progress) {
+            progressMap[item.content_id] = {
+                score: item.score ?? 0,
+                status: item.status || 'in_progress',
+            };
+        }
+
+        return progressMap;
+    },
+    ['course-quiz-progress-v1'],
+    { revalidate: COURSE_QUIZ_PROGRESS_REVALIDATE_SECONDS, tags: ['course-progress'] }
+);
+
 export async function getCourseProgress(): Promise<Record<string, { score: number; status: string }>> {
     const session = await getSession();
     if (!session) return {};
-
-    const supabase = await createClient();
-
-    // 1. Get all progress for this user
-    // We fetch everything for simplicity, or we could filter by course if we had a join.
-    // Since content_id in user_progress is the Quiz ID or Lesson ID, we just fetch all 'quiz' progress for now
-    // to check the scores.
-
-    const { data: progress } = await supabase
-        .from('user_progress')
-        .select('content_id, score, status')
-        .eq('username', session.username)
-        .eq('content_type', 'quiz');
-
-    if (!progress) return {};
-
-    // Map content_id (Quiz ID) to its progress
-    const progressMap: Record<string, { score: number; status: string }> = {};
-
-    progress.forEach(p => {
-        progressMap[p.content_id] = {
-            score: p.score ?? 0,
-            status: p.status || 'in_progress'
-        };
-    });
-
-    return progressMap;
+    return getCourseProgressCached(session.username);
 }

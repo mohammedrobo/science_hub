@@ -6,7 +6,7 @@ import {
     getXPHistory,
     getOverallCompletion,
     getQuizScoreHistory,
-    getCourseDetailedProgress,
+    getCoursesDetailedProgress,
 } from '@/lib/gamification';
 import { ProgressClient } from './ProgressClient';
 import Link from 'next/link';
@@ -34,21 +34,9 @@ export default async function ProgressPage() {
         redirect('/');
     }
 
-    // Fetch detailed progress for each course that has content
+    // Fetch detailed progress for all courses in one batched call
     const courseIds = overallCompletion.coursesWithProgress.map(c => c.courseId);
-    const detailedProgressEntries = await Promise.all(
-        courseIds.map(async (id) => {
-            const detail = await getCourseDetailedProgress(session.username, id);
-            return [id, detail] as const;
-        })
-    );
-
-    const courseDetailedProgressMap: Record<string, NonNullable<Awaited<ReturnType<typeof getCourseDetailedProgress>>>> = {};
-    for (const [id, detail] of detailedProgressEntries) {
-        if (detail) {
-            courseDetailedProgressMap[id] = detail;
-        }
-    }
+    const courseDetailedProgressMap = await getCoursesDetailedProgress(session.username, courseIds);
 
     return (
         <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-5xl">
