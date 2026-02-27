@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { getSchedulePageData, type ScheduleEntry } from '../actions';
-import { BookOpen, Clock, MapPin, Pencil, ChevronLeft, Home, Bell } from 'lucide-react';
+import { BookOpen, Clock, MapPin, Pencil, ChevronLeft, Home } from 'lucide-react';
 import Link from 'next/link';
 import { UpcomingClassCard } from '@/components/schedule/UpcomingClassCard';
 import { ScheduleNotificationToggle } from '@/components/schedule/ScheduleNotificationToggle';
@@ -30,7 +30,6 @@ const SUBJECT_COLORS: Record<string, string> = {
 
 export default function SchedulePage() {
     const params = useParams();
-    const router = useRouter();
     const sectionId = (params.section as string).toUpperCase();
 
     const [schedule, setSchedule] = useState<Record<string, ScheduleEntry[]>>({});
@@ -71,7 +70,7 @@ export default function SchedulePage() {
                 <div className="text-center">
                     <div className="text-6xl mb-4">🔒</div>
                     <h1 className="text-2xl font-bold text-red-400 mb-2">Access Denied</h1>
-                    <p className="text-gray-400 mb-4">You can only view your own section's schedule.</p>
+                    <p className="text-gray-400 mb-4">You can only view your own section&apos;s schedule.</p>
                     <Link href="/" className="inline-flex items-center gap-2 text-violet-400 hover:text-violet-300">
                         <Home size={20} />
                         Go Home
@@ -112,7 +111,7 @@ export default function SchedulePage() {
 
             {/* Upcoming Class Card */}
             <div className="max-w-4xl mx-auto mb-6">
-                <UpcomingClassCard sectionId={sectionId} />
+                <UpcomingClassCard scheduleByDay={schedule} />
             </div>
 
             {/* Day Tabs */}

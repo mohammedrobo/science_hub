@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Bell, Trash2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { getNotifications, clearAllNotifications, type Notification } from '@/app/actions/notifications';
@@ -8,10 +8,20 @@ import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useTranslations } from 'next-intl';
+import { EXAM_MODE_ENABLED, examModeValue } from '@/lib/exam-mode';
 
 interface NotificationBellProps {
     userRole?: 'super_admin' | 'admin' | 'leader' | 'student';
 }
+
+const REFRESH_INTERVAL_MS = examModeValue(
+    30 * 60 * 1000,
+    60 * 60 * 1000
+); // 30m normal, 60m exam mode
+const MIN_REFETCH_GAP_MS = examModeValue(
+    10 * 60 * 1000,
+    20 * 60 * 1000
+); // 10m normal, 20m exam mode burst throttle
 
 export function NotificationBell({ userRole = 'student' }: NotificationBellProps) {
     const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -20,15 +30,19 @@ export function NotificationBell({ userRole = 'student' }: NotificationBellProps
     const [isClearing, setIsClearing] = useState(false);
     const canManage = userRole === 'super_admin' || userRole === 'admin' || userRole === 'leader';
     const t = useTranslations('notifications');
+    const lastFetchRef = useRef(0);
+    const isFetchingRef = useRef(false);
 
-    // Initial fetch
-    useEffect(() => {
-        const fetch = async () => {
+    const refreshNotifications = useCallback(async (force = false) => {
+        const now = Date.now();
+        if (!force && (now - lastFetchRef.current) < MIN_REFETCH_GAP_MS) return;
+        if (isFetchingRef.current) return;
+
+        isFetchingRef.current = true;
+        try {
             const data = await getNotifications();
             setNotifications(data);
 
-            // For now, assume all local fetch is "unread" until clicked?
-            // Or just store "last read timestamp" in localStorage for simplicity.
             const lastRead = localStorage.getItem('last_read_notification');
             if (!lastRead) {
                 setUnreadCount(data.length);
@@ -36,16 +50,50 @@ export function NotificationBell({ userRole = 'student' }: NotificationBellProps
                 const count = data.filter(n => new Date(n.created_at) > new Date(lastRead)).length;
                 setUnreadCount(count);
             }
-        };
-        fetch();
-
-        // Optional: Poll every 60s
-        const interval = setInterval(fetch, 60000);
-        return () => clearInterval(interval);
+            lastFetchRef.current = Date.now();
+        } finally {
+            isFetchingRef.current = false;
+        }
     }, []);
+
+    useEffect(() => {
+        if (EXAM_MODE_ENABLED) {
+            // In exam mode, notifications are fetched on-demand (when bell opens).
+            return;
+        }
+
+        refreshNotifications(true);
+
+        const interval = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                refreshNotifications();
+            }
+        }, REFRESH_INTERVAL_MS);
+
+        const onVisibility = () => {
+            if (document.visibilityState === 'visible') {
+                refreshNotifications();
+            }
+        };
+        const onFocus = () => refreshNotifications();
+
+        document.addEventListener('visibilitychange', onVisibility);
+        window.addEventListener('focus', onFocus);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', onVisibility);
+            window.removeEventListener('focus', onFocus);
+        };
+    }, [refreshNotifications]);
 
     const handleOpenChange = (open: boolean) => {
         setIsOpen(open);
+
+        if (open) {
+            refreshNotifications(true);
+        }
+
         if (open && notifications.length > 0) {
             setUnreadCount(0);
             localStorage.setItem('last_read_notification', new Date().toISOString());
@@ -68,8 +116,7 @@ export function NotificationBell({ userRole = 'student' }: NotificationBellProps
         } else {
             toast.success(result.message || t('notificationsCleared'));
             // Refresh notifications
-            const data = await getNotifications();
-            setNotifications(data);
+            await refreshNotifications(true);
             setUnreadCount(0);
         }
     };

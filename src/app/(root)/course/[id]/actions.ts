@@ -1,7 +1,9 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { getSession } from '@/lib/auth/session';
+import { unstable_cache } from 'next/cache';
+import { examModeValue } from '@/lib/exam-mode';
 
 export interface LessonProgress {
     lessonId: string;
@@ -11,60 +13,70 @@ export interface LessonProgress {
 
 import { MOCK_COURSES } from '@/lib/data/mocks';
 
-export async function getCourseContent(courseDescriptor: string) {
-    const supabase = await createClient();
+const COURSE_CONTENT_REVALIDATE_SECONDS = examModeValue(600, 3600); // 10m normal, 60m exam mode
 
-    let courseId = courseDescriptor;
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(courseDescriptor);
+const getCourseContentCached = unstable_cache(
+    async (courseDescriptor: string) => {
+        const supabase = await createServiceRoleClient();
 
-    if (!isUuid) {
-        // Resolve mock ID (e.g. 'm102') to DB UUID via Code
-        const mockCourse = MOCK_COURSES.find(c => c.id === courseDescriptor);
-        if (mockCourse) {
-            const { data: dbCourse } = await supabase
-                .from('courses')
-                .select('id')
-                .eq('code', mockCourse.code)
-                .single();
+        let courseId = courseDescriptor;
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(courseDescriptor);
 
-            if (dbCourse) {
-                courseId = dbCourse.id;
+        if (!isUuid) {
+            // Resolve mock ID (e.g. 'm102') to DB UUID via Code
+            const mockCourse = MOCK_COURSES.find(c => c.id === courseDescriptor);
+            if (mockCourse) {
+                const { data: dbCourse } = await supabase
+                    .from('courses')
+                    .select('id')
+                    .eq('code', mockCourse.code)
+                    .single();
+
+                if (dbCourse) {
+                    courseId = dbCourse.id;
+                } else {
+                    console.error(`Course code ${mockCourse.code} not found in DB`);
+                    return [];
+                }
             } else {
-                console.error(`Course code ${mockCourse.code} not found in DB`);
+                console.error(`Course descriptor ${courseDescriptor} unknown`);
                 return [];
             }
-        } else {
-            console.error(`Course descriptor ${courseDescriptor} unknown`);
+        }
+
+        // Fetch lessons
+        const { data: lessons, error } = await supabase
+            .from('lessons')
+            .select('*')
+            .eq('course_id', courseId)
+            .order('order_index', { ascending: true });
+
+        if (error) {
+            console.error("Fetch lessons error:", error);
             return [];
         }
-    }
 
-    // Fetch lessons
-    const { data: lessons, error } = await supabase
-        .from('lessons')
-        .select('*')
-        .eq('course_id', courseId)
-        .order('order_index', { ascending: true });
+        return lessons.map(l => ({
+            id: l.id,
+            title: l.title,
+            course_id: courseDescriptor, // Keep the ID the frontend used if possible, or l.course_id
+            video_url: l.video_url,
+            video_parts: l.video_parts || [],
+            pdf_url: l.pdf_url,
+            pdf_parts: l.pdf_parts || [],
+            quiz_id: l.quiz_id,
+            order_index: l.order_index
+        }));
+    },
+    ['course-content-v1'],
+    { revalidate: COURSE_CONTENT_REVALIDATE_SECONDS, tags: ['lessons'] }
+);
 
-    if (error) {
-        console.error("Fetch lessons error:", error);
-        return [];
-    }
-
-    return lessons.map(l => ({
-        id: l.id,
-        title: l.title,
-        course_id: courseDescriptor, // Keep the ID the frontend used if possible, or l.course_id
-        video_url: l.video_url,
-        video_parts: l.video_parts || [],
-        pdf_url: l.pdf_url,
-        pdf_parts: l.pdf_parts || [],
-        quiz_id: l.quiz_id,
-        order_index: l.order_index
-    }));
+export async function getCourseContent(courseDescriptor: string) {
+    return getCourseContentCached(courseDescriptor);
 }
 
-export async function getCourseProgress(courseCode: string): Promise<Record<string, { score: number; status: string }>> {
+export async function getCourseProgress(): Promise<Record<string, { score: number; status: string }>> {
     const session = await getSession();
     if (!session) return {};
 

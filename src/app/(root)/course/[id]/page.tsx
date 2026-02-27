@@ -5,8 +5,6 @@ import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import { Course } from '@/types';
 
-import { readSession } from '@/lib/auth/session-read';
-
 export default async function CoursePage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
     let course: Course | undefined = MOCK_COURSES.find(c => c.id === id);
@@ -42,7 +40,7 @@ export default async function CoursePage({ params }: { params: Promise<{ id: str
     // Server-side Parallel Fetch
     const [lessons, progress] = await Promise.all([
         getCourseContent(id),
-        getCourseProgress(course.code)
+        getCourseProgress()
     ]);
 
 

@@ -5,12 +5,47 @@ import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { submitQuizResult } from '@/app/actions/progress';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { CheckCircle2, XCircle, AlertCircle, ChevronRight, Trophy, RotateCcw, ArrowLeft, Loader2, Check, X } from 'lucide-react';
+import { CheckCircle2, AlertCircle, ChevronRight, Trophy, RotateCcw, ArrowLeft, Loader2, Check, X } from 'lucide-react';
 import { cn, getGrade } from '@/lib/utils';
 import Link from 'next/link';
-import { getQuiz } from '@/app/quiz/actions';
 import { MathText } from '@/components/MathText';
 import { useTranslations } from 'next-intl';
+import { examModeValue } from '@/lib/exam-mode';
+
+const QUIZ_CACHE_TTL_MS = examModeValue(
+    60 * 60 * 1000,
+    6 * 60 * 60 * 1000
+); // 1h normal, 6h exam mode
+
+function getQuizCacheKey(quizId: string): string {
+    return `quiz_data_v1_${quizId}`;
+}
+
+function readQuizCache(quizId: string): QuizData | null {
+    if (typeof window === 'undefined') return null;
+    try {
+        const raw = sessionStorage.getItem(getQuizCacheKey(quizId));
+        if (!raw) return null;
+        const parsed = JSON.parse(raw) as { ts?: number; data?: QuizData };
+        if (!parsed?.ts || !parsed?.data) return null;
+        if ((Date.now() - parsed.ts) > QUIZ_CACHE_TTL_MS) return null;
+        return parsed.data;
+    } catch {
+        return null;
+    }
+}
+
+function writeQuizCache(quizId: string, data: QuizData) {
+    if (typeof window === 'undefined') return;
+    try {
+        sessionStorage.setItem(
+            getQuizCacheKey(quizId),
+            JSON.stringify({ ts: Date.now(), data })
+        );
+    } catch {
+        // Ignore cache write failures
+    }
+}
 
 // Types for our Real Data
 interface Question {
@@ -53,12 +88,21 @@ export default function QuizPage() {
     useEffect(() => {
         const loadQuiz = async () => {
             try {
-                const data = await getQuiz(id);
-                if (!data) {
-                    setError(t('missionCorrupted'));
-                } else {
-                    setQuiz(data);
+                const cached = readQuizCache(id);
+                if (cached) {
+                    setQuiz(cached);
+                    return;
                 }
+
+                const response = await fetch(`/api/quiz/${id}`, { cache: 'force-cache' });
+                if (!response.ok) {
+                    setError(t('missionCorrupted'));
+                    return;
+                }
+
+                const data = await response.json();
+                setQuiz(data);
+                writeQuizCache(id, data);
             } catch (err) {
                 console.error(err);
                 setError(t('connectionFailed'));
@@ -67,7 +111,7 @@ export default function QuizPage() {
             }
         };
         loadQuiz();
-    }, [id]);
+    }, [id, t]);
 
     // Handle Score Submission
     useEffect(() => {
@@ -97,7 +141,7 @@ export default function QuizPage() {
             };
             calculateAndSubmit();
         }
-    }, [isCompleted, quiz, userAnswers]);
+    }, [isCompleted, quiz, quizResult, userAnswers]);
 
     // ---------------- RENDER LOADING ----------------
     if (loading) {

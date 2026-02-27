@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { SemesterToggle } from './SemesterToggle';
 import { UserNav } from './UserNav';
-import { BookOpen, Crown, Sparkles, BarChart3, Calculator, Trophy, Calendar, Shield } from 'lucide-react';
-import { getSession } from '@/app/login/actions';
+import { BookOpen, Sparkles, BarChart3, Calculator, Trophy, Calendar, Shield } from 'lucide-react';
+import { readSession } from '@/lib/auth/session-read';
 import { MobileMenu } from './MobileMenu';
 import { getHeaderStats } from '@/lib/gamification';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
@@ -10,7 +10,7 @@ import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { getTranslations } from 'next-intl/server';
 
 export async function Header() {
-    const session = await getSession();
+    const session = await readSession();
     const isAdmin = session?.role === 'super_admin' || session?.role === 'admin';
     const t = await getTranslations('nav');
 

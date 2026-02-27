@@ -1,10 +1,13 @@
 'use server';
 
 import { createServiceRoleClient } from '@/lib/supabase/server';
-import { getSession } from '@/app/login/actions';
-import { MOCK_COURSES } from '@/lib/data/mocks';
+import { readSession } from '@/lib/auth/session-read';
 
 import { unstable_cache, updateTag } from 'next/cache';
+import { examModeValue } from '@/lib/exam-mode';
+
+const LESSONS_CACHE_SECONDS = examModeValue(300, 900); // 5m normal, 15m exam mode
+const COURSE_PROGRESS_CACHE_SECONDS = examModeValue(120, 600); // 2m normal, 10m exam mode
 
 // Cache lessons list — rarely changes, avoids re-fetching on every homepage visit
 const getCachedLessons = unstable_cache(
@@ -16,30 +19,37 @@ const getCachedLessons = unstable_cache(
         return data ?? [];
     },
     ['all-lessons'],
-    { revalidate: 300, tags: ['lessons'] } // 5 min cache, revalidated on lesson CRUD
+    { revalidate: LESSONS_CACHE_SECONDS, tags: ['lessons'] }
+);
+
+const getCachedCompletedProgress = unstable_cache(
+    async (username: string) => {
+        const supabase = await createServiceRoleClient();
+        const { data, error } = await supabase
+            .from('user_progress')
+            .select('content_id')
+            .eq('username', username)
+            .eq('status', 'completed');
+
+        if (error) {
+            console.error('Error fetching cached completed progress:', error);
+            return [];
+        }
+        return data ?? [];
+    },
+    ['completed-progress'],
+    { revalidate: COURSE_PROGRESS_CACHE_SECONDS, tags: ['course-progress'] }
 );
 
 export async function getCourseProgress(): Promise<Record<string, number>> {
-    const session = await getSession();
+    const session = await readSession();
     if (!session?.username) return {};
 
-    const supabase = await createServiceRoleClient();
-
     // Parallel: fetch user progress + cached lessons list
-    const [progressResult, lessons] = await Promise.all([
-        supabase
-            .from('user_progress')
-            .select('content_id')
-            .eq('username', session.username)
-            .eq('status', 'completed'),
+    const [progressData, lessons] = await Promise.all([
+        getCachedCompletedProgress(session.username),
         getCachedLessons(),
     ]);
-
-    const progressData = progressResult.data;
-    if (progressResult.error || !progressData) {
-        console.error('Error fetching progress:', progressResult.error);
-        return {};
-    }
 
     if (!lessons.length) return {};
 
@@ -67,7 +77,7 @@ export async function getCourseProgress(): Promise<Record<string, number>> {
 }
 
 export async function markContentAsCompleted(contentId: string, contentType: 'lesson' | 'quiz', xp: number = 0) {
-    const session = await getSession();
+    const session = await readSession();
     if (!session?.username) return { error: 'Not authenticated' };
 
     const supabase = await createServiceRoleClient();
@@ -121,13 +131,14 @@ export async function markContentAsCompleted(contentId: string, contentType: 'le
         }
     }
 
+    updateTag('course-progress');
     return { message: 'Completed', xpEarned: xp };
 }
 
 import { getGrade } from '@/lib/utils';
 
 export async function submitQuizResult(quizId: string, percentage: number) {
-    const session = await getSession();
+    const session = await readSession();
     if (!session?.username) return { error: 'Not authenticated' };
 
     const supabase = await createServiceRoleClient();
@@ -157,6 +168,7 @@ export async function submitQuizResult(quizId: string, percentage: number) {
                 .from('user_progress')
                 .update({ score: percentage })
                 .eq('id', existing.id);
+            updateTag('course-progress');
 
             return { success: true, xpEarned: 0, message: `New High Score! Grade: ${grade} (${label})` };
         }
@@ -189,6 +201,8 @@ export async function submitQuizResult(quizId: string, percentage: number) {
             p_xp: xpToAward,
         });
     }
+
+    updateTag('course-progress');
 
     // Revalidate cached data that depends on XP
     if (xpToAward > 0) {

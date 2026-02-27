@@ -3,11 +3,11 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Medal, Crown } from 'lucide-react';
+import { Trophy, Crown } from 'lucide-react';
 import { unstable_cache } from 'next/cache';
 import { getTranslations } from 'next-intl/server';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 const getLeaderboard = unstable_cache(
     async () => {
@@ -46,13 +46,6 @@ const getLeaderboard = unstable_cache(
     ['leaderboard'],
     { revalidate: 60, tags: ['leaderboard'] }
 );
-
-function RankBadge({ position }: { position: number }) {
-    if (position === 1) return <Crown className="w-6 h-6 text-yellow-500 animate-pulse" />;
-    if (position === 2) return <Medal className="w-6 h-6 text-slate-300" />;
-    if (position === 3) return <Medal className="w-6 h-6 text-amber-700" />;
-    return <span className="font-mono text-zinc-500 text-lg w-6 text-center">{position}</span>;
-}
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';

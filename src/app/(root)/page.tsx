@@ -6,17 +6,49 @@ import { CourseGrid } from '@/components/courses/CourseGrid';
 import { MOCK_COURSES } from '@/lib/data/mocks';
 import { getCourseProgress } from '@/app/actions/progress';
 import { useTranslations } from 'next-intl';
+import { examModeValue } from '@/lib/exam-mode';
+
+const DASHBOARD_PROGRESS_CACHE_TTL_MS = examModeValue(
+    15 * 60 * 1000,
+    60 * 60 * 1000
+); // 15m normal, 60m exam mode
+let dashboardProgressMemoryCache: { ts: number; data: Record<string, number> } | null = null;
+
+function readCachedDashboardProgress(): Record<string, number> | null {
+    if (!dashboardProgressMemoryCache) {
+        return null;
+    }
+    if ((Date.now() - dashboardProgressMemoryCache.ts) > DASHBOARD_PROGRESS_CACHE_TTL_MS) {
+        dashboardProgressMemoryCache = null;
+        return null;
+    }
+    return dashboardProgressMemoryCache.data;
+}
+
+function writeCachedDashboardProgress(data: Record<string, number>) {
+    dashboardProgressMemoryCache = { ts: Date.now(), data };
+}
 
 export default function Dashboard() {
-    const [progress, setProgress] = useState<Record<string, number>>({});
+    const [progress, setProgress] = useState<Record<string, number>>(
+        () => readCachedDashboardProgress() || {}
+    );
     const [, startTransition] = useTransition();
     const t = useTranslations('home');
     const tc = useTranslations('common');
 
     useEffect(() => {
+        const cached = readCachedDashboardProgress();
+        if (cached) {
+            return;
+        }
+
         // Load progress in background without blocking UI
         startTransition(() => {
-            getCourseProgress().then(setProgress);
+            getCourseProgress().then((data) => {
+                setProgress(data);
+                writeCachedDashboardProgress(data);
+            });
         });
     }, []);
 

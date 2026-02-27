@@ -1,11 +1,29 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Clock, MapPin, BookOpen, Bell, Timer, AlertCircle } from 'lucide-react';
-import { getCurrentClassWithCountdown, type NextClassInfo } from '@/app/schedule/actions';
+import { Clock, MapPin, Timer } from 'lucide-react';
 
 interface UpcomingClassCardProps {
-    sectionId: string;
+    scheduleByDay: Record<string, ScheduleEntry[]>;
+}
+
+interface ScheduleEntry {
+    section_id: string;
+    day_of_week: string;
+    slot_order: number;
+    subject: string;
+    class_type: string;
+    room?: string;
+    time_start?: string;
+    time_end?: string;
+}
+
+interface NextClassInfo {
+    status: 'current' | 'next' | 'none';
+    currentClass: ScheduleEntry | null;
+    nextClass: ScheduleEntry | null;
+    minutesUntil: number;
+    todaySchedule: ScheduleEntry[];
 }
 
 function formatTimeRemaining(minutes: number): string {
@@ -41,44 +59,80 @@ function getClassTypeIcon(type: string) {
     }
 }
 
-export function UpcomingClassCard({ sectionId }: UpcomingClassCardProps) {
+const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+function parseHour(value?: string): number | null {
+    if (!value) return null;
+    const hour = Number.parseInt(value.split(':')[0], 10);
+    return Number.isNaN(hour) ? null : hour;
+}
+
+function getClassInfoFromSchedule(scheduleByDay: Record<string, ScheduleEntry[]>, now: Date): NextClassInfo {
+    const today = DAYS[now.getDay()];
+    const todaySchedule = [...(scheduleByDay[today] || [])].sort((a, b) => a.slot_order - b.slot_order);
+    const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
+
+    for (let i = 0; i < todaySchedule.length; i++) {
+        const entry = todaySchedule[i];
+        const startHour = parseHour(entry.time_start);
+        const endHour = parseHour(entry.time_end);
+        if (startHour === null || endHour === null) continue;
+
+        const startMinutes = startHour * 60;
+        const endMinutes = endHour * 60;
+
+        if (currentTotalMinutes >= startMinutes && currentTotalMinutes < endMinutes) {
+            const nextClass = i + 1 < todaySchedule.length ? todaySchedule[i + 1] : null;
+            const nextStartHour = parseHour(nextClass?.time_start);
+            const minutesUntil = nextClass && nextStartHour !== null
+                ? Math.max(0, (nextStartHour * 60) - currentTotalMinutes)
+                : 0;
+            return {
+                status: 'current',
+                currentClass: entry,
+                nextClass,
+                minutesUntil,
+                todaySchedule,
+            };
+        }
+
+        if (currentTotalMinutes < startMinutes) {
+            return {
+                status: 'next',
+                currentClass: null,
+                nextClass: entry,
+                minutesUntil: startMinutes - currentTotalMinutes,
+                todaySchedule,
+            };
+        }
+    }
+
+    return {
+        status: 'none',
+        currentClass: null,
+        nextClass: null,
+        minutesUntil: 0,
+        todaySchedule,
+    };
+}
+
+export function UpcomingClassCard({ scheduleByDay }: UpcomingClassCardProps) {
     const [classInfo, setClassInfo] = useState<NextClassInfo | null>(null);
     const [loading, setLoading] = useState(true);
     const [timeRemaining, setTimeRemaining] = useState<number>(0);
 
-    // Fetch class info
     useEffect(() => {
-        async function fetchClass() {
-            try {
-                const info = await getCurrentClassWithCountdown(sectionId);
-                setClassInfo(info);
-                setTimeRemaining(info?.minutesUntil || 0);
-            } catch (error) {
-                console.error('Error fetching class info:', error);
-            }
+        function updateClassInfo() {
+            const info = getClassInfoFromSchedule(scheduleByDay, new Date());
+            setClassInfo(info);
+            setTimeRemaining(info.minutesUntil);
             setLoading(false);
         }
 
-        fetchClass();
-        
-        // Refresh every minute
-        const interval = setInterval(fetchClass, 60000);
+        updateClassInfo();
+        const interval = setInterval(updateClassInfo, 1000);
         return () => clearInterval(interval);
-    }, [sectionId]);
-
-    // Countdown timer (updates every second when close)
-    useEffect(() => {
-        if (!classInfo || classInfo.status === 'none') return;
-        
-        const interval = setInterval(() => {
-            setTimeRemaining(prev => {
-                if (prev <= 0) return 0;
-                return prev - 1/60; // Decrement by 1 second
-            });
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, [classInfo]);
+    }, [scheduleByDay]);
 
     if (loading) {
         return (
@@ -101,7 +155,7 @@ export function UpcomingClassCard({ sectionId }: UpcomingClassCardProps) {
         );
     }
 
-    const { status, currentClass, nextClass, minutesUntil } = classInfo;
+    const { status, currentClass, nextClass } = classInfo;
     const displayClass = status === 'current' ? currentClass : nextClass;
     const urgencyColor = getUrgencyColor(Math.floor(timeRemaining));
     const isUrgent = timeRemaining <= 30 && timeRemaining > 0;
@@ -189,28 +243,20 @@ export function UpcomingClassCard({ sectionId }: UpcomingClassCardProps) {
 }
 
 // Compact version for header/sidebar
-export function UpcomingClassBadge({ sectionId }: UpcomingClassCardProps) {
+export function UpcomingClassBadge({ scheduleByDay }: UpcomingClassCardProps) {
     const [classInfo, setClassInfo] = useState<NextClassInfo | null>(null);
     const [timeRemaining, setTimeRemaining] = useState<number>(0);
 
     useEffect(() => {
-        async function fetchClass() {
-            const info = await getCurrentClassWithCountdown(sectionId);
+        function updateClassInfo() {
+            const info = getClassInfoFromSchedule(scheduleByDay, new Date());
             setClassInfo(info);
-            setTimeRemaining(info?.minutesUntil || 0);
+            setTimeRemaining(info.minutesUntil);
         }
-        fetchClass();
-        const interval = setInterval(fetchClass, 60000);
+        updateClassInfo();
+        const interval = setInterval(updateClassInfo, 1000);
         return () => clearInterval(interval);
-    }, [sectionId]);
-
-    useEffect(() => {
-        if (!classInfo || classInfo.status === 'none') return;
-        const interval = setInterval(() => {
-            setTimeRemaining(prev => Math.max(0, prev - 1/60));
-        }, 1000);
-        return () => clearInterval(interval);
-    }, [classInfo]);
+    }, [scheduleByDay]);
 
     if (!classInfo || classInfo.status === 'none') return null;
 

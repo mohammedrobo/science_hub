@@ -1,6 +1,6 @@
-import { getSession } from '@/app/login/actions';
-import { getUserStats } from '@/lib/gamification';
-import { User, LogOut, Trophy, Shield } from 'lucide-react';
+import { readSession } from '@/lib/auth/session-read';
+import { getHeaderStats } from '@/lib/gamification';
+import { User, Trophy, Shield } from 'lucide-react';
 import Link from 'next/link';
 import {
     DropdownMenu,
@@ -36,17 +36,17 @@ function getRankColor(rank: string): string {
 }
 
 export async function UserNav() {
-    const session = await getSession();
+    const session = await readSession();
     const t = await getTranslations('nav');
 
     if (!session) {
         return null;
     }
 
-    const stats = await getUserStats(session.username);
-    const displayName = stats?.fullName || session.name || session.username;
-    const rank = stats?.currentRank || 'E';
-    const xp = stats?.totalXp || 0;
+    const stats = await getHeaderStats(session.username);
+    const displayName = stats.fullName || session.name || session.username;
+    const rank = stats.currentRank || 'E';
+    const xp = stats.totalXp || 0;
 
     return (
         <DropdownMenu>

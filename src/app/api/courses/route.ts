@@ -2,7 +2,11 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { MOCK_COURSES } from '@/lib/data/mocks';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
+
+const CACHE_HEADERS = {
+    'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+};
 
 // GET /api/courses
 export async function GET(request: Request) {
@@ -25,7 +29,7 @@ export async function GET(request: Request) {
             return fetchMockCourses(semester);
         }
 
-        return NextResponse.json(data);
+        return NextResponse.json(data, { headers: CACHE_HEADERS });
     } catch (error) {
         console.error('API Error:', error);
         // Fallback to mock data if unexpected error
@@ -44,5 +48,5 @@ function fetchMockCourses(semester: string | null) {
     // Create a delay to simulate network
     // await new Promise(resolve => setTimeout(resolve, 500));
 
-    return NextResponse.json(courses);
+    return NextResponse.json(courses, { headers: CACHE_HEADERS });
 }

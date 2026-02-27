@@ -1052,6 +1052,7 @@ export async function updateLesson(
 
         revalidatePath('/admin/lessons');
         revalidatePath('/course');
+        updateTag('lessons');
         return { success: true, message: 'Lesson updated successfully' };
     } catch (e: any) {
         console.error('Update lesson crash:', e);
