@@ -32,6 +32,14 @@ export function UserActions({ username, fullName, currentRole, isSuperAdmin }: U
         setDialogOpen(true);
     };
 
+    const showActionError = (fallback: string, error: unknown) => {
+        if (error instanceof Error && error.message) {
+            toast.error(error.message);
+            return;
+        }
+        toast.error(fallback);
+    };
+
     return (
         <div className="flex items-center justify-end gap-1">
             {/* Primary inline buttons — always visible */}
@@ -70,10 +78,14 @@ export function UserActions({ username, fullName, currentRole, isSuperAdmin }: U
                     className="h-8 w-8 text-zinc-500 hover:text-red-600"
                     title="Delete User"
                     onClick={async () => {
-                        if (!confirm(`Delete ${fullName} (${username})? This cannot be undone.`)) return;
-                        const result = await deleteUser(username);
-                        if (result && 'error' in result) toast.error(result.error);
-                        else toast.success(`User ${username} deleted`);
+                        try {
+                            if (!confirm(`Delete ${fullName} (${username})? This cannot be undone.`)) return;
+                            const result = await deleteUser(username);
+                            if (result && 'error' in result) toast.error(result.error);
+                            else toast.success(`User ${username} deleted`);
+                        } catch (error) {
+                            showActionError('Failed to delete user', error);
+                        }
                     }}
                 >
                     <Trash2 className="w-4 h-4" />
@@ -96,17 +108,21 @@ export function UserActions({ username, fullName, currentRole, isSuperAdmin }: U
                     <DropdownMenuContent align="end" className="w-52 bg-zinc-900 border-zinc-700">
                         <DropdownMenuItem
                             className="gap-2 text-zinc-300 focus:text-white focus:bg-zinc-800 cursor-pointer"
-                            onClick={() => setEditNameOpen(true)}
+                            onSelect={() => setEditNameOpen(true)}
                         >
                             <Pencil className="w-4 h-4 text-blue-400" />
                             Edit Name
                         </DropdownMenuItem>
                         <DropdownMenuItem
                             className="gap-2 text-zinc-300 focus:text-white focus:bg-zinc-800 cursor-pointer"
-                            onClick={async () => {
-                                const result = await removeProfilePicture(username);
-                                if ('error' in result) toast.error(result.error);
-                                else toast.success('Profile picture removed');
+                            onSelect={async () => {
+                                try {
+                                    const result = await removeProfilePicture(username);
+                                    if ('error' in result) toast.error(result.error);
+                                    else toast.success('Profile picture removed');
+                                } catch (error) {
+                                    showActionError('Failed to remove picture', error);
+                                }
                             }}
                         >
                             <ImageOff className="w-4 h-4 text-yellow-500" />
@@ -117,11 +133,15 @@ export function UserActions({ username, fullName, currentRole, isSuperAdmin }: U
 
                         <DropdownMenuItem
                             className="gap-2 text-zinc-300 focus:text-white focus:bg-zinc-800 cursor-pointer"
-                            onClick={async () => {
-                                if (!confirm(`Reset password for ${fullName} (${username})? They will be forced to change it on next login.`)) return;
-                                const result = await resetUserPassword(username);
-                                if ('error' in result) toast.error(result.error);
-                                else toast.success('Password reset — user must change on next login');
+                            onSelect={async () => {
+                                try {
+                                    if (!confirm(`Reset password for ${fullName} (${username})? They will be forced to change it on next login.`)) return;
+                                    const result = await resetUserPassword(username);
+                                    if ('error' in result) toast.error(result.error);
+                                    else toast.success('Password reset — user must change on next login');
+                                } catch (error) {
+                                    showActionError('Failed to reset password', error);
+                                }
                             }}
                         >
                             <KeyRound className="w-4 h-4 text-cyan-500" />
@@ -129,11 +149,15 @@ export function UserActions({ username, fullName, currentRole, isSuperAdmin }: U
                         </DropdownMenuItem>
                         <DropdownMenuItem
                             className="gap-2 text-zinc-300 focus:text-white focus:bg-zinc-800 cursor-pointer"
-                            onClick={async () => {
-                                if (!confirm(`Reset all progress for ${fullName} (${username})? This clears XP, rank, quiz scores and cannot be undone.`)) return;
-                                const result = await resetUserProgress(username);
-                                if ('error' in result) toast.error(result.error);
-                                else toast.success('Progress reset');
+                            onSelect={async () => {
+                                try {
+                                    if (!confirm(`Reset all progress for ${fullName} (${username})? This clears XP, rank, quiz scores and cannot be undone.`)) return;
+                                    const result = await resetUserProgress(username);
+                                    if ('error' in result) toast.error(result.error);
+                                    else toast.success('Progress reset');
+                                } catch (error) {
+                                    showActionError('Failed to reset progress', error);
+                                }
                             }}
                         >
                             <RotateCcw className="w-4 h-4 text-orange-500" />
@@ -144,11 +168,15 @@ export function UserActions({ username, fullName, currentRole, isSuperAdmin }: U
 
                         <DropdownMenuItem
                             className="gap-2 text-red-400 focus:text-red-300 focus:bg-red-950/50 cursor-pointer"
-                            onClick={async () => {
-                                if (!confirm(`Full reset ${fullName} (${username})? This resets password, progress, onboarding and cannot be undone.`)) return;
-                                const result = await resetFullAccount(username);
-                                if ('error' in result) toast.error(result.error);
-                                else toast.success('Account fully reset');
+                            onSelect={async () => {
+                                try {
+                                    if (!confirm(`Full reset ${fullName} (${username})? This resets password, progress, onboarding and cannot be undone.`)) return;
+                                    const result = await resetFullAccount(username);
+                                    if ('error' in result) toast.error(result.error);
+                                    else toast.success('Account fully reset');
+                                } catch (error) {
+                                    showActionError('Failed to fully reset account', error);
+                                }
                             }}
                         >
                             <ShieldAlert className="w-4 h-4" />

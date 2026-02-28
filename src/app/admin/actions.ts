@@ -3,6 +3,9 @@
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { getSession } from '@/lib/auth/session';
 import { revalidatePath, updateTag } from 'next/cache';
+import { hashPassword } from '@/lib/auth/password';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 // Super admin = full power (old admin). New admin = limited admin.
 async function ensureSuperAdmin() {
@@ -36,6 +39,71 @@ async function ensureLeaderOrAdmin() {
 // ============ CMS OPERATIONS ============
 
 import { MOCK_COURSES } from '@/lib/data/mocks';
+
+const DEFAULT_RESET_PASSWORD = 'student123';
+
+interface AccessKeyRecord {
+    username?: string;
+    password?: string;
+}
+
+const ACCESS_KEYS_CANDIDATE_PATHS = [
+    path.join(process.cwd(), 'secure_data', 'access_keys.json'),
+    path.join(process.cwd(), 'secure_data', 'acces_keys.json'),
+    '/home/satoru/projects/science_hub/secure_data/access_keys.json',
+    '/home/satoru/projects/science_hub/secure_data/acces_keys.json',
+    path.join(process.cwd(), '..', 'secure_data', 'access_keys.json'),
+    path.join(process.cwd(), '..', 'secure_data', 'acces_keys.json'),
+];
+
+const normalizeUsername = (value: string) => (
+    value ? value.trim().toLowerCase().normalize('NFKC') : ''
+);
+
+async function loadAccessKeyRecords(): Promise<AccessKeyRecord[]> {
+    for (const candidatePath of Array.from(new Set(ACCESS_KEYS_CANDIDATE_PATHS))) {
+        try {
+            const raw = await fs.readFile(candidatePath, 'utf-8');
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                return parsed as AccessKeyRecord[];
+            }
+            console.error(`[AccessKeys] Expected an array in ${candidatePath}`);
+        } catch (error: unknown) {
+            const errorCode = (
+                typeof error === 'object' &&
+                error !== null &&
+                'code' in error &&
+                typeof (error as { code?: unknown }).code === 'string'
+            ) ? (error as { code: string }).code : undefined;
+
+            if (errorCode !== 'ENOENT') {
+                console.error(`[AccessKeys] Failed reading ${candidatePath}:`, error);
+            }
+        }
+    }
+
+    return [];
+}
+
+async function loadAccessPasswordMap(): Promise<Record<string, string>> {
+    const keys = await loadAccessKeyRecords();
+    const passwordMap: Record<string, string> = {};
+
+    for (const key of keys) {
+        const normalized = normalizeUsername(key.username || '');
+        const password = typeof key.password === 'string' ? key.password.trim() : '';
+        if (normalized && password) {
+            passwordMap[normalized] = password;
+        }
+    }
+
+    return passwordMap;
+}
+
+function getOriginalPasswordForUsername(username: string, passwordMap: Record<string, string>): string {
+    return passwordMap[normalizeUsername(username)] || DEFAULT_RESET_PASSWORD;
+}
 
 // Helper to extract storage path from Supabase public URL
 function extractStoragePath(url: string, bucket: string = 'pdfs'): string | null {
@@ -364,77 +432,51 @@ export async function removeProfilePicture(username: string) {
  * or falls back to 'student123'. Forces password change on next login.
  */
 export async function resetUserPassword(username: string) {
-    const session = await ensureAnyAdmin();
-    const supabase = await createServiceRoleClient();
-
-    if (session.role !== 'super_admin') {
-        const { data: target } = await supabase
-            .from('allowed_users')
-            .select('access_role')
-            .eq('username', username)
-            .single();
-        if (target && (target.access_role === 'admin' || target.access_role === 'super_admin')) {
-            return { error: 'Only Super Admins can modify admin accounts' };
-        }
-    }
-
-    // 1. Lookup original password from access_keys.json
-    let originalPassword = 'student123';
     try {
-        const fs = await import('fs/promises');
-        const path = await import('path');
-        const pathsToTry = [
-            path.join(process.cwd(), 'secure_data', 'access_keys.json'),
-            '/home/satoru/projects/science_hub/secure_data/access_keys.json',
-        ];
+        const session = await ensureAnyAdmin();
+        const supabase = await createServiceRoleClient();
 
-        let keysData = '';
-        for (const p of pathsToTry) {
-            try {
-                keysData = await fs.readFile(p, 'utf-8');
-                break;
-            } catch { }
-        }
-
-        if (keysData) {
-            const keys = JSON.parse(keysData);
-            const normalize = (s: string) => s ? s.trim().toLowerCase().normalize('NFKC') : '';
-            const userKey = keys.find((k: any) => normalize(k.username) === normalize(username));
-            if (userKey?.password) {
-                originalPassword = userKey.password.trim();
+        if (session.role !== 'super_admin') {
+            const { data: target } = await supabase
+                .from('allowed_users')
+                .select('access_role')
+                .eq('username', username)
+                .single();
+            if (target && (target.access_role === 'admin' || target.access_role === 'super_admin')) {
+                return { error: 'Only Super Admins can modify admin accounts' };
             }
         }
-    } catch (e) {
-        console.error('[ResetPassword] Error reading access_keys:', e);
+
+        const passwordMap = await loadAccessPasswordMap();
+        const originalPassword = getOriginalPasswordForUsername(username, passwordMap);
+        const hashedPassword = await hashPassword(originalPassword);
+
+        const { error } = await supabase
+            .from('allowed_users')
+            .update({
+                password: hashedPassword,
+                is_first_login: true,
+            })
+            .eq('username', username);
+
+        if (error) {
+            console.error('Reset Password Error:', error);
+            return { error: 'Failed to reset password' };
+        }
+
+        revalidatePath('/admin');
+        return { success: true };
+    } catch (error: unknown) {
+        console.error('Reset Password Crash:', error);
+        return { error: error instanceof Error ? error.message : 'Failed to reset password' };
     }
-
-    // 2. Hash and update
-    const { hashPassword } = await import('@/lib/auth/password');
-    const hashedPassword = await hashPassword(originalPassword);
-
-    const { error } = await supabase
-        .from('allowed_users')
-        .update({
-            password: hashedPassword,
-            is_first_login: true,
-        })
-        .eq('username', username);
-
-    if (error) {
-        console.error('Reset Password Error:', error);
-        return { error: 'Failed to reset password' };
-    }
-
-    revalidatePath('/admin');
-    return { success: true };
 }
 
 export async function createUser(data: { username: string; full_name: string; group: string; section: string }) {
     await ensureAnyAdmin();
     const supabase = await createServiceRoleClient();
 
-    const { hashPassword } = await import('@/lib/auth/password');
-    const hashedPassword = await hashPassword('student123');
+    const hashedPassword = await hashPassword(DEFAULT_RESET_PASSWORD);
 
     const { error } = await supabase
         .from('allowed_users')
@@ -466,154 +508,103 @@ export async function createUser(data: { username: string; full_name: string; gr
  * - Clears onboarding status
  */
 export async function resetFullAccount(username: string) {
-    const session = await ensureAnyAdmin();
-    const supabase = await createServiceRoleClient();
+    try {
+        const session = await ensureAnyAdmin();
+        const supabase = await createServiceRoleClient();
 
-    if (session.role !== 'super_admin') {
-        const { data: target } = await supabase
+        if (session.role !== 'super_admin') {
+            const { data: target } = await supabase
+                .from('allowed_users')
+                .select('access_role')
+                .eq('username', username)
+                .single();
+            if (target && (target.access_role === 'admin' || target.access_role === 'super_admin')) {
+                return { error: 'Only Super Admins can modify admin accounts' };
+            }
+        }
+
+        const passwordMap = await loadAccessPasswordMap();
+        const originalPassword = getOriginalPasswordForUsername(username, passwordMap);
+        const hashedOriginalPassword = await hashPassword(originalPassword);
+
+        const { data: currentUser } = await supabase
             .from('allowed_users')
             .select('access_role')
             .eq('username', username)
             .single();
-        if (target && (target.access_role === 'admin' || target.access_role === 'super_admin')) {
-            return { error: 'Only Super Admins can modify admin accounts' };
-        }
-    }
+        const shouldKeepRole = currentUser?.access_role && ['admin', 'super_admin'].includes(currentUser.access_role);
+        const newRole = shouldKeepRole ? currentUser.access_role : 'student';
 
-    // 1. Lookup original password from access_keys.json
-    let originalPassword = ''; // No default fallback yet
-    let foundInFile = false;
+        const { error: userError } = await supabase
+            .from('allowed_users')
+            .update({
+                password: hashedOriginalPassword,
+                is_first_login: true,
+                has_onboarded: false,
+                has_leader_onboarded: false,
+                nickname: null,
+                access_role: newRole
+            })
+            .eq('username', username);
 
-    try {
-        const fs = await import('fs/promises');
-        const path = await import('path');
-        // Try multiple path resolutions
-        const pathsToTry = [
-            path.join(process.cwd(), 'secure_data', 'access_keys.json'),
-            '/home/satoru/projects/science_hub/secure_data/access_keys.json', // Hardcoded absolute path for reliability
-            path.join(process.cwd(), '..', 'secure_data', 'access_keys.json') // In case of monorepo/deployment shifts
-        ];
-
-        let keysData = '';
-        let loadedPath = '';
-
-        for (const p of pathsToTry) {
-            try {
-                keysData = await fs.readFile(p, 'utf-8');
-                loadedPath = p;
-                break;
-            } catch { }
+        if (userError) {
+            console.error('Reset user error:', userError);
+            return { error: 'Failed to reset user account' };
         }
 
-        if (!keysData) {
-            throw new Error('Access keys file not found in secure_data');
+        const { error: progressError } = await supabase
+            .from('user_progress')
+            .delete()
+            .eq('username', username);
+
+        if (progressError) {
+            console.error('Reset progress error:', progressError);
         }
 
-        const keys = JSON.parse(keysData);
+        const { error: statsError } = await supabase
+            .from('user_stats')
+            .update({
+                total_xp: 0,
+                current_rank: 'E',
+                gpa_term_1: null,
+                profile_picture_url: null
+            })
+            .eq('username', username);
 
-        // Normalize string for robust matching (handle weird hyphens/spaces)
-        const normalize = (s: string) => s ? s.trim().toLowerCase().normalize('NFKC') : '';
-        const targetUsername = normalize(username);
-
-        const userKey = keys.find((k: any) => normalize(k.username) === targetUsername);
-
-        if (userKey?.password) {
-            originalPassword = userKey.password.trim();
-            foundInFile = true;
-        } else {
-            originalPassword = 'student123';
-            foundInFile = false;
+        if (statsError) {
+            console.error('Reset stats error:', statsError);
         }
-    } catch (e: any) {
-        console.error('[Reset] File Error:', e);
-        // Fallback on file error too
-        originalPassword = 'student123';
-        foundInFile = false;
+
+        const { error: msgError } = await supabase
+            .from('guild_messages')
+            .delete()
+            .eq('sender_username', username);
+
+        if (msgError) console.error('Reset guild messages error:', msgError);
+
+        const { error: questError } = await supabase
+            .from('guild_quests')
+            .delete()
+            .eq('created_by', username);
+
+        if (questError) console.error('Reset guild quests error:', questError);
+
+        const { error: unassignError } = await supabase
+            .from('guild_quests')
+            .update({ assigned_to: null, status: 'pending' })
+            .eq('assigned_to', username);
+
+        if (unassignError) console.error('Reset guild assignments error:', unassignError);
+
+        revalidatePath('/admin');
+        revalidatePath('/progress');
+        revalidatePath('/');
+
+        return { success: true, message: `Account ${username} has been reset.` };
+    } catch (error: unknown) {
+        console.error('Reset Full Account Crash:', error);
+        return { error: error instanceof Error ? error.message : 'Failed to reset account' };
     }
-
-    // Hash the password before storing (NEVER store plaintext)
-    const { hashPassword } = await import('@/lib/auth/password');
-    const hashedOriginalPassword = await hashPassword(originalPassword);
-
-    // 2. Reset user flags and password
-
-    // Check current role to preserve Admin/Super Admin status if needed
-    const { data: currentUser } = await supabase.from('allowed_users').select('access_role').eq('username', username).single();
-    const shouldKeepRole = currentUser?.access_role && ['admin', 'super_admin'].includes(currentUser.access_role);
-    const newRole = shouldKeepRole ? currentUser.access_role : 'student';
-
-    const { error: userError } = await supabase
-        .from('allowed_users')
-        .update({
-            password: hashedOriginalPassword,
-            is_first_login: true,
-            has_onboarded: false,
-            has_leader_onboarded: false,
-            nickname: null,
-            access_role: newRole
-        })
-        .eq('username', username);
-
-    if (userError) {
-        console.error('Reset user error:', userError);
-        return { error: 'Failed to reset user account' };
-    }
-
-    // 3. Delete all progress
-    const { error: progressError } = await supabase
-        .from('user_progress')
-        .delete()
-        .eq('username', username);
-
-    if (progressError) {
-        console.error('Reset progress error:', progressError);
-    }
-
-    // 4. Reset stats completely
-    const { error: statsError } = await supabase
-        .from('user_stats')
-        .update({
-            total_xp: 0,
-            current_rank: 'E',
-            gpa_term_1: null,
-            profile_picture_url: null
-        })
-        .eq('username', username);
-
-    if (statsError) {
-        console.error('Reset stats error:', statsError);
-    }
-
-    // 5. Clean up Guild Data (Leader Dashboard Cleanup)
-    // Delete messages sent by user
-    const { error: msgError } = await supabase
-        .from('guild_messages')
-        .delete()
-        .eq('sender_username', username);
-
-    if (msgError) console.error('Reset guild messages error:', msgError);
-
-    // Delete quests created by user
-    const { error: questError } = await supabase
-        .from('guild_quests')
-        .delete()
-        .eq('created_by', username);
-
-    if (questError) console.error('Reset guild quests error:', questError);
-
-    // Unassign quests assigned to user
-    const { error: unassignError } = await supabase
-        .from('guild_quests')
-        .update({ assigned_to: null, status: 'pending' }) // Reset status to pending if unassigned? strictly unassigning is safer.
-        .eq('assigned_to', username);
-
-    if (unassignError) console.error('Reset guild assignments error:', unassignError);
-
-    revalidatePath('/admin');
-    revalidatePath('/progress');
-    revalidatePath('/');
-
-    return { success: true, message: `Account ${username} has been reset.` };
 }
 
 
@@ -625,105 +616,78 @@ export async function resetFullAccount(username: string) {
  * - Preserves admin/super_admin roles
  */
 export async function resetAllAccounts() {
-    await ensureSuperAdmin();
-    const supabase = await createServiceRoleClient();
-
-    // 1. Load original passwords from access_keys.json
-    let keysMap: Record<string, string> = {};
     try {
-        const fs = await import('fs/promises');
-        const path = await import('path');
-        const pathsToTry = [
-            path.join(process.cwd(), 'secure_data', 'access_keys.json'),
-            '/home/satoru/projects/science_hub/secure_data/access_keys.json',
-        ];
-        let keysData = '';
-        for (const p of pathsToTry) {
-            try { keysData = await fs.readFile(p, 'utf-8'); break; } catch { }
+        await ensureSuperAdmin();
+        const supabase = await createServiceRoleClient();
+        const keysMap = await loadAccessPasswordMap();
+
+        const { data: allUsers, error: fetchError } = await supabase
+            .from('allowed_users')
+            .select('username, access_role');
+
+        if (fetchError || !allUsers) {
+            return { error: 'Failed to fetch users' };
         }
-        if (keysData) {
-            const keys = JSON.parse(keysData);
-            const normalize = (s: string) => s ? s.trim().toLowerCase().normalize('NFKC') : '';
-            for (const k of keys) {
-                if (k.username && k.password) {
-                    keysMap[normalize(k.username)] = k.password.trim();
+
+        let resetCount = 0;
+        let errorCount = 0;
+
+        for (const user of allUsers) {
+            try {
+                const originalPassword = getOriginalPasswordForUsername(user.username, keysMap);
+                const hashedPassword = await hashPassword(originalPassword);
+
+                const keepRole = ['admin', 'super_admin'].includes(user.access_role);
+                const newRole = keepRole ? user.access_role : 'student';
+
+                const { error: updateError } = await supabase
+                    .from('allowed_users')
+                    .update({
+                        password: hashedPassword,
+                        is_first_login: true,
+                        has_onboarded: false,
+                        has_leader_onboarded: false,
+                        nickname: null,
+                        access_role: newRole,
+                    })
+                    .eq('username', user.username);
+
+                if (updateError) {
+                    errorCount++;
+                    console.error(`[ResetAll] Failed to reset ${user.username}:`, updateError);
+                } else {
+                    resetCount++;
                 }
-            }
-        }
-    } catch (e) {
-        console.error('[ResetAll] Failed to load access keys:', e);
-    }
-
-    // 2. Get all users
-    const { data: allUsers, error: fetchError } = await supabase
-        .from('allowed_users')
-        .select('username, access_role');
-
-    if (fetchError || !allUsers) {
-        return { error: 'Failed to fetch users' };
-    }
-
-    const { hashPassword } = await import('@/lib/auth/password');
-    const normalize = (s: string) => s ? s.trim().toLowerCase().normalize('NFKC') : '';
-
-    let resetCount = 0;
-    let errorCount = 0;
-
-    // 3. Reset each user
-    for (const user of allUsers) {
-        try {
-            const originalPassword = keysMap[normalize(user.username)] || 'student123';
-            const hashedPassword = await hashPassword(originalPassword);
-
-            // Preserve admin/super_admin roles
-            const keepRole = ['admin', 'super_admin'].includes(user.access_role);
-            const newRole = keepRole ? user.access_role : 'student';
-
-            const { error: updateError } = await supabase
-                .from('allowed_users')
-                .update({
-                    password: hashedPassword,
-                    is_first_login: true,
-                    has_onboarded: false,
-                    has_leader_onboarded: false,
-                    nickname: null,
-                    access_role: newRole,
-                })
-                .eq('username', user.username);
-
-            if (updateError) {
+            } catch (error) {
                 errorCount++;
-                console.error(`[ResetAll] Failed to reset ${user.username}:`, updateError);
-            } else {
-                resetCount++;
+                console.error(`[ResetAll] Error resetting ${user.username}:`, error);
             }
-        } catch (e) {
-            errorCount++;
-            console.error(`[ResetAll] Error resetting ${user.username}:`, e);
         }
+
+        await supabase.from('user_progress').delete().neq('username', '');
+        await supabase.from('user_stats').update({
+            total_xp: 0,
+            current_rank: 'E',
+            gpa_term_1: null,
+            profile_picture_url: null,
+        }).neq('username', '');
+        await supabase.from('guild_messages').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        await supabase.from('guild_quests').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
+        revalidatePath('/admin');
+        revalidatePath('/progress');
+        revalidatePath('/');
+
+        return {
+            success: true,
+            message: `Reset ${resetCount} accounts.${errorCount > 0 ? ` ${errorCount} failed.` : ''}`,
+            resetCount,
+            errorCount,
+        };
+    } catch (error: unknown) {
+        console.error('Reset All Crash:', error);
+        return { error: error instanceof Error ? error.message : 'Failed to reset all accounts' };
     }
-
-    // 4. Bulk-delete progress, stats reset, guild cleanup
-    await supabase.from('user_progress').delete().neq('username', '');
-    await supabase.from('user_stats').update({
-        total_xp: 0,
-        current_rank: 'E',
-        gpa_term_1: null,
-        profile_picture_url: null,
-    }).neq('username', '');
-    await supabase.from('guild_messages').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabase.from('guild_quests').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-
-    revalidatePath('/admin');
-    revalidatePath('/progress');
-    revalidatePath('/');
-
-    return {
-        success: true,
-        message: `Reset ${resetCount} accounts.${errorCount > 0 ? ` ${errorCount} failed.` : ''}`,
-        resetCount,
-        errorCount,
-    };
 }
 
 

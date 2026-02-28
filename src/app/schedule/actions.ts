@@ -3,7 +3,6 @@
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { getSession } from '@/app/login/actions';
 import { revalidatePath } from 'next/cache';
-import { unstable_cache } from 'next/cache';
 import fs from 'fs';
 import path from 'path';
 
@@ -26,6 +25,21 @@ const VALID_SECTIONS = [
     'C1', 'C2', 'C3', 'C4',
     'D1', 'D2', 'D3', 'D4'
 ];
+
+function extractSectionFromUsername(username: string | undefined): string | null {
+    if (!username) return null;
+    const match = username.match(/^[A-D]_([A-D]\d)/i);
+    return match ? match[1].toUpperCase() : null;
+}
+
+function getSessionSection(session: { section?: string; username?: string } | null): string | null {
+    if (!session) return null;
+    const fromSession = session.section?.toUpperCase().trim();
+    if (fromSession && VALID_SECTIONS.includes(fromSession)) {
+        return fromSession;
+    }
+    return extractSectionFromUsername(session.username);
+}
 
 // Sanitize and validate section ID
 function validateSectionId(sectionId: string): string | null {
@@ -130,29 +144,20 @@ function getScheduleFromJSON(sectionId: string) {
     return schedule;
 }
 
-// Check if user is leader of a section
+// Check if user can edit a section schedule
 export async function isLeaderOfSection(sectionId: string): Promise<boolean> {
     const session = await getSession();
     if (!session?.username) return false;
 
-    // Leader username format: [Group]_[Section]-[Number]-[ID]
-    // e.g., "C_C2-36-4da3" is leader of section C2
-    const username = session.username;
     const role = session.role;
 
     // Super Admins can edit any section
     if (role === 'super_admin') return true;
 
-    // Admins can also edit any section
-    if (role === 'admin') return true;
-
-    // Leaders can only edit their own section
-    if (role === 'leader') {
-        // Extract section from username (e.g., "C_C2-36-4da3" -> "C2")
-        const match = username.match(/^[A-D]_([A-D]\d)/i);
-        if (match && match[1].toUpperCase() === sectionId.toUpperCase()) {
-            return true;
-        }
+    // Admins and leaders can edit only their own section
+    if (role === 'admin' || role === 'leader') {
+        const userSection = getSessionSection(session);
+        return userSection === sectionId.toUpperCase();
     }
 
     return false;
@@ -165,14 +170,11 @@ export async function canAccessSection(sectionId: string): Promise<boolean> {
 
     const role = session.role;
 
-    // Super Admins and Admins can view any section
-    if (role === 'super_admin' || role === 'admin') return true;
+    // Only super_admin can view any section
+    if (role === 'super_admin') return true;
 
-    // Extract user's section from username
-    const match = session.username.match(/^[A-D]_([A-D]\d)/i);
-    const userSection = match ? match[1].toUpperCase() : null;
-
-    // Students and leaders can only view their own section
+    // Admins, leaders, and students can only view their own section
+    const userSection = getSessionSection(session);
     return userSection === sectionId.toUpperCase();
 }
 
@@ -190,23 +192,19 @@ export async function getSchedulePageData(sectionId: string) {
     }
 
     const role = session.role;
-    const username = session.username;
-    
-    // Extract user's section from username
-    const match = username.match(/^[A-D]_([A-D]\d)/i);
-    const userSection = match ? match[1].toUpperCase() : null;
+    const userSection = getSessionSection(session);
 
-    // Check access
-    const canAccess = role === 'super_admin' || role === 'admin' || userSection === validSection;
+    // Only super_admin has full access. Everyone else is section-bound.
+    const canAccess = role === 'super_admin' || userSection === validSection;
     if (!canAccess) {
         return { schedule: {}, canEdit: false, canAccess: false };
     }
 
     // Check edit permission
     let canEdit = false;
-    if (role === 'super_admin' || role === 'admin') {
+    if (role === 'super_admin') {
         canEdit = true;
-    } else if (role === 'leader' && userSection === validSection) {
+    } else if ((role === 'admin' || role === 'leader') && userSection === validSection) {
         canEdit = true;
     }
 

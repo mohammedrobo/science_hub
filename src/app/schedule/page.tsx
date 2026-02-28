@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Calendar, Users, Lock, ArrowLeft } from 'lucide-react';
+import { Calendar, Users, ArrowLeft } from 'lucide-react';
 import { readSession } from '@/lib/auth/session-read';
 
 const SECTIONS = [
@@ -23,20 +23,17 @@ export default async function ScheduleIndexPage() {
         redirect('/login');
     }
 
-    const isAdmin = session.role === 'super_admin' || session.role === 'admin';
-    const userSection = getUserSection(session.username);
+    const isSuperAdmin = session.role === 'super_admin';
+    const userSection = session.section?.toUpperCase().trim() || getUserSection(session.username);
 
-    // Non-admins: redirect directly to their section (no grid view)
-    if (!isAdmin) {
-        if (userSection) {
-            redirect(`/schedule/${userSection.toLowerCase()}`);
-        } else {
-            // User doesn't have a section in username - redirect home
-            redirect('/');
-        }
+    // Only super_admin can see all section cards.
+    // Admins, leaders, and students are redirected to their own section.
+    if (!isSuperAdmin) {
+        if (!userSection) redirect('/');
+        redirect(`/schedule/${userSection.toLowerCase()}`);
     }
 
-    // Only admins reach here - show all sections
+    // Only super_admin reaches here - show all sections
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white p-4 md:p-8">
             <div className="max-w-4xl mx-auto">
@@ -55,7 +52,7 @@ export default async function ScheduleIndexPage() {
                     <h1 className="text-4xl font-bold bg-gradient-to-r from-violet-400 to-purple-500 bg-clip-text text-transparent mb-2">
                         Section Schedules
                     </h1>
-                    <p className="text-gray-400">Admin View - All Sections</p>
+                    <p className="text-gray-400">Super Admin View - All Sections</p>
                 </div>
 
                 {/* Section Grid */}

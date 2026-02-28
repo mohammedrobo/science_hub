@@ -35,13 +35,19 @@ export function ResetAllButton() {
         setLoading(true);
         try {
             const result = await resetAllAccounts();
-            if ('error' in result) {
+            if (!result) {
+                toast.error('Reset failed: no response from server.');
+            } else if ('error' in result) {
                 toast.error(result.error);
             } else {
                 toast.success(result.message);
             }
-        } catch {
-            toast.error('Something went wrong during the reset.');
+        } catch (error) {
+            if (error instanceof Error && error.message) {
+                toast.error(error.message);
+            } else {
+                toast.error('Something went wrong during the reset.');
+            }
         } finally {
             setLoading(false);
         }
