@@ -1,7 +1,7 @@
 'use server';
 
 import { createServiceRoleClient } from '@/lib/supabase/server';
-import { getSession } from '@/lib/auth/session';
+import { readSession } from '@/lib/auth/session-read';
 import { revalidatePath, updateTag } from 'next/cache';
 import { hashPassword } from '@/lib/auth/password';
 import fs from 'node:fs/promises';
@@ -9,7 +9,7 @@ import path from 'node:path';
 
 // Super admin = full power (old admin). New admin = limited admin.
 async function ensureSuperAdmin() {
-    const session = await getSession();
+    const session = await readSession();
     if (session?.role !== 'super_admin') {
         throw new Error('Unauthorized: Super Admin access required');
     }
@@ -18,7 +18,7 @@ async function ensureSuperAdmin() {
 
 // Allow super_admin or admin
 async function ensureAnyAdmin() {
-    const session = await getSession();
+    const session = await readSession();
     if (!session?.role || !['super_admin', 'admin'].includes(session.role)) {
         throw new Error('Unauthorized: Admin access required');
     }
@@ -27,7 +27,7 @@ async function ensureAnyAdmin() {
 
 // Allow super_admin, admin, and leader roles for CMS operations
 async function ensureLeaderOrAdmin() {
-    const session = await getSession();
+    const session = await readSession();
     if (!session?.role || !['super_admin', 'admin', 'leader'].includes(session.role)) {
         throw new Error('Unauthorized: Leader or Admin access required');
     }
@@ -692,7 +692,7 @@ export async function resetAllAccounts() {
 
 
 export async function updateUserRole(username: string, role: 'student' | 'leader' | 'admin' | 'super_admin') {
-    const session = await getSession();
+    const session = await readSession();
     if (!session?.role || !['super_admin', 'admin'].includes(session.role)) {
         throw new Error('Unauthorized');
     }

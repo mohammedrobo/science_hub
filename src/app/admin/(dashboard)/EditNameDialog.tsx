@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Pencil, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ interface EditNameDialogProps {
 }
 
 export function EditNameDialog({ username, currentName, open, onOpenChange }: EditNameDialogProps) {
+    const router = useRouter();
     const [name, setName] = useState(currentName);
     const [isPending, startTransition] = useTransition();
 
@@ -49,6 +51,7 @@ export function EditNameDialog({ username, currentName, open, onOpenChange }: Ed
                 } else {
                     toast.success(`Name updated to "${trimmed}"`);
                     onOpenChange(false);
+                    router.refresh();
                 }
             } catch {
                 toast.error('Failed to update name');

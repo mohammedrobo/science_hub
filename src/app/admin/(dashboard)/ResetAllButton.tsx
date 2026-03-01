@@ -1,12 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { resetAllAccounts } from '../actions';
 import { toast } from 'sonner';
 
 export function ResetAllButton() {
+    const router = useRouter();
     const [loading, setLoading] = useState(false);
 
     const handleReset = async () => {
@@ -41,6 +43,7 @@ export function ResetAllButton() {
                 toast.error(result.error);
             } else {
                 toast.success(result.message);
+                router.refresh();
             }
         } catch (error) {
             if (error instanceof Error && error.message) {

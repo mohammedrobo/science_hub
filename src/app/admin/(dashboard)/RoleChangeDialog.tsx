@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { Crown, ShieldAlert, ArrowUpCircle, ArrowDownCircle, Loader2 } from 'lucide-react';
+import { useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { ShieldAlert, ArrowUpCircle, ArrowDownCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -32,6 +33,7 @@ const ROLE_CONFIG = {
 };
 
 export function RoleChangeDialog({ username, fullName, currentRole, targetRole, open, onOpenChange }: RoleChangeDialogProps) {
+    const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const isPromotion = ['student', 'leader', 'admin', 'super_admin'].indexOf(targetRole) > ['student', 'leader', 'admin', 'super_admin'].indexOf(currentRole);
 
@@ -48,6 +50,7 @@ export function RoleChangeDialog({ username, fullName, currentRole, targetRole, 
                             : `${fullName} demoted to ${ROLE_CONFIG[targetRole].label}`
                     );
                     onOpenChange(false);
+                    router.refresh();
                 }
             } catch {
                 toast.error('Failed to change role');

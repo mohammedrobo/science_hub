@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -37,6 +38,7 @@ const formSchema = z.object({
 });
 
 export function AddStudentDialog() {
+    const router = useRouter();
     const [open, setOpen] = useState(false);
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -60,6 +62,7 @@ export function AddStudentDialog() {
             toast.success('Student added successfully');
             setOpen(false);
             form.reset();
+            router.refresh();
         }
     }
 

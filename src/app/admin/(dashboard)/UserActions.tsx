@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { ArrowUpCircle, ArrowDownCircle, Crown, Trash2, ImageOff, RotateCcw, ShieldAlert, Pencil, KeyRound, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,6 +24,7 @@ interface UserActionsProps {
 }
 
 export function UserActions({ username, fullName, currentRole, isSuperAdmin }: UserActionsProps) {
+    const router = useRouter();
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editNameOpen, setEditNameOpen] = useState(false);
     const [targetRole, setTargetRole] = useState<'student' | 'leader' | 'admin' | 'super_admin'>('student');
@@ -82,7 +84,10 @@ export function UserActions({ username, fullName, currentRole, isSuperAdmin }: U
                             if (!confirm(`Delete ${fullName} (${username})? This cannot be undone.`)) return;
                             const result = await deleteUser(username);
                             if (result && 'error' in result) toast.error(result.error);
-                            else toast.success(`User ${username} deleted`);
+                            else {
+                                toast.success(`User ${username} deleted`);
+                                router.refresh();
+                            }
                         } catch (error) {
                             showActionError('Failed to delete user', error);
                         }
@@ -119,7 +124,10 @@ export function UserActions({ username, fullName, currentRole, isSuperAdmin }: U
                                 try {
                                     const result = await removeProfilePicture(username);
                                     if ('error' in result) toast.error(result.error);
-                                    else toast.success('Profile picture removed');
+                                    else {
+                                        toast.success('Profile picture removed');
+                                        router.refresh();
+                                    }
                                 } catch (error) {
                                     showActionError('Failed to remove picture', error);
                                 }
@@ -138,7 +146,10 @@ export function UserActions({ username, fullName, currentRole, isSuperAdmin }: U
                                     if (!confirm(`Reset password for ${fullName} (${username})? They will be forced to change it on next login.`)) return;
                                     const result = await resetUserPassword(username);
                                     if ('error' in result) toast.error(result.error);
-                                    else toast.success('Password reset — user must change on next login');
+                                    else {
+                                        toast.success('Password reset — user must change on next login');
+                                        router.refresh();
+                                    }
                                 } catch (error) {
                                     showActionError('Failed to reset password', error);
                                 }
@@ -154,7 +165,10 @@ export function UserActions({ username, fullName, currentRole, isSuperAdmin }: U
                                     if (!confirm(`Reset all progress for ${fullName} (${username})? This clears XP, rank, quiz scores and cannot be undone.`)) return;
                                     const result = await resetUserProgress(username);
                                     if ('error' in result) toast.error(result.error);
-                                    else toast.success('Progress reset');
+                                    else {
+                                        toast.success('Progress reset');
+                                        router.refresh();
+                                    }
                                 } catch (error) {
                                     showActionError('Failed to reset progress', error);
                                 }
@@ -173,7 +187,10 @@ export function UserActions({ username, fullName, currentRole, isSuperAdmin }: U
                                     if (!confirm(`Full reset ${fullName} (${username})? This resets password, progress, onboarding and cannot be undone.`)) return;
                                     const result = await resetFullAccount(username);
                                     if ('error' in result) toast.error(result.error);
-                                    else toast.success('Account fully reset');
+                                    else {
+                                        toast.success('Account fully reset');
+                                        router.refresh();
+                                    }
                                 } catch (error) {
                                     showActionError('Failed to fully reset account', error);
                                 }
