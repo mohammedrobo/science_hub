@@ -9,7 +9,7 @@ import { unstable_cache } from 'next/cache';
 import { getTranslations } from 'next-intl/server';
 import { Button } from '@/components/ui/button';
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 type LeaderboardEntry = {
     username: string;
@@ -112,7 +112,7 @@ const getLeaderboard = unstable_cache(
         }));
     },
     ['leaderboard'],
-    { revalidate: 60, tags: ['leaderboard'] }
+    { revalidate: 300, tags: ['leaderboard'] }
 );
 
 export default async function LeaderboardPage() {

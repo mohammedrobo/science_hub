@@ -3,13 +3,13 @@ import { unstable_cache } from 'next/cache';
 import { examModeValue } from '@/lib/exam-mode';
 import { getGrade } from '@/lib/utils';
 
-const HEADER_STATS_REVALIDATE_SECONDS = examModeValue(120, 600);
-const USER_STATS_REVALIDATE_SECONDS = examModeValue(90, 300);
-const SUBJECT_PERFORMANCE_REVALIDATE_SECONDS = examModeValue(120, 420);
-const XP_HISTORY_REVALIDATE_SECONDS = examModeValue(120, 420);
-const COURSE_DETAIL_REVALIDATE_SECONDS = examModeValue(180, 600);
-const QUIZ_SCORE_HISTORY_REVALIDATE_SECONDS = examModeValue(120, 420);
-const OVERALL_COMPLETION_REVALIDATE_SECONDS = examModeValue(90, 300);
+const HEADER_STATS_REVALIDATE_SECONDS = examModeValue(900, 1800); // 15m normal, 30m exam
+const USER_STATS_REVALIDATE_SECONDS = examModeValue(900, 1800); // 15m normal, 30m exam
+const SUBJECT_PERFORMANCE_REVALIDATE_SECONDS = examModeValue(1800, 3600); // 30m normal, 1h exam
+const XP_HISTORY_REVALIDATE_SECONDS = examModeValue(1800, 3600); // 30m normal, 1h exam
+const COURSE_DETAIL_REVALIDATE_SECONDS = examModeValue(1800, 3600); // 30m normal, 1h exam
+const QUIZ_SCORE_HISTORY_REVALIDATE_SECONDS = examModeValue(1800, 3600); // 30m normal, 1h exam
+const OVERALL_COMPLETION_REVALIDATE_SECONDS = examModeValue(900, 1800); // 15m normal, 30m exam
 
 // ============ LIGHTWEIGHT HEADER STATS (CACHED) ============
 
@@ -54,7 +54,7 @@ const _getHeaderStatsCached = unstable_cache(
         };
     },
     ['header-stats-v2'],
-    { revalidate: HEADER_STATS_REVALIDATE_SECONDS }
+    { revalidate: HEADER_STATS_REVALIDATE_SECONDS, tags: ['course-progress', 'leaderboard'] }
 );
 
 // ============ FULL USER STATS ============
@@ -187,7 +187,7 @@ const _getUserStatsCached = unstable_cache(
         };
     },
     ['user-stats-v1'],
-    { revalidate: USER_STATS_REVALIDATE_SECONDS }
+    { revalidate: USER_STATS_REVALIDATE_SECONDS, tags: ['course-progress', 'leaderboard'] }
 );
 
 export interface CourseProgress {
@@ -334,7 +334,7 @@ const _getSubjectPerformanceCached = unstable_cache(
         return results;
     },
     ['subject-performance-v1'],
-    { revalidate: SUBJECT_PERFORMANCE_REVALIDATE_SECONDS }
+    { revalidate: SUBJECT_PERFORMANCE_REVALIDATE_SECONDS, tags: ['course-progress'] }
 );
 
 // ============ XP HISTORY FOR CHARTS ============
@@ -384,7 +384,7 @@ const _getXPHistoryCached = unstable_cache(
         return Array.from(dailyXP.entries()).map(([date, xp]) => ({ date, xp }));
     },
     ['xp-history-v1'],
-    { revalidate: XP_HISTORY_REVALIDATE_SECONDS }
+    { revalidate: XP_HISTORY_REVALIDATE_SECONDS, tags: ['course-progress', 'leaderboard'] }
 );
 
 // ============ DETAILED COURSE PROGRESS ============
@@ -567,7 +567,7 @@ const _getCoursesDetailedProgressCached = unstable_cache(
         return buildCourseDetailedProgressMap(courses, lessons, quizzes, progress);
     },
     ['course-detailed-progress-batch-v1'],
-    { revalidate: COURSE_DETAIL_REVALIDATE_SECONDS }
+    { revalidate: COURSE_DETAIL_REVALIDATE_SECONDS, tags: ['course-progress', 'lessons'] }
 );
 
 /**
@@ -675,7 +675,7 @@ const _getQuizScoreHistoryCached = unstable_cache(
             });
     },
     ['quiz-score-history-v1'],
-    { revalidate: QUIZ_SCORE_HISTORY_REVALIDATE_SECONDS }
+    { revalidate: QUIZ_SCORE_HISTORY_REVALIDATE_SECONDS, tags: ['course-progress'] }
 );
 
 // ============ OVERALL COMPLETION STATS ============
@@ -791,5 +791,5 @@ const _getOverallCompletionCached = unstable_cache(
         };
     },
     ['overall-completion-v1'],
-    { revalidate: OVERALL_COMPLETION_REVALIDATE_SECONDS }
+    { revalidate: OVERALL_COMPLETION_REVALIDATE_SECONDS, tags: ['course-progress', 'lessons'] }
 );

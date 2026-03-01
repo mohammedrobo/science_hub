@@ -6,8 +6,8 @@ import { readSession } from '@/lib/auth/session-read';
 import { unstable_cache, updateTag } from 'next/cache';
 import { examModeValue } from '@/lib/exam-mode';
 
-const LESSONS_CACHE_SECONDS = examModeValue(300, 900); // 5m normal, 15m exam mode
-const COURSE_PROGRESS_CACHE_SECONDS = examModeValue(120, 600); // 2m normal, 10m exam mode
+const LESSONS_CACHE_SECONDS = examModeValue(1800, 3600); // 30m normal, 1h exam mode
+const COURSE_PROGRESS_CACHE_SECONDS = examModeValue(1800, 3600); // 30m normal, 1h exam mode
 
 // Cache lessons list — rarely changes, avoids re-fetching on every homepage visit
 const getCachedLessons = unstable_cache(

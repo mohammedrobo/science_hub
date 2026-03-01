@@ -1,9 +1,33 @@
 import { getCourseContent, getCourseProgress } from './actions';
 import { MOCK_COURSES } from '@/lib/data/mocks';
 import CourseClient from './CourseClient';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import { Course } from '@/types';
+import { unstable_cache } from 'next/cache';
+
+export async function generateStaticParams() {
+    return MOCK_COURSES.map((course) => ({
+        id: course.id,
+    }));
+}
+
+export const revalidate = 1800; // 30 min ISR
+export const dynamicParams = true; // Allow UUID params not in generateStaticParams
+
+const getCourseByIdCached = unstable_cache(
+    async (courseId: string) => {
+        const supabase = await createServiceRoleClient();
+        const { data: dbCourse } = await supabase
+            .from('courses')
+            .select('*')
+            .eq('id', courseId)
+            .single();
+        return dbCourse;
+    },
+    ['course-by-id-v1'],
+    { revalidate: 3600, tags: ['lessons'] }
+);
 
 export default async function CoursePage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -11,12 +35,7 @@ export default async function CoursePage({ params }: { params: Promise<{ id: str
 
     // If not found in static mocks, check the database (for UUIDs)
     if (!course) {
-        const supabase = await createClient();
-        const { data: dbCourse } = await supabase
-            .from('courses')
-            .select('*')
-            .eq('id', id)
-            .single();
+        const dbCourse = await getCourseByIdCached(id);
 
         if (dbCourse) {
             course = {
@@ -28,7 +47,6 @@ export default async function CoursePage({ params }: { params: Promise<{ id: str
                 semester: 1, // Default or fetch from DB if needed
                 created_at: dbCourse.created_at,
                 icon: dbCourse.icon || null
-                // No 'color' as it doesn't exist in Course type
             };
         }
     }
@@ -42,8 +60,6 @@ export default async function CoursePage({ params }: { params: Promise<{ id: str
         getCourseContent(id),
         getCourseProgress()
     ]);
-
-
 
     return (
         <CourseClient

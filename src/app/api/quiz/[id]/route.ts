@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { getQuiz } from '@/app/quiz/actions';
 import { examModeValue } from '@/lib/exam-mode';
 
 const QUIZ_API_S_MAXAGE_SECONDS = examModeValue(3600, 6 * 3600); // 1h normal, 6h exam mode
@@ -17,35 +17,13 @@ export async function GET(
 ) {
     try {
         const { id } = await params;
-        const supabase = await createServiceRoleClient();
+        const quiz = await getQuiz(id);
 
-        const { data: quiz, error: quizError } = await supabase
-            .from('quizzes')
-            .select('*')
-            .eq('id', id)
-            .single();
-
-        if (quizError || !quiz) {
+        if (!quiz) {
             return NextResponse.json({ error: 'Quiz not found' }, { status: 404 });
         }
 
-        const { data: questions, error: questionsError } = await supabase
-            .from('questions')
-            .select('*')
-            .eq('quiz_id', id)
-            .order('order_index', { ascending: true });
-
-        if (questionsError) {
-            return NextResponse.json({ error: 'Quiz questions unavailable' }, { status: 500 });
-        }
-
-        return NextResponse.json(
-            {
-                ...quiz,
-                questions: questions || [],
-            },
-            { headers: CACHE_HEADERS }
-        );
+        return NextResponse.json(quiz, { headers: CACHE_HEADERS });
     } catch (error) {
         console.error('Quiz API error:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

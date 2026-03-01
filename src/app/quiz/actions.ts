@@ -4,7 +4,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { unstable_cache } from 'next/cache';
 import { examModeValue } from '@/lib/exam-mode';
 
-const QUIZ_CACHE_REVALIDATE_SECONDS = examModeValue(300, 1800); // 5m normal, 30m exam mode
+const QUIZ_CACHE_REVALIDATE_SECONDS = examModeValue(3600, 7200); // 1h normal, 2h exam mode
 
 const getQuizCached = unstable_cache(
     async (quizId: string) => {

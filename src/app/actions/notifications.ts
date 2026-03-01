@@ -29,7 +29,7 @@ type NotificationRow = {
 const ADMIN_NOTIFICATIONS_TAG = 'notifications-admin';
 const SECTION_NOTIFICATIONS_TAG = 'notifications-sections';
 const GLOBAL_NOTIFICATIONS_TAG = 'notifications-global';
-const NOTIFICATIONS_REVALIDATE_SECONDS = examModeValue(45, 180);
+const NOTIFICATIONS_REVALIDATE_SECONDS = examModeValue(300, 600); // 5m normal, 10m exam mode
 
 function extractSectionFromUsername(username: string): string | null {
     const match = username.match(/^[A-D]_([A-D]\d)/i);

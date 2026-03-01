@@ -13,8 +13,8 @@ export interface LessonProgress {
 
 import { MOCK_COURSES } from '@/lib/data/mocks';
 
-const COURSE_CONTENT_REVALIDATE_SECONDS = examModeValue(600, 3600); // 10m normal, 60m exam mode
-const COURSE_QUIZ_PROGRESS_REVALIDATE_SECONDS = examModeValue(120, 600); // 2m normal, 10m exam mode
+const COURSE_CONTENT_REVALIDATE_SECONDS = examModeValue(3600, 7200); // 1h normal, 2h exam mode
+const COURSE_QUIZ_PROGRESS_REVALIDATE_SECONDS = examModeValue(1800, 3600); // 30m normal, 1h exam mode
 
 const getCourseContentCached = unstable_cache(
     async (courseDescriptor: string) => {
