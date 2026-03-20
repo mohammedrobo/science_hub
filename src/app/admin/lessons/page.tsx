@@ -21,6 +21,7 @@ interface Lesson {
     quiz_id: string | null;
     order_index: number;
     created_at: string;
+    is_published?: boolean;
     course: { id: string; name: string; code: string } | { id: string; name: string; code: string }[] | null;
 }
 
