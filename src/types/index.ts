@@ -22,6 +22,7 @@ export interface Lesson {
   quiz_id: string | null;
   order_index: number;
   created_at?: string;
+  is_published?: boolean;
 }
 
 export type CourseWithLessons = Course & {

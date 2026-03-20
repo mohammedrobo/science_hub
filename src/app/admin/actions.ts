@@ -765,6 +765,7 @@ export async function getLessons(courseId?: string) {
                 quiz_id,
                 order_index,
                 created_at,
+                is_published,
                 course:courses(id, name, code)
             `)
             .order('created_at', { ascending: false });
@@ -1118,5 +1119,26 @@ export async function searchUsersByName(query: string) {
         return { users: data || [] };
     } catch (e: any) {
         return { error: e.message };
+    }
+}
+
+export async function toggleLessonPublishStatus(lessonId: string, currentStatus: boolean) {
+    try {
+        await ensureLeaderOrAdmin();
+        const supabase = await createServiceRoleClient();
+        
+        const { error } = await supabase
+            .from('lessons')
+            .update({ is_published: !currentStatus })
+            .eq('id', lessonId);
+
+        if (error) return { error: 'Failed to update lesson status' };
+
+        revalidatePath('/admin/lessons');
+        updateTag('lessons');
+        updateTag('course-progress');
+        return { success: true, message: `Lesson ${!currentStatus ? 'Published' : 'Unpublished'} successfully` };
+    } catch (e: any) {
+        return { error: e.message || 'Unexpected error' };
     }
 }

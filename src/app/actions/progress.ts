@@ -15,7 +15,8 @@ const getCachedLessons = unstable_cache(
         const supabase = await createServiceRoleClient();
         const { data } = await supabase
             .from('lessons')
-            .select('id, course_code');
+            .select('id, course_code')
+            .eq('is_published', true);
         return data ?? [];
     },
     ['all-lessons'],

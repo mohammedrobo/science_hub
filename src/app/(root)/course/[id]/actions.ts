@@ -50,6 +50,7 @@ const getCourseContentCached = unstable_cache(
             .from('lessons')
             .select('*')
             .eq('course_id', courseId)
+            .eq('is_published', true)
             .order('order_index', { ascending: true });
 
         if (error) {

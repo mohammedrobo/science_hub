@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { getLessons, deleteLesson } from '../actions';
+import { getLessons, deleteLesson, toggleLessonPublishStatus } from '../actions';
 import {
     ArrowLeft, Trash2, Edit, Video, FileText, BrainCircuit,
     Loader2, AlertCircle, CheckCircle, BookOpen, ChevronDown, ChevronRight
@@ -37,6 +37,7 @@ export default function LessonsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [togglingId, setTogglingId] = useState<string | null>(null);
     const [result, setResult] = useState<{ success?: boolean; message?: string; error?: string } | null>(null);
     const [expandedCourses, setExpandedCourses] = useState<Set<string>>(new Set());
 
@@ -83,6 +84,19 @@ export default function LessonsPage() {
         }
 
         setDeletingId(null);
+    };
+
+    const handleTogglePublish = async (lessonId: string, currentStatus: boolean, title: string) => {
+        setTogglingId(lessonId);
+        setResult(null);
+        const res = await toggleLessonPublishStatus(lessonId, currentStatus);
+        if (res.error) {
+            setResult({ error: res.error });
+        } else {
+            setResult({ success: true, message: res.message });
+            setLessons(prev => prev.map(l => l.id === lessonId ? { ...l, is_published: !currentStatus } : l));
+        }
+        setTogglingId(null);
     };
 
     const toggleCourse = (code: string) => {
@@ -217,7 +231,12 @@ export default function LessonsPage() {
                                             >
                                                 {/* Lesson Info */}
                                                 <div className="flex-1 min-w-0 pl-8">
-                                                    <h3 className="font-medium text-zinc-100 truncate">{lesson.title}</h3>
+                                                    <div className="flex items-center gap-2">
+                                                        <h3 className="font-medium text-zinc-100 truncate">{lesson.title}</h3>
+                                                        {lesson.is_published === false && (
+                                                            <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/30">Draft</Badge>
+                                                        )}
+                                                    </div>
 
                                                     {/* Content Badges */}
                                                     <div className="flex flex-wrap gap-2 mt-2">
@@ -241,6 +260,19 @@ export default function LessonsPage() {
 
                                                 {/* Actions */}
                                                 <div className={`flex items-center gap-2 flex-shrink-0 pl-8 sm:pl-0`} {...(idx === 0 ? { 'data-tour': 'lesson-actions' } : {})}>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className={`h-9 px-3 text-xs sm:text-sm ${lesson.is_published === false ? 'border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/50' : 'border-zinc-700 text-zinc-400 hover:bg-zinc-800'}`}
+                                                        onClick={() => handleTogglePublish(lesson.id, lesson.is_published !== false, lesson.title)}
+                                                        disabled={togglingId === lesson.id}
+                                                    >
+                                                        {togglingId === lesson.id ? (
+                                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                                        ) : (
+                                                            <span className="hidden sm:inline">{lesson.is_published === false ? 'Publish' : 'Unpublish'}</span>
+                                                        )}
+                                                    </Button>
                                                     <Link href={`/admin/lessons/${lesson.id}/edit`}>
                                                         <Button variant="outline" size="sm" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 h-9 px-3 text-xs sm:text-sm">
                                                             <Edit className="w-4 h-4 sm:me-1" />
