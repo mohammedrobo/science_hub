@@ -158,6 +158,6 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     success: true, lessonId: lessonId,
     questionsGenerated: questionsCount,
-    youtubeAttached: !!youtubeUrl,
+    youtubeAttached: !!validYoutubeUrl,
   });
 }
