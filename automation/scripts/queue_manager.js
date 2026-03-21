@@ -32,6 +32,39 @@ async function main() {
 
       let next = pending[0];
 
+      // If lecture already exists in lessons, mark queue as done to avoid re-upload
+      try {
+        const { data: course } = await supabase.from('courses').select('id').eq('code', next.course_code).maybeSingle();
+        if (course?.id) {
+          let exists = false;
+          const { data: byTitle } = await supabase
+            .from('lessons')
+            .select('id')
+            .eq('course_id', course.id)
+            .eq('title', next.lecture_title)
+            .maybeSingle();
+          if (byTitle?.id) exists = true;
+          if (!exists && next.lecture_number != null) {
+            const { data: byOrder } = await supabase
+              .from('lessons')
+              .select('id')
+              .eq('course_id', course.id)
+              .eq('order_index', next.lecture_number)
+              .maybeSingle();
+            if (byOrder?.id) exists = true;
+          }
+          if (exists) {
+            await supabase.from('automation_queue').update({
+              status: 'done', processed_at: new Date().toISOString(), error: 'already_exists'
+            }).eq('id', next.id);
+            console.log(JSON.stringify({ found: false, remaining: 0, skipped: true }));
+            return;
+          }
+        }
+      } catch (e) {
+        // Fail open — continue processing if check fails
+      }
+
       // Filter local
       if (next.primary_pdf_path && !fs.existsSync(next.primary_pdf_path)) {
         // File missing? Fail it instead of just nullifying the path which creates child_process errors.

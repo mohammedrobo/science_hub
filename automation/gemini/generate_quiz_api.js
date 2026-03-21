@@ -134,6 +134,28 @@ async function run() {
     return;
   }
 
+  const isPdf = String(pdfPath).toLowerCase().endsWith('.pdf');
+  if (!isPdf) {
+    // Non-PDF assets (images, etc.) — skip quiz, but try YouTube query from title
+    if (OPENROUTER_KEY || HUGGINGFACE_KEY) {
+      try {
+        const ytMessages = [
+          { role: 'system', content: 'You are a helpful assistant. Output ONLY what is asked, nothing else.' },
+          { role: 'user', content: `Course: ${course}\nLecture: ${title}\n\nSuggest a concise Arabic YouTube search query to explain this lecture. Output ONLY the search query.` }
+        ];
+        const ytResult = await callAI(ytMessages);
+        const ytQuery = ytResult ? ytResult.trim().replace(/^["']|["']$/g, '') : '';
+        out({ success: !!ytQuery, quizText: '', ytQuery, reason: 'not_pdf' });
+        return;
+      } catch (e) {
+        out({ success: false, quizText: '', ytQuery: '', reason: 'not_pdf' });
+        return;
+      }
+    }
+    out({ success: false, quizText: '', ytQuery: '', reason: 'not_pdf' });
+    return;
+  }
+
   const sizeMB = fs.statSync(pdfPath).size / 1024 / 1024;
   if (sizeMB > 200) {
     out({ success: false, quizText: '', ytQuery: '', reason: `pdf_too_large_${sizeMB.toFixed(1)}mb` });
@@ -153,7 +175,19 @@ async function run() {
   err('📄 Extracting text from PDF...');
   const pdfText = extractPdfText(pdfPath);
   if (!pdfText || pdfText.length < 50) {
-    out({ success: false, quizText: '', ytQuery: '', reason: 'pdf_text_extraction_failed' });
+    // Try to get a YouTube query from title only
+    let ytQuery = '';
+    if (OPENROUTER_KEY || HUGGINGFACE_KEY) {
+      try {
+        const ytMessages = [
+          { role: 'system', content: 'You are a helpful assistant. Output ONLY what is asked, nothing else.' },
+          { role: 'user', content: `Course: ${course}\nLecture: ${title}\n\nSuggest a concise Arabic YouTube search query to explain this lecture. Output ONLY the search query.` }
+        ];
+        const ytResult = await callAI(ytMessages);
+        if (ytResult) ytQuery = ytResult.trim().replace(/^["']|["']$/g, '');
+      } catch (e) { /* ignore */ }
+    }
+    out({ success: !!ytQuery, quizText: '', ytQuery, reason: 'pdf_text_extraction_failed' });
     return;
   }
   // Truncate to ~6000 chars to fit in context window
@@ -162,6 +196,9 @@ async function run() {
 
   let ytQuery = '';
   let quizText = '';
+  const alphaCount = (pdfText.match(/[A-Za-z\u0600-\u06FF]/g) || []).length;
+  const alphaRatio = alphaCount / Math.max(pdfText.length, 1);
+  const lowQualityText = (pdfText.length < 400) || (alphaRatio < 0.12);
 
   // ── Step 1: YouTube suggestion (PRIORITY - do this first!) ──
   err('🎬 Step 1: Asking AI for YouTube search suggestion...');
@@ -178,10 +215,21 @@ async function run() {
     err('⚠️  Could not generate YouTube query from any provider');
   }
 
+  if (lowQualityText) {
+    err(`⚠️  Low-quality PDF text (len=${pdfText.length}, alphaRatio=${alphaRatio.toFixed(2)}). Skipping quiz generation.`);
+    out({
+      success: !!ytQuery,
+      quizText: '',
+      ytQuery: ytQuery || '',
+      reason: 'low_quality_text',
+    });
+    return;
+  }
+
   // ── Step 2: Quiz generation ──
   err('📝 Step 2: Generating quiz...');
   const quizMessages = [
-    { role: 'system', content: 'You are an expert university quiz maker. Output ONLY the quiz in plain text. No markdown, no bold, no headers, no bullet points, no dashes before options. Follow the exact format shown.' },
+    { role: 'system', content: 'You are an expert university quiz maker. Output ONLY the quiz in plain text. No markdown, no bold, no headers, no bullet points, no dashes before options. Follow the exact format shown. If content is insufficient, output an empty response.' },
     { role: 'user', content: `I have this university lecture and I want you to generate a quiz based ONLY on this content.
 
 Course: ${course}
@@ -222,14 +270,25 @@ CRITICAL RULES:
 - Do NOT use any markdown formatting (no **, no ##, no -, no bullets)
 - Do NOT add any introduction, headers, or closing remarks
 - Every question must come from the lecture content
+- Do NOT use "Q1", "Question 1", bullets, or numbered lists other than "1." "2." etc.
+- Do NOT include explanations or extra text beyond the required format
+- Avoid meta questions about the course code, lecture number, file format, or that the content is unreadable/encoded
+- Each question must include at least one concrete term or concept from the lecture (not generic filler)
 - Mix difficulty: 40% easy, 40% medium, 20% hard
 - All 4 MCQ options must be plausible` }
   ];
 
   const quizResult = await callAI(quizMessages);
   if (quizResult && quizResult.length > 200) {
-    quizText = quizResult;
-    err(`✅ Quiz generated: ${quizText.length} characters`);
+    const qCount = (quizResult.match(/^\s*\d+\.\s+/gm) || []).length;
+    const badSignals = /(course code|lecture number|content appears|unreadable|encrypted|file format|pdf)/i.test(quizResult);
+    if (qCount < 15 || badSignals) {
+      err('⚠️  Quiz looks low quality; skipping.');
+      quizText = '';
+    } else {
+      quizText = quizResult;
+      err(`✅ Quiz generated: ${quizText.length} characters`);
+    }
   } else {
     err('⚠️  Could not generate quiz from any provider');
   }

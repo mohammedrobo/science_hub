@@ -130,10 +130,11 @@ return [{ json:{ ...lec, quizText:quiz.quizText||'', quizOk:quiz.success, gemini
         sendQuery:true,
         queryParameters:{ parameters:[
           { name:"part", value:"snippet" },
-          { name:"q", value:`={{ $('Parse Quiz').first().json.geminiQuery || ($('Parse Queue').first().json.lecture.lecture_title + ' شرح ' + ($('Parse Queue').first().json.lecture.course_name_ar || $('Parse Queue').first().json.lecture.course_name || '')) }}` },
+          { name:"q", value:`={{ ($('Parse Quiz').first().json.geminiQuery && $('Parse Quiz').first().json.geminiQuery.length > 3) ? $('Parse Quiz').first().json.geminiQuery : ($('Parse Queue').first().json.lecture.lecture_title + ' شرح ' + ($('Parse Queue').first().json.lecture.course_name_ar || $('Parse Queue').first().json.lecture.course_name || '')) }}` },
           { name:"type", value:"video" },
-          { name:"relevanceLanguage", value:"ar" },
-          { name:"maxResults", value:"5" },
+          { name:"videoDuration", value:"medium" },
+          { name:"safeSearch", value:"moderate" },
+          { name:"maxResults", value:"10" },
           { name:"key", value:YT_KEY },
         ]},
       },
@@ -149,7 +150,32 @@ const items = ($input.first().json.items || []);
 let url   = lec.youtube_url || null;
 let ytTitle = '';
 if (!url) {
-  const best = items.find(i => i.id?.videoId);
+  const q = (lec.geminiQuery || lec.lecture_title || '').toLowerCase();
+  const tokens = q.split(/[^a-z0-9\\u0600-\\u06FF]+/i).filter(t => t.length >= 3);
+
+  const scoreText = (text) => {
+    const t = (text || '').toLowerCase();
+    let score = 0;
+    for (const tok of tokens) {
+      if (t.includes(tok)) score += 2;
+    }
+    if (/(شرح|محاضرة|lecture|tutorial|explanation)/i.test(t)) score += 3;
+    if (/(shorts|music|song|lyrics|meme|gaming|clip|mix)/i.test(t)) score -= 5;
+    return score;
+  };
+
+  let best = null;
+  let bestScore = -999;
+  for (const it of items) {
+    if (!it.id?.videoId) continue;
+    const title = it.snippet?.title || '';
+    const desc  = it.snippet?.description || '';
+    const score = scoreText(title) + 0.5 * scoreText(desc);
+    if (score > bestScore) {
+      bestScore = score;
+      best = it;
+    }
+  }
   if (best) {
     url     = 'https://www.youtube.com/watch?v=' + best.id.videoId;
     ytTitle = best.snippet?.title || '';

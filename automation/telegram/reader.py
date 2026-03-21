@@ -10,11 +10,12 @@ One subject: python automation/telegram/reader.py --subject physics
 
 import asyncio, json, os, re, hashlib, argparse
 import urllib.request, urllib.error
+import urllib.parse
 from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
 from telethon import TelegramClient
-from telethon.tl.types import MessageMediaDocument
+from telethon.tl.types import MessageMediaDocument, MessageMediaPhoto
 from telethon.errors import FloodWaitError
 
 load_dotenv('automation/.env')
@@ -110,6 +111,24 @@ SUBJECTS = {
         'doctor_map': {},
         'single_doctor': None,
     },
+    'botany': {
+        'topic_id': 175,
+        'course_code': 'B101',
+        'course_name': 'General Botany',
+        'course_name_ar': 'نبات عام',
+        'download_dir': 'botany',
+        'doctor_map': {},
+        'single_doctor': None,
+    },
+    'zoology': {
+        'topic_id': 176,
+        'course_code': 'Z102',
+        'course_name': 'General Zoology',
+        'course_name_ar': 'حيوان عام',
+        'download_dir': 'zoology',
+        'doctor_map': {},
+        'single_doctor': None,
+    },
     'computer': {
         'topic_id': 180,
         'course_code': 'COMP101',
@@ -118,6 +137,28 @@ SUBJECTS = {
         'download_dir': 'computer_science',
         'doctor_map': {},
         'single_doctor': None,
+    },
+    'practical_physics': {
+        'topic_id': 181,
+        'course_code': 'P104',
+        'course_name': 'Practical Physics (Electricity & Optics)',
+        'course_name_ar': 'فيزياء عملي',
+        'download_dir': 'physics_practical',
+        'doctor_map': {},
+        'single_doctor': None,
+        'include_any': ['فيزياء', 'physics', 'كهرباء', 'بصريات'],
+        'exclude_any': ['كيمياء', 'chem'],
+    },
+    'practical_chemistry': {
+        'topic_id': 181,
+        'course_code': 'C104',
+        'course_name': 'Practical Chemistry',
+        'course_name_ar': 'كيمياء عملي',
+        'download_dir': 'chemistry_practical',
+        'doctor_map': {},
+        'single_doctor': None,
+        'include_any': ['كيمياء', 'chem'],
+        'exclude_any': ['فيزياء', 'physics'],
     },
 }
 
@@ -219,9 +260,17 @@ def classify(text: str) -> dict:
         out['category'] = 'primary'
         out['subtype'] = 'simplified'
         return out
+    if any(k in text for k in ['سكشن', 'عملي', 'معمل', 'لاب', 'lab', 'section']):
+        out['category'] = 'primary'
+        out['subtype'] = 'section'
+        return out
     if 'اسلايد اول' in text or ('اسلايد' in text and 'تاني' not in text and 'تبسيط' not in text):
         out['category'] = 'primary'
         out['subtype'] = 'slides'
+        return out
+    if any(k in text for k in ['جزء', 'part']):
+        out['category'] = 'primary'
+        out['subtype'] = 'part'
         return out
     if 'محاضرة' in text:
         out['category'] = 'primary'
@@ -279,6 +328,31 @@ def api_request(method, endpoint, data=None):
         print(f"Supabase error: {e}")
     return None
 
+def get_course_id(course_code: str):
+    if not course_code:
+        return None
+    code = urllib.parse.quote(course_code)
+    res = api_request('GET', f'courses?select=id&code=eq.{code}&limit=1')
+    if res and isinstance(res, list) and len(res) > 0:
+        return res[0].get('id')
+    return None
+
+def lesson_exists(course_id: str, title: str, lecture_num: int | None):
+    if not course_id:
+        return False
+    # Check by title
+    if title:
+        title_q = urllib.parse.quote(title)
+        res = api_request('GET', f'lessons?select=id&course_id=eq.{course_id}&title=eq.{title_q}&limit=1')
+        if res and isinstance(res, list) and len(res) > 0:
+            return True
+    # Check by order index (lecture number)
+    if lecture_num is not None:
+        res2 = api_request('GET', f'lessons?select=id&course_id=eq.{course_id}&order_index=eq.{lecture_num}&limit=1')
+        if res2 and isinstance(res2, list) and len(res2) > 0:
+            return True
+    return False
+
 def load_queue():
     queue = []
     offset = 0
@@ -316,28 +390,44 @@ async def download_pdf(client, group, tgt: dict, dest_dir: Path, hashes: dict):
             print(f"    ❌ Failed to resolve subgroup {tgt.get('entity_str')}: {e}")
 
     msg = await client.get_messages(target_entity, ids=tgt['msg_id'])
-    if not msg or not isinstance(msg.media, MessageMediaDocument):
+    if not msg or not msg.media:
         return None
 
-    doc = msg.media.document
+    is_photo = isinstance(msg.media, MessageMediaPhoto)
+    is_doc = isinstance(msg.media, MessageMediaDocument)
+    if not (is_photo or is_doc):
+        return None
+
     fname = None
-    for attr in doc.attributes:
-        if hasattr(attr, 'file_name') and attr.file_name:
-            fname = attr.file_name
-            break
+    doc = None
+    mime = None
+    if is_doc:
+        doc = msg.media.document
+        mime = getattr(doc, 'mime_type', None)
+        for attr in doc.attributes:
+            if hasattr(attr, 'file_name') and attr.file_name:
+                fname = attr.file_name
+                break
 
-    is_pdf = (fname and fname.lower().endswith('.pdf')) \
-             or doc.mime_type == 'application/pdf'
-    if not is_pdf:
-        return None
-
-    if not fname:
-        fname = f"doc_{tgt['msg_id']}.pdf"
+    if is_photo:
+        fname = fname or f"photo_{tgt['msg_id']}.jpg"
+    else:
+        if not fname:
+            fname = f"doc_{tgt['msg_id']}.pdf"
 
     fname = re.sub(r'[^\w\u0600-\u06FF.\-_ ]', '', fname).strip() or f"doc_{tgt['msg_id']}.pdf"
 
+    ext = Path(fname).suffix.lower()
+    is_pdf = (ext == '.pdf') or (mime == 'application/pdf')
+    is_img = ext in ('.jpg', '.jpeg', '.png', '.webp') or (mime and mime.startswith('image/')) or is_photo
+    if not (is_pdf or is_img):
+        return None
+
     # Dedup by Telegram file ID
-    tg_key = f"tg_{doc.id}"
+    if is_doc and doc:
+        tg_key = f"tg_{doc.id}"
+    else:
+        tg_key = f"tg_photo_{msg.photo.id if msg.photo else tgt['msg_id']}"
     if tg_key in hashes and Path(hashes[tg_key]).exists():
         print(f"    ⏭️  Duplicate (tg_id): {fname}")
         return hashes[tg_key]
@@ -384,6 +474,7 @@ async def process_subject(client, group, subject_key, cfg, update_mode):
     hashes      = load_hashes()
     queue       = load_queue()
     existing    = {q['id'] for q in queue}
+    course_id   = get_course_id(cfg['course_code'])
 
     # Extract all hyperlinks via Telethon's pure entity mapper
     links = []
@@ -412,6 +503,15 @@ async def process_subject(client, group, subject_key, cfg, update_mode):
     groups = {}
 
     for url, text in links:
+        # Subject-level include/exclude filters (helps split mixed topics)
+        inc = cfg.get('include_any')
+        exc = cfg.get('exclude_any')
+        text_l = text.lower()
+        if inc and not any(k.lower() in text_l for k in inc):
+            continue
+        if exc and any(k.lower() in text_l for k in exc):
+            continue
+
         c = classify(text)
         lec_num = c['lecture_num']
         if lec_num is None: 
@@ -461,6 +561,11 @@ async def process_subject(client, group, subject_key, cfg, update_mode):
         title = f"{cfg['course_name']} — {doctor_str}Lecture {lec_num}"
         print(f"\n  📎 {title}")
 
+        # Skip if this lecture already exists in lessons table (manual uploads)
+        if lesson_exists(course_id, title, lec_num):
+            print("    ⏭️  Already uploaded — skipping")
+            continue
+
         primary_path = None
 
         # Download the first target ID that evaluates to a valid PDF
@@ -475,9 +580,14 @@ async def process_subject(client, group, subject_key, cfg, update_mode):
         can_gemini = False
         if primary_path and Path(primary_path).exists():
             size_mb = Path(primary_path).stat().st_size / 1024 / 1024
-            can_gemini = size_mb <= 50.0
+            is_pdf = str(primary_path).lower().endswith('.pdf')
+            can_gemini = is_pdf and size_mb <= 50.0
             if not can_gemini:
-                print(f"    ⚠️  {size_mb:.1f}MB — too large for Gemini")
+                print(f"    ⚠️  {size_mb:.1f}MB or non-PDF — skipping quiz generation")
+
+        primary_type = 'lecture'
+        if primary_path and not str(primary_path).lower().endswith('.pdf'):
+            primary_type = 'image'
 
         entry = {
             'id': lid,
@@ -490,7 +600,7 @@ async def process_subject(client, group, subject_key, cfg, update_mode):
             'lecture_number': lec_num,
             'lecture_title': title,
             'primary_pdf_path': str(primary_path) if primary_path else None,
-            'primary_pdf_type': 'lecture',
+            'primary_pdf_type': primary_type,
             'can_use_gemini': can_gemini,
             'youtube_url': g['youtube_url'],
             'youtube_from_telegram': g['youtube_from_tg'],
