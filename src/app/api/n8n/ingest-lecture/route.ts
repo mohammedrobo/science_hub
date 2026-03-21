@@ -45,7 +45,14 @@ export async function POST(req: NextRequest) {
   const lectureId     = body.lectureId ?? body.lecture_id ?? body.queue_id ?? body.id;
 
   console.log('[ingest-lecture] Webhook received:', JSON.stringify({ courseCode, lectureTitle, youtubeUrl: rawYoutubeUrl, hasQuiz: !!quizText, pdfUrl }));
-  require('fs').appendFileSync(require('path').join(process.cwd(), 'debug_webhook.log'), JSON.stringify(body, null, 2) + '\n\n');
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const logPath = process.env.N8N_DEBUG_LOG_PATH || path.join('/tmp', 'debug_webhook.log');
+    fs.appendFileSync(logPath, JSON.stringify(body, null, 2) + '\n\n');
+  } catch (e) {
+    // Ignore log write failures in serverless environments
+  }
 
   // Normalize YouTube URL or ID
   const normalizeYoutubeUrl = (input: unknown): string | null => {
