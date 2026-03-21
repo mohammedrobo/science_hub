@@ -34,11 +34,12 @@ interface CourseClientProps {
     course: Course;
     initialLessons: Lesson[];
     initialProgress: Record<string, { score: number }>;
+    isAdmin?: boolean;
 }
 
 
 
-export default function CourseClient({ id, course, initialLessons, initialProgress }: CourseClientProps) {
+export default function CourseClient({ id, course, initialLessons, initialProgress, isAdmin = false }: CourseClientProps) {
     // State
     const [lessons] = useState<Lesson[]>(initialLessons);
     const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
@@ -68,6 +69,7 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
 
 
     const isLessonLocked = (index: number) => {
+        if (isAdmin) return false; // Admins bypass locks completely
         if (index === 0) return false; // First lesson always unlocked
 
         const prevLesson = lessons[index - 1];

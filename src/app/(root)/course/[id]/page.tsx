@@ -5,6 +5,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import { Course } from '@/types';
 import { unstable_cache } from 'next/cache';
+import { readSession } from '@/lib/auth/session-read';
 
 export async function generateStaticParams() {
     return MOCK_COURSES.map((course) => ({
@@ -56,10 +57,13 @@ export default async function CoursePage({ params }: { params: Promise<{ id: str
     }
 
     // Server-side Parallel Fetch
-    const [lessons, progress] = await Promise.all([
+    const [lessons, progress, session] = await Promise.all([
         getCourseContent(id),
-        getCourseProgress()
+        getCourseProgress(),
+        readSession()
     ]);
+
+    const isAdmin = session?.role === 'admin' || session?.role === 'super_admin';
 
     return (
         <CourseClient
@@ -67,6 +71,7 @@ export default async function CoursePage({ params }: { params: Promise<{ id: str
             course={course}
             initialLessons={lessons}
             initialProgress={progress}
+            isAdmin={isAdmin}
         />
     );
 }
