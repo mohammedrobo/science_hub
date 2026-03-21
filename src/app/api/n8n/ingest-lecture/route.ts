@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
     instructor, youtubeUrl, pdfUrl, quizText, lectureId,
   } = body;
   console.log('[ingest-lecture] Webhook received:', JSON.stringify({ courseCode, lectureTitle, youtubeUrl, hasQuiz: !!quizText, pdfUrl }));
+  require('fs').appendFileSync(require('path').join(process.cwd(), 'debug_webhook.log'), JSON.stringify(body, null, 2) + '\n\n');
 
   // Validate the Youtube URL basic format
   const validYoutubeUrl = (typeof youtubeUrl === 'string' && youtubeUrl.startsWith('http')) ? youtubeUrl : null;
