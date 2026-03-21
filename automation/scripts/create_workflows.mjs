@@ -1,10 +1,16 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import { readFileSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const ROOT        = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-const N8N         = process.env.N8N_URL || 'http://localhost:5678';
+
+// Load env from project + automation scopes (order: base -> local -> automation)
+dotenv.config({ path: path.join(ROOT, '.env') });
+dotenv.config({ path: path.join(ROOT, '.env.local') });
+dotenv.config({ path: path.join(ROOT, 'automation', '.env') });
+
+const N8N         = process.env.N8N_URL || process.env.N8N_BASE_URL || 'http://localhost:5678';
 const AUTH        = Buffer.from(process.env.N8N_ADMIN_CREDENTIALS || 'admin:sciencehub2024').toString('base64');
 const HEADERS     = { 'Content-Type':'application/json', 'Authorization':`Basic ${AUTH}` };
 const WEBSITE     = process.env.WEBSITE_URL || 'http://localhost:3000';
@@ -12,6 +18,10 @@ const SECRET      = process.env.N8N_WEBHOOK_SECRET;
 const YT_KEY      = process.env.YOUTUBE_API_KEY;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SECRET) console.warn('⚠️  N8N_WEBHOOK_SECRET is missing — website ingest will reject requests.');
+if (!YT_KEY) console.warn('⚠️  YOUTUBE_API_KEY is missing — YouTube search will fail.');
+if (!SUPABASE_URL || !SUPABASE_KEY) console.warn('⚠️  Supabase credentials missing — queue insert will fail.');
 
 async function api(path, body) {
   const r = await fetch(`${N8N}/rest${path}`, {
@@ -353,4 +363,3 @@ console.log('\\n🎉 Done. Open http://localhost:5678 to see your workflows.');
 console.warn('\\n⚠️  IMPORTANT: For the Upload Webhook to work, you MUST set the environment variable');
 console.warn('   NODE_FUNCTION_ALLOW_BUILTIN=fs,path,crypto,child_process,https');
 console.warn('   on your n8n server container. Otherwise, the custom code nodes will fail.');
-

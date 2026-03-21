@@ -129,9 +129,19 @@ async function callAI(messages) {
 }
 
 async function run() {
-  if (!pdfPath || canUseGemini === 'false' || !fs.existsSync(pdfPath)) {
-    out({ success: false, quizText: '', ytQuery: '', reason: 'no_pdf_or_too_large' });
+  if (!pdfPath || !fs.existsSync(pdfPath)) {
+    out({ success: false, quizText: '', ytQuery: '', reason: 'no_pdf' });
     return;
+  }
+
+  const sizeMB = fs.statSync(pdfPath).size / 1024 / 1024;
+  if (sizeMB > 200) {
+    out({ success: false, quizText: '', ytQuery: '', reason: `pdf_too_large_${sizeMB.toFixed(1)}mb` });
+    return;
+  }
+
+  if (canUseGemini === 'false') {
+    err('⚠️ canUseGemini=false (file > 50MB). Continuing with OpenRouter/HuggingFace anyway.');
   }
 
   if (!OPENROUTER_KEY && !HUGGINGFACE_KEY) {

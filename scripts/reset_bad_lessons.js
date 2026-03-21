@@ -7,20 +7,25 @@ const supabase = createClient(
 );
 
 async function resetBadLessons() {
-  console.log('🔄 Finding incomplete lessons created by n8n...');
+  console.log('🔄 Finding incomplete lessons created by n8n (missing YouTube or quiz)...');
   
   // Find all lessons that don't have a video URL or a quiz_id (incomplete)
   // And that exist in the n8n_processed_lectures table (meaning n8n created them)
   const { data: processed, error: lookupError } = await supabase
     .from('n8n_processed_lectures')
-    .select('id, lesson_id, lessons(id, title, video_url)');
+    .select('id, lesson_id, lessons(id, title, video_url, quiz_id)');
 
   if (lookupError) {
     console.error('❌ Error finding processed lectures:', lookupError);
     return;
   }
 
-  const incomplete = processed.filter(p => !p.lessons || !p.lessons.video_url);
+  const incomplete = processed.filter(p => {
+    if (!p.lessons) return true;
+    const missingVideo = !p.lessons.video_url;
+    const missingQuiz  = !p.lessons.quiz_id;
+    return missingVideo || missingQuiz;
+  });
 
   if (incomplete.length === 0) {
     console.log('✅ No incomplete n8n lessons found! You are good to go.');

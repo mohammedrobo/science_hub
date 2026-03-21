@@ -8,16 +8,61 @@ export async function POST(req: NextRequest) {
   if (req.headers.get('x-n8n-secret') !== SECRET)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = await req.json();
-  const {
-    courseCode, courseName, lectureTitle, lectureNumber,
-    instructor, youtubeUrl, pdfUrl, quizText, lectureId,
-  } = body;
-  console.log('[ingest-lecture] Webhook received:', JSON.stringify({ courseCode, lectureTitle, youtubeUrl, hasQuiz: !!quizText, pdfUrl }));
+  let body: any = {};
+  try {
+    const raw = await req.text();
+    if (raw && raw.trim().length > 0) {
+      try {
+        body = JSON.parse(raw);
+      } catch {
+        // Fallback for urlencoded/plain text bodies
+        body = Object.fromEntries(new URLSearchParams(raw));
+      }
+    } else {
+      body = {};
+    }
+  } catch (e) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  // Normalize keys (trim whitespace/invisible chars)
+  if (body && typeof body === 'object') {
+    const normalized: Record<string, any> = {};
+    for (const [k, v] of Object.entries(body)) {
+      const trimmed = String(k).replace(/[\u200B\u200C\u200D\uFEFF]/g, '').trim();
+      if (!(trimmed in normalized)) normalized[trimmed] = v;
+    }
+    body = { ...body, ...normalized };
+  }
+  const courseCode    = body.courseCode ?? body.course_code ?? body.coursecode;
+  const courseName    = body.courseName ?? body.course_name ?? body.coursename;
+  const lectureTitle  = body.lectureTitle ?? body.lecture_title ?? body.lecturetitle;
+  const lectureNumber = body.lectureNumber ?? body.lecture_number ?? body.lecture_no ?? body.lectureNo;
+  const instructor    = body.instructor ?? body.instructor_name ?? body.professor ?? body.doctor ?? body.teacher;
+  const rawYoutubeUrl = body.youtubeUrl ?? body.youtube_url ?? body.youtube ?? body.videoUrl ?? body.video_url ?? body.video;
+  const pdfUrl        = body.pdfUrl ?? body.pdf_url ?? body.pdf;
+  const quizText      = body.quizText ?? body.quiz_text ?? body.quiz;
+  const lectureId     = body.lectureId ?? body.lecture_id ?? body.queue_id ?? body.id;
+
+  console.log('[ingest-lecture] Webhook received:', JSON.stringify({ courseCode, lectureTitle, youtubeUrl: rawYoutubeUrl, hasQuiz: !!quizText, pdfUrl }));
   require('fs').appendFileSync(require('path').join(process.cwd(), 'debug_webhook.log'), JSON.stringify(body, null, 2) + '\n\n');
 
-  // Validate the Youtube URL basic format
-  const validYoutubeUrl = (typeof youtubeUrl === 'string' && youtubeUrl.startsWith('http')) ? youtubeUrl : null;
+  // Normalize YouTube URL or ID
+  const normalizeYoutubeUrl = (input: unknown): string | null => {
+    if (typeof input !== 'string') return null;
+    let v = input.trim();
+    if (!v) return null;
+    // If it's a bare video ID
+    if (/^[A-Za-z0-9_-]{11}$/.test(v)) return `https://www.youtube.com/watch?v=${v}`;
+    // Add scheme if missing but looks like YouTube
+    if (!/^https?:\/\//i.test(v) && (/^(www\.)?youtube\.com/i.test(v) || /^youtu\.be/i.test(v))) {
+      v = 'https://' + v.replace(/^www\./i, '');
+    }
+    if (/^https?:\/\//i.test(v)) return v;
+    return null;
+  };
+
+  const validYoutubeUrl = normalizeYoutubeUrl(rawYoutubeUrl);
 
   const supabase = await createClient();
 
