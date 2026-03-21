@@ -99,9 +99,11 @@ begin
 
     -- Create quiz and questions if provided
     if p_questions is not null and jsonb_array_length(p_questions) > 0 then
-        insert into quizzes (lesson_id, course_id, title)
-        values (v_lesson_id, p_course_id, p_quiz_title)
+        insert into quizzes (course_id, title)
+        values (p_course_id, p_quiz_title)
         returning id into v_quiz_id;
+
+        update lessons set quiz_id = v_quiz_id where id = v_lesson_id;
 
         for v_question_record in select * from jsonb_array_elements(p_questions)
         loop
