@@ -8,10 +8,12 @@ export async function POST(req: NextRequest) {
   if (req.headers.get('x-n8n-secret') !== SECRET)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  const body = await req.json();
   const {
     courseCode, courseName, lectureTitle, lectureNumber,
     instructor, youtubeUrl, pdfUrl, quizText, lectureId,
-  } = await req.json();
+  } = body;
+  console.log('[ingest-lecture] Webhook received:', JSON.stringify({ courseCode, lectureTitle, youtubeUrl, hasQuiz: !!quizText, pdfUrl }));
 
   // Validate the Youtube URL basic format
   const validYoutubeUrl = (typeof youtubeUrl === 'string' && youtubeUrl.startsWith('http')) ? youtubeUrl : null;
@@ -67,13 +69,26 @@ export async function POST(req: NextRequest) {
   const num = parseInt(lectureNumber, 10);
   const orderIndex = Number.isNaN(num) ? 999 : num;
 
-  const rpcQuestions = parsed ? parsed.questions.map((q: any, i: number) => ({
-    text: q.question,
-    type: q.type,
-    options: q.options || null,
-    correct_answer: q.correctAnswer || null,
-    order_index: i + 1,
-  })) : null;
+  const rpcQuestions = parsed ? parsed.questions.map((q: any, i: number) => {
+    let corrAns = null;
+    if (q.type === 'mcq') {
+       if (q.options && q.options.length > q.correctAnswerIndex && q.correctAnswerIndex >= 0) {
+           corrAns = q.options[q.correctAnswerIndex];
+       } else if (q.correctAnswerIndex >= 0) {
+           corrAns = String.fromCharCode(97 + q.correctAnswerIndex);
+       }
+    } else {
+       corrAns = q.correctAnswerIndex === 0 ? 'True' : 'False';
+    }
+    
+    return {
+      text: q.text,
+      type: q.type,
+      options: q.options || null,
+      correct_answer: corrAns,
+      order_index: i + 1,
+    };
+  }) : null;
 
   // ── Execute RPC for atomic transaction ──
   const { data: lessonId, error: rpcError } = await supabase.rpc('ingest_lesson_data', {
