@@ -31,7 +31,9 @@
     "showing": "عرض {count} مقررات",
     "empty": "فارغ",
     "unknownError": "خطأ غير معروف",
-    "unknownStudent": "طالب غير معروف"
+    "unknownStudent": "طالب غير معروف",
+    "publish": "نشر",
+    "unpublish": "إلغاء النشر"
   },
   "home": {
     "welcomeTo": "مرحباً بك في",

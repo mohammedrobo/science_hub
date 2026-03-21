@@ -31,7 +31,9 @@
     "showing": "Showing {count} courses",
     "empty": "Empty",
     "unknownError": "Unknown Error",
-    "unknownStudent": "Unknown Student"
+    "unknownStudent": "Unknown Student",
+    "publish": "Publish",
+    "unpublish": "Unpublish"
   },
   "home": {
     "welcomeTo": "Welcome to",

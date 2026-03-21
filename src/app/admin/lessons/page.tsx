@@ -271,7 +271,7 @@ export default function LessonsPage() {
                                                         {togglingId === lesson.id ? (
                                                             <Loader2 className="w-4 h-4 animate-spin" />
                                                         ) : (
-                                                            <span className="hidden sm:inline">{lesson.is_published === false ? 'Publish' : 'Unpublish'}</span>
+                                                            <span className="hidden sm:inline">{lesson.is_published === false ? tc('publish') : tc('unpublish')}</span>
                                                         )}
                                                     </Button>
                                                     <Link href={`/admin/lessons/${lesson.id}/edit`}>
