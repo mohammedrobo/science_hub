@@ -148,6 +148,7 @@ SUBJECTS = {
         'single_doctor': None,
         'include_any': ['فيزياء', 'physics', 'كهرباء', 'بصريات'],
         'exclude_any': ['كيمياء', 'chem'],
+        'assign_seq_if_missing': True,
     },
     'practical_chemistry': {
         'topic_id': 181,
@@ -159,6 +160,7 @@ SUBJECTS = {
         'single_doctor': None,
         'include_any': ['كيمياء', 'chem'],
         'exclude_any': ['فيزياء', 'physics'],
+        'assign_seq_if_missing': True,
     },
 }
 
@@ -260,7 +262,7 @@ def classify(text: str) -> dict:
         out['category'] = 'primary'
         out['subtype'] = 'simplified'
         return out
-    if any(k in text for k in ['سكشن', 'عملي', 'معمل', 'لاب', 'lab', 'section']):
+    if any(k in text for k in ['سكشن', 'سيكشن', 'عملي', 'عملى', 'معمل', 'لاب', 'lab', 'section']):
         out['category'] = 'primary'
         out['subtype'] = 'section'
         return out
@@ -301,6 +303,55 @@ def file_hash(path: str) -> str:
 def lecture_id(course_code, doctor, lec_num):
     key = f"{course_code}|{doctor or 'none'}|{lec_num}"
     return hashlib.md5(key.encode()).hexdigest()
+
+def text_matches_subject(text: str, cfg: dict) -> bool:
+    inc = cfg.get('include_any')
+    exc = cfg.get('exclude_any')
+    t = (text or '').lower()
+    if inc and not any(k.lower() in t for k in inc):
+        return False
+    if exc and any(k.lower() in t for k in exc):
+        return False
+    return True
+
+def extract_lecture_num_from_text(text: str):
+    try:
+        return classify(text).get('lecture_num')
+    except Exception:
+        return None
+
+async def fetch_target_message(client, group, tgt: dict):
+    target_entity = group
+    if tgt.get('entity_str'):
+        try:
+            val = tgt['entity_str']
+            if val.isdigit():
+                target_entity = await client.get_entity(int("-100" + val))
+            else:
+                target_entity = await client.get_entity(val)
+        except Exception:
+            return None
+    try:
+        msg = await client.get_messages(target_entity, ids=tgt['msg_id'])
+        return msg
+    except Exception:
+        return None
+
+def extract_message_context(msg) -> str:
+    parts = []
+    if not msg:
+        return ''
+    if getattr(msg, 'text', None):
+        parts.append(msg.text)
+    if getattr(msg, 'message', None):
+        parts.append(msg.message)
+    if isinstance(msg.media, MessageMediaDocument):
+        doc = msg.media.document
+        for attr in doc.attributes:
+            if hasattr(attr, 'file_name') and attr.file_name:
+                parts.append(attr.file_name)
+                break
+    return ' '.join(parts)
 
 # ── Queue Supabase helpers ─────────────────────────────────────
 def api_request(method, endpoint, data=None):
@@ -501,22 +552,44 @@ async def process_subject(client, group, subject_key, cfg, update_mode):
     print(f"  📖 {len(links)} curated links extracted from Index")
 
     groups = {}
+    msg_cache = {}
+    seq_counter = 1
 
     for url, text in links:
-        # Subject-level include/exclude filters (helps split mixed topics)
-        inc = cfg.get('include_any')
-        exc = cfg.get('exclude_any')
-        text_l = text.lower()
-        if inc and not any(k.lower() in text_l for k in inc):
-            continue
-        if exc and any(k.lower() in text_l for k in exc):
-            continue
+        # Parse Telegram target (if any)
+        tgt = None
+        if 'youtu' not in url.lower():
+            match = re.search(r't(?:elegram)?\.me/(?:c/(\d+)/|([\w-]+)/)?(\d+)$', url)
+            if match:
+                tgt = { 'entity_str': match.group(1) or match.group(2), 'msg_id': int(match.group(3)) }
 
-        c = classify(text)
-        lec_num = c['lecture_num']
-        if lec_num is None: 
-            # If the hyperlink text itself doesn't contain the lecture number, 
-            # we try to see if the URL is valid, but without a lecture num we drop it safely
+        ctx_text = text or ''
+        # Subject-level include/exclude filters (helps split mixed topics)
+        if (cfg.get('include_any') or cfg.get('exclude_any')) and not text_matches_subject(ctx_text, cfg):
+            # Try to use message context if available
+            if tgt:
+                cache_key = f"{tgt.get('entity_str') or 'main'}:{tgt['msg_id']}"
+                if cache_key not in msg_cache:
+                    msg_cache[cache_key] = await fetch_target_message(client, group, tgt)
+                ctx_text = (ctx_text + ' ' + extract_message_context(msg_cache[cache_key])).strip()
+            if not text_matches_subject(ctx_text, cfg):
+                continue
+
+        lec_num = extract_lecture_num_from_text(ctx_text)
+        if lec_num is None and tgt:
+            # Try extraction from message content / filename
+            cache_key = f"{tgt.get('entity_str') or 'main'}:{tgt['msg_id']}"
+            if cache_key not in msg_cache:
+                msg_cache[cache_key] = await fetch_target_message(client, group, tgt)
+            ctx_text = (ctx_text + ' ' + extract_message_context(msg_cache[cache_key])).strip()
+            lec_num = extract_lecture_num_from_text(ctx_text)
+
+        if lec_num is None and cfg.get('assign_seq_if_missing'):
+            lec_num = seq_counter
+            seq_counter += 1
+
+        if lec_num is None:
+            # Without a lecture number we still drop it safely
             continue
 
         doctor = cfg.get('single_doctor')
@@ -536,12 +609,8 @@ async def process_subject(client, group, subject_key, cfg, update_mode):
                 groups[gkey]['youtube_url'] = url
                 groups[gkey]['youtube_from_tg'] = True
         else:
-            match = re.search(r't(?:elegram)?\.me/(?:c/(\d+)/|([\w-]+)/)?(\d+)$', url)
-            if match:
-                groups[gkey]['target_msg_ids'].append({
-                    'entity_str': match.group(1) or match.group(2),
-                    'msg_id': int(match.group(3))
-                })
+            if tgt:
+                groups[gkey]['target_msg_ids'].append(tgt)
 
     print(f"  📊 {len(groups)} logical lectures mapped")
 

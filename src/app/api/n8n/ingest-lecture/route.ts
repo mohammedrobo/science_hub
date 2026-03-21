@@ -100,18 +100,43 @@ export async function POST(req: NextRequest) {
     .select('lesson_id')
     .eq('queue_id', String(lectureId))
     .maybeSingle();
-  if (already)
+
+  // If the queue item was already processed with a real lesson_id, skip.
+  if (already?.lesson_id) {
     return NextResponse.json({ success: true, duplicate: true, lessonId: already.lesson_id });
+  }
+
+  // If a stale marker exists without lesson_id, remove it and continue.
+  if (already && !already.lesson_id) {
+    await supabase
+      .from('n8n_processed_lectures')
+      .delete()
+      .eq('queue_id', String(lectureId));
+  }
 
   // ── Duplicate guard 2: same lesson already exists ──
+  const lectureNumParsed = Number.parseInt(String(lectureNumber ?? ''), 10);
+  if (!Number.isNaN(lectureNumParsed)) {
+    const { data: numMatch } = await supabase
+      .from('lessons')
+      .select('id')
+      .eq('course_id', courseId)
+      .eq('order_index', lectureNumParsed)
+      .maybeSingle();
+    if (numMatch) {
+      return NextResponse.json({ success: true, duplicate: true, lessonId: numMatch.id });
+    }
+  }
+
   const { data: titleMatch } = await supabase
     .from('lessons')
     .select('id')
     .eq('course_id', courseId)
     .eq('title', lectureTitle)
     .maybeSingle();
-  if (titleMatch)
+  if (titleMatch) {
     return NextResponse.json({ success: true, duplicate: true, lessonId: titleMatch.id });
+  }
 
   // ── Parse quiz first! Catch errors before touching the DB ──
   let questionsCount = 0;
