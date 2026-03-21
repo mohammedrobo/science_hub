@@ -38,7 +38,7 @@ export async function proxy(request: NextRequest) {
     const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
 
     // Public API routes (no auth needed)
-    const publicApiRoutes = ['/api/courses', '/api/auth/check-session', '/api/auth/login', '/api/cron'];
+    const publicApiRoutes = ['/api/courses', '/api/auth/check-session', '/api/auth/login', '/api/cron', '/api/n8n'];
     const isPublicApi = publicApiRoutes.some(route => pathname.startsWith(route));
 
     // Static files that should always be accessible (PWA, icons, etc.)
