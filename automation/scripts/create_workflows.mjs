@@ -69,7 +69,7 @@ return [{ json: r.found ? { skip:false, ...r } : { skip:true } }];
       },
     },
     {
-      name: "Generate Quiz (Gemini Browser)",
+      name: "Generate Quiz (OpenRouter AI)",
       type: "n8n-nodes-base.code",
       typeVersion: 2,
       position: [960, 180],
@@ -82,7 +82,7 @@ if (!lec.primary_pdf_path || lec.primary_pdf_path === 'null') {
 }
 try {
   const rs = cp.spawnSync('node', [
-    'automation/gemini/generate_quiz.js', 
+    'automation/gemini/generate_quiz_api.js', 
     lec.primary_pdf_path, 
     lec.course_name, 
     lec.lecture_title, 
@@ -211,8 +211,8 @@ return [{ json:{ ...lec, youtubeUrl:url, youtubeTitle:ytTitle } }];
     "Every 15 Minutes":               { main:[[{ node:"Pick Next from Queue",           type:"main", index:0 }]] },
     "Pick Next from Queue":           { main:[[{ node:"Parse Queue",                    type:"main", index:0 }]] },
     "Parse Queue":                    { main:[[{ node:"Queue Empty?",                   type:"main", index:0 }]] },
-    "Queue Empty?":                   { main:[[{ node:"Generate Quiz (Gemini Browser)", type:"main", index:0 }],[]] },
-    "Generate Quiz (Gemini Browser)": { main:[[{ node:"Parse Quiz",                     type:"main", index:0 }]] },
+    "Queue Empty?":                   { main:[[{ node:"Generate Quiz (OpenRouter AI)", type:"main", index:0 }],[]] },
+    "Generate Quiz (OpenRouter AI)": { main:[[{ node:"Parse Quiz",                     type:"main", index:0 }]] },
     "Parse Quiz":                     { main:[[{ node:"Search YouTube",                 type:"main", index:0 }]] },
     "Search YouTube":                 { main:[[{ node:"Pick Best Video",                type:"main", index:0 }]] },
     "Pick Best Video":                { main:[[{ node:"Create Lesson on Website",       type:"main", index:0 }]] },
