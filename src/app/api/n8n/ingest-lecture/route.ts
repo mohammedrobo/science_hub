@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 import { parseQuizText } from '@/lib/quiz-parser';
 
 const SECRET = process.env.N8N_WEBHOOK_SECRET;
@@ -8,6 +8,7 @@ export async function POST(req: NextRequest) {
   if (req.headers.get('x-n8n-secret') !== SECRET)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  try {
   let body: any = {};
   try {
     const raw = await req.text();
@@ -44,6 +45,14 @@ export async function POST(req: NextRequest) {
   const quizText      = body.quizText ?? body.quiz_text ?? body.quiz;
   const lectureId     = body.lectureId ?? body.lecture_id ?? body.queue_id ?? body.id;
 
+  if (!courseCode || !lectureTitle) {
+    return NextResponse.json({
+      error: 'Missing required fields',
+      receivedKeys: Object.keys(body || {}),
+      received: { courseCode, lectureTitle, lectureNumber, lectureId }
+    }, { status: 400 });
+  }
+
   console.log('[ingest-lecture] Webhook received:', JSON.stringify({ courseCode, lectureTitle, youtubeUrl: rawYoutubeUrl, hasQuiz: !!quizText, pdfUrl }));
   try {
     const fs = require('fs');
@@ -71,7 +80,7 @@ export async function POST(req: NextRequest) {
 
   const validYoutubeUrl = normalizeYoutubeUrl(rawYoutubeUrl);
 
-  const supabase = await createClient();
+  const supabase = await createServiceRoleClient();
 
   // ── Retrieve Course UUID dynamically ──
   const { data: courseData } = await supabase
@@ -167,4 +176,8 @@ export async function POST(req: NextRequest) {
     questionsGenerated: questionsCount,
     youtubeAttached: !!validYoutubeUrl,
   });
+  } catch (e: any) {
+    console.error('[ingest-lecture] Fatal Error:', e?.message || e);
+    return NextResponse.json({ error: 'ingest_failed', message: e?.message || String(e) }, { status: 500 });
+  }
 }
