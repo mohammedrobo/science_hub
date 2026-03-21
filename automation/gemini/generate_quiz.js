@@ -133,7 +133,7 @@ Rules:
     
     const fileManager = new GoogleAIFileManager(apiKey);
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-3.1-pro-preview" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
 
     const attempt = await attemptQuizGeneration(apiKey, fileManager, model, prompt, accountIndex);
     

@@ -20,9 +20,9 @@ from telethon.errors import FloodWaitError
 load_dotenv('automation/.env')
 load_dotenv('.env.local')
 
-API_ID   = int(os.getenv('TELEGRAM_API_ID', '0'))
-API_HASH = os.getenv('TELEGRAM_API_HASH')
-PHONE    = os.getenv('TELEGRAM_PHONE')
+API_ID   = int(os.getenv('TELEGRAM_API_ID', '0').strip())
+API_HASH = os.getenv('TELEGRAM_API_HASH', '').strip()
+PHONE    = os.getenv('TELEGRAM_PHONE', '').strip()
 GROUP    = os.getenv('TELEGRAM_GROUP')
 
 SUPABASE_URL = os.getenv('NEXT_PUBLIC_SUPABASE_URL')
@@ -64,99 +64,60 @@ YOUTUBE_RE = re.compile(
 # ── Subject configuration ──────────────────────────────────────
 SUBJECTS = {
     'chemistry_physical': {
-        'start_msg_id': 174,   # ⚠️ VERIFY
-        'scan_range': 100,
-        'course_code': 'C102_PHY',
-        'course_name': 'Physical Chemistry',
-        'course_name_ar': 'الكيمياء الفيزيائية',
+        'topic_id': 174,
+        'course_code': 'C102',
+        'course_name': 'General Chemistry 2 (Physical)',
+        'course_name_ar': 'كيمياء',
         'download_dir': 'chemistry/physical',
         'doctor_map': {},
         'single_doctor': None,
+        'offset_limit': 'عضوية',
     },
     'chemistry_organic': {
-        'start_msg_id': 177,   # ⚠️ VERIFY
-        'scan_range': 100,
-        'course_code': 'C102_ORG',
-        'course_name': 'Organic Chemistry',
-        'course_name_ar': 'الكيمياء العضوية',
+        'topic_id': 174,
+        'course_code': 'C102',
+        'course_name': 'General Chemistry 2 (Organic)',
+        'course_name_ar': 'كيمياء عضوية',
         'download_dir': 'chemistry/organic',
         'doctor_map': {},
         'single_doctor': None,
+        'offset_start': 'عضوية',
     },
     'physics': {
-        'start_msg_id': 175,   # ⚠️ VERIFY
-        'scan_range': 180,
+        'topic_id': 177,
         'course_code': 'P102',
-        'course_name': 'Physics',
-        'course_name_ar': 'الفيزياء',
+        'course_name': 'General Physics 2',
+        'course_name_ar': 'فيزياء 2',
         'download_dir': 'physics',
-        'doctor_map': {
-            'أ)':'Dr. Essam',   'أ )':'Dr. Essam',
-            'ب)':'Dr. Wagida',  'ب )':'Dr. Wagida',
-            'ج)':'Dr. Abdulrahman', 'ج )':'Dr. Abdulrahman',
-        },
-        'single_doctor': None,
-    },
-    'botany': {
-        'start_msg_id': 182,   # FIXED: Separated from Physics (was 175)
-        'scan_range': 120,
-        'course_code': 'B102',
-        'course_name': 'Botany',
-        'course_name_ar': 'علم النبات',
-        'download_dir': 'botany',
-        'doctor_map': {},
-        'single_doctor': None,
-    },
-    'zoology': {
-        'start_msg_id': 176,
-        'scan_range': 120,
-        'course_code': 'Z102',
-        'course_name': 'Zoology',
-        'course_name_ar': 'علم الحيوان',
-        'download_dir': 'zoology',
         'doctor_map': {},
         'single_doctor': None,
     },
     'math': {
-        'start_msg_id': 178,
-        'scan_range': 150,
+        'topic_id': 178,
         'course_code': 'M102',
-        'course_name': 'Mathematics',
-        'course_name_ar': 'الرياضيات',
+        'course_name': 'Mathematics 2',
+        'course_name_ar': 'رياضيات 2',
         'download_dir': 'math',
         'doctor_map': {},
         'single_doctor': None,
     },
     'geology': {
-        'start_msg_id': 179,
-        'scan_range': 80,
+        'topic_id': 179,
         'course_code': 'G102',
-        'course_name': 'Geology',
-        'course_name_ar': 'الجيولوجيا',
+        'course_name': 'Historical Geology',
+        'course_name_ar': 'جيولوجيا تاريخية',
         'download_dir': 'geology',
         'doctor_map': {},
         'single_doctor': None,
     },
     'computer': {
-        'start_msg_id': 180,
-        'scan_range': 120,
-        'course_code': 'CS102',
-        'course_name': 'Computer Science',
-        'course_name_ar': 'علم الحاسب',
-        'download_dir': 'computer',
+        'topic_id': 180,
+        'course_code': 'COMP101',
+        'course_name': 'Introduction to Computer',
+        'course_name_ar': 'مقدمة حاسب',
+        'download_dir': 'computer_science',
         'doctor_map': {},
         'single_doctor': None,
-    },
-    'lab': {
-        'start_msg_id': 181,
-        'scan_range': 100,
-        'course_code': 'LAB',
-        'course_name': 'Practical Lab',
-        'course_name_ar': 'المواد العملية',
-        'download_dir': 'lab',
-        'doctor_map': {},
-        'single_doctor': None,
-        'is_lab': True,
     },
 }
 
@@ -222,11 +183,12 @@ def classify(text: str) -> dict:
         found_ordinals.sort(key=lambda x: x[0])
         out['lecture_num'] = found_ordinals[0][1]
     if not out.get('lecture_num'):
-        m2 = re.search(r'(?<!\d)(\d{1,2})(?!\d)', text)
+        text_clean = re.sub(r'https?://[^\s]+', '', text).strip()
+        m2 = re.search(r'(?<!\d)(\d{1,2})(?!\d)', text_clean)
         if m2:
             out['lecture_num'] = int(m2.group(1))
         else:
-            m3 = re.search(r'(?<![٠١٢٣٤٥٦٧٨٩])([٠١٢٣٤٥٦٧٨٩]{1,2})(?![٠١٢٣٤٥٦٧٨٩])', text)
+            m3 = re.search(r'(?<![٠١٢٣٤٥٦٧٨٩])([٠١٢٣٤٥٦٧٨٩]{1,2})(?![٠١٢٣٤٥٦٧٨٩])', text_clean)
             if m3:
                 out['lecture_num'] = int(m3.group(1).translate(str.maketrans('٠١٢٣٤٥٦٧٨٩', '0123456789')))
 
@@ -341,8 +303,19 @@ def save_exams(e):
     EXAM_FILE.write_text(json.dumps(e, ensure_ascii=False, indent=2), 'utf-8')
 
 # ── Downloader ─────────────────────────────────────────────────
-async def download_pdf(client, group, msg_id: int, dest_dir: Path, hashes: dict):
-    msg = await client.get_messages(group, ids=msg_id)
+async def download_pdf(client, group, tgt: dict, dest_dir: Path, hashes: dict):
+    target_entity = group
+    if tgt.get('entity_str'):
+        try:
+            val = tgt['entity_str']
+            if val.isdigit():
+                target_entity = await client.get_entity(int("-100" + val))
+            else:
+                target_entity = await client.get_entity(val)
+        except Exception as e:
+            print(f"    ❌ Failed to resolve subgroup {tgt.get('entity_str')}: {e}")
+
+    msg = await client.get_messages(target_entity, ids=tgt['msg_id'])
     if not msg or not isinstance(msg.media, MessageMediaDocument):
         return None
 
@@ -359,9 +332,9 @@ async def download_pdf(client, group, msg_id: int, dest_dir: Path, hashes: dict)
         return None
 
     if not fname:
-        fname = f"doc_{msg_id}.pdf"
+        fname = f"doc_{tgt['msg_id']}.pdf"
 
-    fname = re.sub(r'[^\w\u0600-\u06FF.\-_ ]', '', fname).strip() or f"doc_{msg_id}.pdf"
+    fname = re.sub(r'[^\w\u0600-\u06FF.\-_ ]', '', fname).strip() or f"doc_{tgt['msg_id']}.pdf"
 
     # Dedup by Telegram file ID
     tg_key = f"tg_{doc.id}"
@@ -372,7 +345,7 @@ async def download_pdf(client, group, msg_id: int, dest_dir: Path, hashes: dict)
     dest_dir.mkdir(parents=True, exist_ok=True)
     dest = dest_dir / fname
     if dest.exists():
-        dest = dest_dir / f"{dest.stem}_{msg_id}.pdf"
+        dest = dest_dir / f"{dest.stem}_{tgt['msg_id']}.pdf"
 
     print(f"    ⬇️  {fname}")
     try:
@@ -398,133 +371,80 @@ async def download_pdf(client, group, msg_id: int, dest_dir: Path, hashes: dict)
             dest.unlink()
         return None
 
-# ── Per-subject processor ──────────────────────────────────────
-def load_state():
-    if STATE_FILE.exists():
-        return json.loads(STATE_FILE.read_text('utf-8'))
-    return {}
-
-def save_state(st):
-    STATE_FILE.write_text(json.dumps(st, ensure_ascii=False, indent=2), 'utf-8')
-
 async def process_subject(client, group, subject_key, cfg, update_mode):
-    state = load_state()
-    start_id = int(state.get(subject_key, cfg['start_msg_id']))
-    scan_limit = cfg['scan_range'] + 50
-
     print(f"\n{'='*60}")
-    print(f"📚 {cfg['course_name']} | start_id={start_id}")
+    print(f"📚 {cfg['course_name']} | Index ID={cfg['topic_id']}")
     print(f"{'='*60}")
 
-    msgs = await client.get_messages(
-        group,
-        min_id=start_id - 1,
-        max_id=start_id + cfg['scan_range'],
-        limit=scan_limit,
-    )
-    msgs = sorted(msgs, key=lambda m: m.id)
-    print(f"  📖 {len(msgs)} messages to analyze")
+    idx_msg = await client.get_messages(group, ids=cfg['topic_id'])
+    if not idx_msg or not idx_msg.text:
+        print("  ❌ Index message not found")
+        return 0
 
     hashes      = load_hashes()
     queue       = load_queue()
     existing    = {q['id'] for q in queue}
-    exams       = load_exams()
-    current_doc = cfg.get('single_doctor')
 
-    # Groups: {(doctor, lec_num): {...}}
+    # Extract all hyperlinks via Telethon's pure entity mapper
+    links = []
+    if getattr(idx_msg, 'entities', None):
+        start_offset = 0
+        limit_offset = float('inf')
+        
+        # We calculate offset bounds exactly in UTF-16 code units 
+        # because Telegram's Entity offsets are encoded as UTF-16 lengths
+        text_utf16 = idx_msg.text.encode('utf-16-le')
+        if 'offset_limit' in cfg:
+            idx = text_utf16.find(cfg['offset_limit'].encode('utf-16-le'))
+            if idx != -1: limit_offset = idx // 2
+            
+        if 'offset_start' in cfg:
+            idx = text_utf16.find(cfg['offset_start'].encode('utf-16-le'))
+            if idx != -1: start_offset = idx // 2
+
+        for ent, ent_text in idx_msg.get_entities_text():
+            if hasattr(ent, 'url'):
+                if not (start_offset <= ent.offset < limit_offset):
+                    continue
+                links.append((ent.url, ent_text.strip()))
+    print(f"  📖 {len(links)} curated links extracted from Index")
+
     groups = {}
 
-    for msg in msgs:
-        if not msg:
-            continue
-        text = (msg.text or msg.message or '').strip()
-        has_file = isinstance(msg.media, MessageMediaDocument)
-
-        file_label = ''
-        if has_file:
-            for attr in msg.media.document.attributes:
-                if hasattr(attr, 'file_name') and attr.file_name:
-                    file_label = attr.file_name
-                    break
-
-        combined = (text + ' ' + file_label).strip()
-
-        # ── Doctor section detection ──
-        for prefix, dname in cfg.get('doctor_map', {}).items():
-            if text.strip().startswith(prefix):
-                if prefix in ('د)','د )','هـ)'):
-                    current_doc = None
-                else:
-                    current_doc = dname
-                break
-
-        c = classify(combined)
-
-        # ── Exam / resource → separate storage ──
-        if c['category'] == 'exam':
-            exams.append({
-                'course_code': cfg['course_code'],
-                'msg_id': msg.id,
-                'label': combined[:120],
-                'type': 'exam',
-            })
-            continue
-
-        if c['category'] == 'resource':
-            exams.append({
-                'course_code': cfg['course_code'],
-                'msg_id': msg.id,
-                'label': combined[:120],
-                'type': c['subtype'],
-            })
-            continue
-
+    for url, text in links:
+        c = classify(text)
         lec_num = c['lecture_num']
-
-        # ── YouTube with no lecture context → attach to last group ──
-        if c['youtube_url'] and lec_num is None and groups:
-            last_key = list(groups.keys())[-1]
-            if not groups[last_key]['youtube_url']:
-                groups[last_key]['youtube_url'] = c['youtube_url']
-                groups[last_key]['youtube_from_tg'] = True
+        if lec_num is None: 
+            # If the hyperlink text itself doesn't contain the lecture number, 
+            # we try to see if the URL is valid, but without a lecture num we drop it safely
             continue
 
-        if lec_num is None:
-            continue
+        doctor = cfg.get('single_doctor')
+        gkey = (doctor, lec_num)
 
-        gkey = (current_doc, lec_num)
         if gkey not in groups:
             groups[gkey] = {
-                'doctor': current_doc,
+                'doctor': doctor,
                 'lec_num': lec_num,
-                'primary_candidates': [],
-                'secondary_msg_ids': [],
-                'youtube_url': c['youtube_url'],
-                'youtube_from_tg': bool(c['youtube_url']),
-                'all_msg_ids': [],
+                'target_msg_ids': [],
+                'youtube_url': None,
+                'youtube_from_tg': False,
             }
-        else:
-            if c['youtube_url'] and not groups[gkey]['youtube_url']:
-                groups[gkey]['youtube_url'] = c['youtube_url']
+
+        if 'youtu' in url.lower():
+            if not groups[gkey]['youtube_url']:
+                groups[gkey]['youtube_url'] = url
                 groups[gkey]['youtube_from_tg'] = True
-
-        if msg.id not in groups[gkey]['all_msg_ids']:
-            groups[gkey]['all_msg_ids'].append(msg.id)
-
-        if has_file:
-            if c['category'] == 'primary':
-                groups[gkey]['primary_candidates'].append({
-                    'msg_id': msg.id,
-                    'subtype': c['subtype'],
-                    'score': PRIMARY_SCORE.get(c['subtype'], 0),
+        else:
+            match = re.search(r't(?:elegram)?\.me/(?:c/(\d+)/|([\w-]+)/)?(\d+)$', url)
+            if match:
+                groups[gkey]['target_msg_ids'].append({
+                    'entity_str': match.group(1) or match.group(2),
+                    'msg_id': int(match.group(3))
                 })
-            elif c['category'] == 'secondary':
-                groups[gkey]['secondary_msg_ids'].append(msg.id)
 
-    save_exams(exams)
-    print(f"  📊 {len(groups)} lectures found | {len(exams)} exam/resource items")
+    print(f"  📊 {len(groups)} logical lectures mapped")
 
-    # ── Download + build queue ──
     dest_dir = DOWNLOADS_DIR / cfg['download_dir']
     new_count = 0
 
@@ -532,43 +452,32 @@ async def process_subject(client, group, subject_key, cfg, update_mode):
         raw_hex = lecture_id(cfg['course_code'], doctor, lec_num)
         lid = f"{raw_hex[:8]}-{raw_hex[8:12]}-{raw_hex[12:16]}-{raw_hex[16:20]}-{raw_hex[20:32]}"
 
-        # Dedup check
         if lid in existing:
             ex = next((q for q in queue if q['id'] == lid), None)
             if not update_mode or (ex and ex['status'] in ('done','pending','processing')):
                 continue
 
-        # Sort candidates → pick best primary PDF
-        candidates = sorted(g['primary_candidates'], key=lambda x: x['score'], reverse=True)
-        best = candidates[0] if candidates else None
-
         doctor_str = f"{doctor} — " if doctor else ""
         title = f"{cfg['course_name']} — {doctor_str}Lecture {lec_num}"
-
         print(f"\n  📎 {title}")
 
-        # Download primary
         primary_path = None
-        primary_type = None
-        if best:
-            primary_path = await download_pdf(client, group, best['msg_id'], dest_dir, hashes)
-            primary_type = best['subtype']
 
-        # Download up to 2 secondary PDFs
-        sec_paths = []
-        for smid in g['secondary_msg_ids'][:2]:
-            sp = await download_pdf(client, group, smid, dest_dir, hashes)
-            if sp:
-                sec_paths.append(sp)
-            await asyncio.sleep(0.5)
+        # Download the first target ID that evaluates to a valid PDF
+        for tgt in g['target_msg_ids']:
+            dl = await download_pdf(client, group, tgt, dest_dir, hashes)
+            if dl:
+                primary_path = dl
+                break # We found the slide!
 
-        # Gemini size check
+        # Even if NO PDF was found (it was video-only), we can still queue it 
+        # so Gemini logic is simply bypassed but N8N creates a DB entry.
         can_gemini = False
         if primary_path and Path(primary_path).exists():
             size_mb = Path(primary_path).stat().st_size / 1024 / 1024
             can_gemini = size_mb <= 50.0
             if not can_gemini:
-                print(f"    ⚠️  {size_mb:.1f}MB — too large for Gemini, quiz will be skipped")
+                print(f"    ⚠️  {size_mb:.1f}MB — too large for Gemini")
 
         entry = {
             'id': lid,
@@ -577,15 +486,15 @@ async def process_subject(client, group, subject_key, cfg, update_mode):
             'course_code': cfg['course_code'],
             'course_name': cfg['course_name'],
             'course_name_ar': cfg['course_name_ar'],
-            'instructor': doctor,
+            'instructor': list(cfg.get('doctor_map', {}).values())[0] if cfg.get('doctor_map') else doctor,
             'lecture_number': lec_num,
             'lecture_title': title,
             'primary_pdf_path': str(primary_path) if primary_path else None,
-            'primary_pdf_type': primary_type,
+            'primary_pdf_type': 'lecture',
             'can_use_gemini': can_gemini,
             'youtube_url': g['youtube_url'],
             'youtube_from_telegram': g['youtube_from_tg'],
-            'telegram_msg_ids': g['all_msg_ids'],
+            'telegram_msg_ids': [t['msg_id'] for t in g['target_msg_ids']],
             'added_at': datetime.now().isoformat()
         }
 
@@ -597,15 +506,8 @@ async def process_subject(client, group, subject_key, cfg, update_mode):
             print("    ❌ Failed to insert into Supabase")
         await asyncio.sleep(0.2)
 
-    if msgs:
-        max_id_seen = max(m.id for m in msgs)
-        if max_id_seen > start_id:
-            state[subject_key] = max_id_seen
-            save_state(state)
-
     print(f"\n  ✅ {new_count} new lectures added")
     return new_count
-
 
 async def main():
     parser = argparse.ArgumentParser()

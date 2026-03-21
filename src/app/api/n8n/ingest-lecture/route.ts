@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
 
   const {
     courseCode, courseName, lectureTitle, lectureNumber,
-    instructor, youtubeUrl, quizText, lectureId,
+    instructor, youtubeUrl, pdfUrl, quizText, lectureId,
   } = await req.json();
 
   // Validate the Youtube URL basic format
@@ -83,6 +83,7 @@ export async function POST(req: NextRequest) {
     p_course_id: courseId,
     p_order_index: orderIndex,
     p_video_url: validYoutubeUrl,
+    p_pdf_url: pdfUrl || null,
     p_instructor: instructor || null,
     p_quiz_title: `Quiz: ${lectureTitle}`,
     p_questions: rpcQuestions
