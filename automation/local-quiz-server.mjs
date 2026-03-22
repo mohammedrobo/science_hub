@@ -22,13 +22,13 @@ function sendJson(res, status, payload) {
 
 function runQuizGenerator(payload) {
   return new Promise((resolve, reject) => {
+    // generate_quiz_api.js expects positional args:
+    // node generate_quiz_api.js <pdfPath> <courseCode> <lectureTitle> <canUseGemini>
     const args = [
       path.join(repoRoot, 'automation/gemini/generate_quiz_api.js'),
-      '--json',
-      '--primary_pdf_path', String(payload.primary_pdf_path || ''),
-      '--course_code', String(payload.course_code || ''),
-      '--lecture_title', String(payload.lecture_title || ''),
-      '--can_use_gemini', String(payload.can_use_gemini ?? true),
+      String(payload.primary_pdf_path || ''),
+      String(payload.course_code || ''),
+      String(payload.lecture_title || ''),
     ];
 
     const child = spawn('node', args, { cwd: repoRoot });
@@ -84,7 +84,13 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 400, { error: 'invalid_json' });
     }
 
-    if (!payload.primary_pdf_path || !payload.course_code || !payload.lecture_title) {
+    const cleanedPdfPath = String(payload.primary_pdf_path || '')
+      .replace(/[\r\n]+/g, '')
+      .replace(/\u00A0/g, ' ')
+      .replace(/[\u200e\u200f\u202a-\u202e]/g, '')
+      .trim();
+
+    if (!cleanedPdfPath || !payload.course_code || !payload.lecture_title) {
       return sendJson(res, 400, {
         error: 'missing_fields',
         required: ['primary_pdf_path', 'course_code', 'lecture_title'],
@@ -92,17 +98,24 @@ const server = http.createServer(async (req, res) => {
     }
 
     try {
-      const result = await runQuizGenerator(payload);
+      const result = await runQuizGenerator({
+        ...payload,
+        primary_pdf_path: cleanedPdfPath,
+      });
       return sendJson(res, 200, {
+        success: !!(result.quizText || result.ytQuery),
         quizText: result.quizText || '',
         ytQuery: result.ytQuery || '',
+        reason: result.reason || null,
         meta: result.meta || null,
+        path: cleanedPdfPath,
       });
     } catch (e) {
       return sendJson(res, 500, {
         error: 'generator_failed',
         message: e.message,
         stderr: e.stderr || '',
+        path: cleanedPdfPath,
       });
     }
   });

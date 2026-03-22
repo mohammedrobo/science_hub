@@ -6,7 +6,10 @@
  * Fallback: DeepSeek via HuggingFace
  * If both fail for quiz: still return YouTube suggestion
  * 
- * Usage: node generate_quiz_api.js <pdfPath> <courseCode> <lectureTitle> <canUseGemini>
+ * Usage (positional):
+ *   node generate_quiz_api.js <pdfPath> <courseCode> <lectureTitle>
+ * Usage (flags):
+ *   node generate_quiz_api.js --json --primary_pdf_path <pdfPath> --course_code <courseCode> --lecture_title <lectureTitle>
  * Output: JSON { success, quizText, ytQuery }
  */
 
@@ -15,7 +18,39 @@ const path = require('path');
 const https = require('https');
 const { execSync } = require('child_process');
 
-const [,, rawPdfPath, courseArgs, titleArgs, canUseGemini] = process.argv;
+const argv = process.argv.slice(2);
+let rawPdfPath = '';
+let courseArgs = '';
+let titleArgs = '';
+
+if (argv.length && !argv[0].startsWith('--')) {
+  // Positional mode
+  [rawPdfPath, courseArgs, titleArgs] = argv;
+} else {
+  // Flag mode
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === '--json') continue;
+    if (!a.startsWith('--')) continue;
+    const key = a.slice(2);
+    const next = argv[i + 1];
+    const val = (next && !next.startsWith('--')) ? next : '';
+    if (val && next && !next.startsWith('--')) i++;
+    switch (key) {
+      case 'primary_pdf_path':
+        rawPdfPath = val;
+        break;
+      case 'course_code':
+        courseArgs = val;
+        break;
+      case 'lecture_title':
+        titleArgs = val;
+        break;
+      default:
+        break;
+    }
+  }
+}
 
 const pdfPath = rawPdfPath;
 const course = courseArgs || 'General';
@@ -160,10 +195,6 @@ async function run() {
   if (sizeMB > 200) {
     out({ success: false, quizText: '', ytQuery: '', reason: `pdf_too_large_${sizeMB.toFixed(1)}mb` });
     return;
-  }
-
-  if (canUseGemini === 'false') {
-    err('⚠️ canUseGemini=false (file > 50MB). Continuing with OpenRouter/HuggingFace anyway.');
   }
 
   if (!OPENROUTER_KEY && !HUGGINGFACE_KEY) {

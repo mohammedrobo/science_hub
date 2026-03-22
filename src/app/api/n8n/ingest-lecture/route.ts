@@ -82,6 +82,20 @@ export async function POST(req: NextRequest) {
 
   const supabase = await createServiceRoleClient();
 
+  const queueId = lectureId ? String(lectureId) : null;
+  const markQueue = async (status: 'done' | 'failed', errorMsg?: string | null) => {
+    if (!queueId) return;
+    const payload: Record<string, any> = {
+      status,
+      processed_at: new Date().toISOString(),
+      error: errorMsg || null,
+    };
+    await supabase
+      .from('automation_queue')
+      .update(payload)
+      .eq('id', queueId);
+  };
+
   // ── Retrieve Course UUID dynamically ──
   const { data: courseData } = await supabase
     .from('courses')
@@ -103,6 +117,7 @@ export async function POST(req: NextRequest) {
 
   // If the queue item was already processed with a real lesson_id, skip.
   if (already?.lesson_id) {
+    await markQueue('done', 'already_exists');
     return NextResponse.json({ success: true, duplicate: true, lessonId: already.lesson_id });
   }
 
@@ -124,6 +139,7 @@ export async function POST(req: NextRequest) {
       .eq('order_index', lectureNumParsed)
       .maybeSingle();
     if (numMatch) {
+      await markQueue('done', 'already_exists');
       return NextResponse.json({ success: true, duplicate: true, lessonId: numMatch.id });
     }
   }
@@ -135,6 +151,7 @@ export async function POST(req: NextRequest) {
     .eq('title', lectureTitle)
     .maybeSingle();
   if (titleMatch) {
+    await markQueue('done', 'already_exists');
     return NextResponse.json({ success: true, duplicate: true, lessonId: titleMatch.id });
   }
 
@@ -193,8 +210,11 @@ export async function POST(req: NextRequest) {
 
   if (rpcError) {
     console.error('[ingest-lecture] RPC Error:', rpcError);
+    await markQueue('failed', rpcError.message || 'rpc_error');
     return NextResponse.json({ error: rpcError.message }, { status: 500 });
   }
+
+  await markQueue('done', null);
 
   return NextResponse.json({
     success: true, lessonId: lessonId,
@@ -203,6 +223,7 @@ export async function POST(req: NextRequest) {
   });
   } catch (e: any) {
     console.error('[ingest-lecture] Fatal Error:', e?.message || e);
+    await markQueue('failed', e?.message || 'ingest_failed');
     return NextResponse.json({ error: 'ingest_failed', message: e?.message || String(e) }, { status: 500 });
   }
 }
