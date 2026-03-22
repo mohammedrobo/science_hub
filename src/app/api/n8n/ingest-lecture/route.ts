@@ -8,7 +8,6 @@ export async function POST(req: NextRequest) {
   if (req.headers.get('x-n8n-secret') !== SECRET)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  try {
   let supabase: Awaited<ReturnType<typeof createServiceRoleClient>> | null = null;
   let queueId: string | null = null;
   const markQueue = async (status: 'done' | 'failed', errorMsg?: string | null) => {
@@ -24,6 +23,7 @@ export async function POST(req: NextRequest) {
       .eq('id', queueId);
   };
 
+  try {
   let body: any = {};
   try {
     const raw = await req.text();
