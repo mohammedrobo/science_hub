@@ -9,6 +9,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
+  let supabase: Awaited<ReturnType<typeof createServiceRoleClient>> | null = null;
+  let queueId: string | null = null;
+  const markQueue = async (status: 'done' | 'failed', errorMsg?: string | null) => {
+    if (!queueId || !supabase) return;
+    const payload: Record<string, any> = {
+      status,
+      processed_at: new Date().toISOString(),
+      error: errorMsg || null,
+    };
+    await supabase
+      .from('automation_queue')
+      .update(payload)
+      .eq('id', queueId);
+  };
+
   let body: any = {};
   try {
     const raw = await req.text();
@@ -80,21 +95,8 @@ export async function POST(req: NextRequest) {
 
   const validYoutubeUrl = normalizeYoutubeUrl(rawYoutubeUrl);
 
-  const supabase = await createServiceRoleClient();
-
-  const queueId = lectureId ? String(lectureId) : null;
-  const markQueue = async (status: 'done' | 'failed', errorMsg?: string | null) => {
-    if (!queueId) return;
-    const payload: Record<string, any> = {
-      status,
-      processed_at: new Date().toISOString(),
-      error: errorMsg || null,
-    };
-    await supabase
-      .from('automation_queue')
-      .update(payload)
-      .eq('id', queueId);
-  };
+  supabase = await createServiceRoleClient();
+  queueId = lectureId ? String(lectureId) : null;
 
   // ── Retrieve Course UUID dynamically ──
   const { data: courseData } = await supabase
