@@ -112,7 +112,7 @@ const getLeaderboard = unstable_cache(
         }));
     },
     ['leaderboard'],
-    { revalidate: 300, tags: ['leaderboard'] }
+    { revalidate: 300 }
 );
 
 export default async function LeaderboardPage() {

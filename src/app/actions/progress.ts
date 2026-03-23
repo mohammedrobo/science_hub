@@ -205,10 +205,5 @@ export async function submitQuizResult(quizId: string, percentage: number) {
 
     updateTag('course-progress');
 
-    // Revalidate shared leaderboard cache on XP changes.
-    if (xpToAward > 0) {
-        updateTag('leaderboard');
-    }
-
     return { success: true, xpEarned: xpToAward, message: `Quiz Complete! Grade: ${grade} (${label})` };
 }

@@ -54,7 +54,7 @@ const _getHeaderStatsCached = unstable_cache(
         };
     },
     ['header-stats-v2'],
-    { revalidate: HEADER_STATS_REVALIDATE_SECONDS, tags: ['course-progress', 'leaderboard'] }
+    { revalidate: HEADER_STATS_REVALIDATE_SECONDS, tags: ['course-progress'] }
 );
 
 // ============ FULL USER STATS ============
@@ -187,7 +187,7 @@ const _getUserStatsCached = unstable_cache(
         };
     },
     ['user-stats-v1'],
-    { revalidate: USER_STATS_REVALIDATE_SECONDS, tags: ['course-progress', 'leaderboard'] }
+    { revalidate: USER_STATS_REVALIDATE_SECONDS, tags: ['course-progress'] }
 );
 
 export interface CourseProgress {
@@ -384,7 +384,7 @@ const _getXPHistoryCached = unstable_cache(
         return Array.from(dailyXP.entries()).map(([date, xp]) => ({ date, xp }));
     },
     ['xp-history-v1'],
-    { revalidate: XP_HISTORY_REVALIDATE_SECONDS, tags: ['course-progress', 'leaderboard'] }
+    { revalidate: XP_HISTORY_REVALIDATE_SECONDS, tags: ['course-progress'] }
 );
 
 // ============ DETAILED COURSE PROGRESS ============

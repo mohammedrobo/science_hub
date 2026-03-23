@@ -1,4 +1,4 @@
-const CACHE_NAME = 'science-hub-v1774100050760';
+const CACHE_NAME = 'science-hub-v1774261336509';
 const PRECACHE_ASSETS = [
     '/',
     '/icon.png',
