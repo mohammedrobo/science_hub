@@ -1,0 +1,521 @@
+Based on the whiteboard image provided, here is the extracted and organized text, including the mathematical formulas and Arabic notes:
+
+Title: Photometer Jolly
+
+Aim: Comparision between Power illumination of Two sources 
+𝑃
+1
+𝑃
+2
+P
+2
+	​
+
+P
+1
+	​
+
+	​
+
+
+Law: 
+𝑃
+1
+𝑃
+2
+=
+𝑟
+1
+2
+𝑟
+2
+2
+P
+2
+	​
+
+P
+1
+	​
+
+	​
+
+=
+r
+2
+2
+	​
+
+r
+1
+2
+	​
+
+	​
+
+
+Theory:
+[1] Photometer Jolly
+[2] Inverse square law
+[3] Power illumination
+(Arabic note): عدد الفوتونات في الثانية (اللومن) (Number of photons per second (Lumen))
+[4] Intensity illumination
+(Arabic note): (اللوكس) عدد الفوتونات الساقطة لوحدة المساحات (Number of incident photons per unit area (Lux))
+
+Diagram & Mathematical Derivation
+
+A diagram is drawn showing two light sources (
+𝑃
+1
+P
+1
+	​
+
+ and 
+𝑃
+2
+P
+2
+	​
+
+) at distances 
+𝑟
+1
+r
+1
+	​
+
+ and 
+𝑟
+2
+r
+2
+	​
+
+ from a central screen (Photometer Jolly head). The illumination on each side of the screen is labeled 
+𝐼
+1
+I
+1
+	​
+
+ and 
+𝐼
+2
+I
+2
+	​
+
+, with a small Arabic note pointing to the screen: البقعة (The spot).
+
+Derivation:
+(Left Side for Source 1)
+
+𝐼
+1
+∝
+𝑃
+1
+I
+1
+	​
+
+∝P
+1
+	​
+
+
+𝐼
+1
+∝
+1
+𝑟
+1
+2
+I
+1
+	​
+
+∝
+r
+1
+2
+	​
+
+1
+	​
+
+
+𝐼
+1
+∝
+𝑃
+1
+𝑟
+1
+2
+I
+1
+	​
+
+∝
+r
+1
+2
+	​
+
+P
+1
+	​
+
+	​
+
+
+𝐼
+1
+=
+𝑐
+𝑃
+1
+𝑟
+1
+2
+I
+1
+	​
+
+=c
+r
+1
+2
+	​
+
+P
+1
+	​
+
+	​
+
+
+(Right Side for Source 2)
+
+𝐼
+2
+∝
+𝑃
+2
+I
+2
+	​
+
+∝P
+2
+	​
+
+
+𝐼
+2
+∝
+1
+𝑟
+2
+2
+I
+2
+	​
+
+∝
+r
+2
+2
+	​
+
+1
+	​
+
+
+𝐼
+2
+∝
+𝑃
+2
+𝑟
+2
+2
+I
+2
+	​
+
+∝
+r
+2
+2
+	​
+
+P
+2
+	​
+
+	​
+
+
+𝐼
+2
+=
+𝑐
+𝑃
+2
+𝑟
+2
+2
+I
+2
+	​
+
+=c
+r
+2
+2
+	​
+
+P
+2
+	​
+
+	​
+
+
+At balance:
+
+𝐼
+1
+=
+𝐼
+2
+I
+1
+	​
+
+=I
+2
+	​
+
+
+
+𝑃
+1
+𝑟
+1
+2
+=
+𝑃
+2
+𝑟
+2
+2
+r
+1
+2
+	​
+
+P
+1
+	​
+
+	​
+
+=
+r
+2
+2
+	​
+
+P
+2
+	​
+
+	​
+
+
+Final Law (Circled on the board):
+
+𝑃
+1
+𝑃
+2
+=
+𝑟
+1
+2
+𝑟
+2
+2
+P
+2
+	​
+
+P
+1
+	​
+
+	​
+
+=
+r
+2
+2
+	​
+
+r
+1
+2
+	​
+
+	​
+
+
+Data Table & Graph
+
+Table:
+| 
+𝑟
+1
+r
+1
+	​
+
+ | 
+𝑟
+2
+r
+2
+	​
+
+ | 
+𝑟
+1
+2
+r
+1
+2
+	​
+
+ | 
+𝑟
+2
+2
+r
+2
+2
+	​
+
+ | 
+𝑟
+1
+2
+(
+𝑐
+𝑚
+2
+)
+r
+1
+2
+	​
+
+(cm
+2
+)
+ |
+| :--- | :--- | :--- | :--- | :--- |
+| 9 | 11 | | | |
+| 15 | 15 | | | |
+
+Graph:
+
+A linear graph is drawn plotting 
+𝑟
+1
+2
+r
+1
+2
+	​
+
+ (on the y-axis) against 
+𝑟
+2
+2
+(
+𝑐
+𝑚
+2
+)
+r
+2
+2
+	​
+
+(cm
+2
+)
+ (on the x-axis).
+
+Values on both axes are marked as: 
+50
+,
+100
+,
+150
+,
+200
+,
+250
+,
+…
+50,100,150,200,250,…
+
+A straight line passes through the origin, and a triangle is drawn to calculate the slope.
+
+Slope Calculations:
+
+Slope
+=
+𝑟
+1
+2
+𝑟
+2
+2
+Slope=
+r
+2
+2
+	​
+
+r
+1
+2
+	​
+
+	​
+
+
+Slope
+=
+𝑃
+1
+𝑃
+2
+Slope=
+P
+2
+	​
+
+P
+1
+	​
+
+	​
+
+ (Circled)

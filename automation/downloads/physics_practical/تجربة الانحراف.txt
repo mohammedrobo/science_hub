@@ -1,0 +1,196 @@
+Based on the whiteboard headings across the images, the name/title of the document as written is:
+"Deflection Magnetometer"
+
+Here is the extracted text, formulas, and a description of the diagrams from the whiteboard:
+
+Objective
+
+Objective:-
+To compare between the magnetic dipole moment of two bar magnets.
+
+Theory & Formulas (Left Side)
+
+1. Bar Magnet Dipole Moment:
+
+Diagram: A vertical bar magnet (labeled with North 'N' and South 'S' poles) showing magnetic field lines emerging from the North pole and returning to the South pole.
+
+Formula: 
+𝜇
+=
+2
+𝑚
+𝑙
+μ=2ml
+
+(where 
+𝜇
+μ
+ is the magnetic dipole moment, 
+𝑚
+m
+ is the pole strength, and 
+2
+𝑙
+2l
+ is the magnetic length).
+
+2. Current Loop Dipole Moment:
+
+Diagram: A circular loop carrying current (
+𝐼
+I
+), with dashed lines indicating the magnetic field.
+
+Formula: 
+𝜇
+=
+𝐼
+𝐴
+[
+𝐴
+⋅
+𝑚
+2
+]
+μ=IA[A⋅m
+2
+]
+
+(where 
+𝜇
+μ
+ is the magnetic dipole moment, 
+𝐼
+I
+ is current, and 
+𝐴
+A
+ is the area. The unit is Ampere-meter squared).
+
+Experiment Setup (Right Side)
+
+Heading: Tan A position
+
+Deflection Magnetometer Diagram:
+
+A top-down view of the magnetometer setup.
+
+There is a central circular compass scale with markings for 
+0
+∘
+0
+∘
+ and 
+90
+∘
+90
+∘
+.
+
+A small magnetic needle 
+[
+𝑁
+∣
+𝑆
+]
+[N∣S]
+ is situated in the center.
+
+The apparatus has horizontal arms extending to the left and right.
+
+A bar magnet labeled 
+[
+𝑆
+∣
+𝑁
+]
+[S∣N]
+ is placed on the right arm, pointing its field towards the center.
+
+Vector Diagram:
+
+A diagram showing the relationship between two magnetic fields:
+
+𝐵
+B
+ (the magnetic field of the bar magnet, pointing horizontally).
+
+𝐵
+0
+B
+0
+	​
+
+ (the horizontal component of Earth's magnetic field).
+
+The resultant deflection angle is marked as 
+𝜃
+θ
+.
+
+Main Formula:
+
+𝜇
+1
+𝜇
+2
+=
+tan
+⁡
+𝜃
+1
+tan
+⁡
+𝜃
+2
+μ
+2
+	​
+
+μ
+1
+	​
+
+	​
+
+=
+tanθ
+2
+	​
+
+tanθ
+1
+	​
+
+	​
+
+
+(This is used to compare the magnetic moments 
+𝜇
+1
+μ
+1
+	​
+
+ and 
+𝜇
+2
+μ
+2
+	​
+
+ of two different magnets based on their respective deflection angles 
+𝜃
+1
+θ
+1
+	​
+
+ and 
+𝜃
+2
+θ
+2
+	​
+
+).

@@ -1,0 +1,721 @@
+Based on the whiteboard images provided, here is the extracted text, equations, and mathematical steps, organized exactly as they appear across the lecture.
+
+Right-Side Menu (Consistent across all pages)
+
+Binary Numbering System
+
+→
+0
+,
+1
+‾
+→
+0,1
+	​
+
+ , Base: 2
+
+→
+(
+__
+)
+2
+=
+(
+?
+)
+10
+→(__)
+2
+	​
+
+=(?)
+10
+	​
+
+
+→
+(
+__
+)
+10
+=
+(
+?
+)
+2
+→(__)
+10
+	​
+
+=(?)
+2
+	​
+
+
+→
+(
+0.
+__
+)
+2
+=
+(
+0.
+__
+)
+10
+→(0.__)
+2
+	​
+
+=(0.__)
+10
+	​
+
+ ✓
+
+→
+(
+0.
+__
+)
+10
+=
+(
+0.
+__
+)
+2
+→(0.__)
+10
+	​
+
+=(0.__)
+2
+	​
+
+ ✓
+
+→
+Addition 
+(
+__
+)
+2
++
+(
+__
+)
+2
+→Addition (__)
+2
+	​
+
++(__)
+2
+	​
+
+ ✓
+
+→
+Subtraction 
+(
+__
+)
+2
+−
+(
+__
+)
+2
+→Subtraction (__)
+2
+	​
+
+−(__)
+2
+	​
+
+ ✓
+
+→
+1st & 2nd Complement
+→1st & 2nd Complement
+ ✓
+
+Pages 1 & 2: Fractional Base Conversions
+
+Example 1: Binary to Decimal
+
+(
+10011.1011
+)
+2
+=
+(
+19.6875
+)
+10
+(10011.1011)
+2
+	​
+
+=(19.6875)
+10
+	​
+
+
+Breakdown shown on board:
+
+Integer part: 16 + 2 + 1 = 19 (Weights: 16, 8 [crossed out], 4 [crossed out], 2, 1)
+
+Fractional part: 0.5 + 0.125 + 0.0625 = 0.6875 (Weights: 0.5, 0.25 [crossed out], 0.125, 0.0625)
+
+Example 2: Decimal to Binary
+
+(
+69.3125
+)
+10
+=
+(
+1000101.0101
+)
+2
+(69.3125)
+10
+	​
+
+=(1000101.0101)
+2
+	​
+
+
+Integer part (69) using weight subtraction:
+
+69
+−
+64
+=
+5
+69−64=5
+
+
+5
+−
+4
+=
+1
+5−4=1
+
+
+1
+−
+1
+=
+0
+1−1=0
+
+Weights used: 
+64
+,
+4
+,
+1
+→
+1000101
+64,4,1→1000101
+
+Fractional part (0.3125) using multiplication:
+
+0.3125
+×
+2
+=
+0.625
+→
+0
+0.3125×2=0.625→0
+
+
+0.625
+×
+2
+=
+1.25
+→
+1
+0.625×2=1.25→1
+
+
+0.25
+×
+2
+=
+0.5
+→
+0
+0.25×2=0.5→0
+
+
+0.5
+×
+2
+=
+1.0
+→
+1
+0.5×2=1.0→1
+
+Example 3: Decimal to Binary (Fraction)
+
+(
+0.625
+)
+10
+=
+(
+0.101
+)
+2
+(0.625)
+10
+	​
+
+=(0.101)
+2
+	​
+
+
+
+0.625
+×
+2
+→
+1.25
+→
+1
+0.625×2→1.25→1
+
+
+0.25
+×
+2
+→
+0.5
+→
+0
+0.25×2→0.5→0
+
+
+0.5
+×
+2
+→
+1.0
+→
+1
+0.5×2→1.0→1
+
+Example 4: Binary to Decimal (Fraction verification)
+
+(
+0.101
+)
+2
+=
+(
+0.625
+)
+10
+(0.101)
+2
+	​
+
+=(0.625)
+10
+	​
+
+
+Weights: 
+2
+−
+1
+,
+2
+−
+2
+,
+2
+−
+3
+2
+−1
+,2
+−2
+,2
+−3
+
+Values: 
+0.5
+,
+0.25
+,
+0.125
+0.5,0.25,0.125
+
+
+0.5
++
+0
++
+0.125
+=
+0.625
+0.5+0+0.125=
+0.625
+	​
+
+
+Example 5: Decimal to Binary (Fraction)
+
+(
+0.125
+)
+10
+=
+(
+0.001
+)
+2
+(0.125)
+10
+	​
+
+=(0.001)
+2
+	​
+
+
+
+0.125
+×
+2
+=
+0.25
+→
+0
+0.125×2=0.25→0
+
+
+0.25
+×
+2
+=
+0.5
+→
+0
+0.25×2=0.5→0
+
+
+0.5
+×
+2
+=
+1.0
+→
+1
+0.5×2=1.0→1
+
+Example 6: Binary to Decimal (Fraction)
+
+(
+0.0011
+)
+2
+=
+(
+ __ 
+)
+10
+(0.0011)
+2
+	​
+
+=( __ )
+10
+	​
+
+
+
+0
+×
+2
+−
+1
++
+0
+×
+2
+−
+2
++
+1
+×
+2
+−
+3
++
+1
+×
+2
+−
+4
+0×2
+−1
++0×2
+−2
++1×2
+−3
++1×2
+−4
+
+
+0.125
++
+0.0625
+=
+0.1875
+0.125+0.0625=
+0.1875
+	​
+
+
+Page 3: Binary Addition
+
+Truth Table for Addition:
+| | | |
+|---|---|---|
+| 0 | + 0 | = 0 |
+| 0 | + 1 | = 1 |
+| 1 | + 0 | = 1 |
+| 1 | + 1 | = 10 (0 with carry 1) |
+
+Addition Example 1:
+
+code
+Text
+download
+content_copy
+expand_less
+1 1 1         <-- Carries
+  1 0 1 0 1     --> (21)
++   1 1 1 0     --> (14)
+-----------
+1 0 0 0 1 1     --> (35)
+
+Addition Example 2:
+
+code
+Text
+download
+content_copy
+expand_less
+1 1 1 1 1     <-- Carries
+  1 1 0 1 1 1   --> (55)
++   0 1 1 1 1   --> (15)
+-------------
+1 0 0 0 1 1 0   --> (70)
+
+Conversion of 70 to Binary (via repeated division):
+2 | 70 
+→
+→
+ 0
+2 | 35 
+→
+→
+ 1
+2 | 17 
+→
+→
+ 1
+2 | 8 
+→
+→
+ 0
+2 | 4 
+→
+→
+ 0
+2 | 2 
+→
+→
+ 0
+2 | 1 
+→
+→
+ 1
+Read bottom to top: 
+1000110
+1000110
+
+Page 4: Binary Subtraction
+
+Truth Table for Subtraction:
+| | | |
+|---|---|---|
+| 0 | - 0 | = 0 |
+| 1 | - 1 | = 0 |
+| 1 | - 0 | = 1 |
+| 0 | - 1 | = 1 (Borrows 1 
+→
+→
+ 10 - 1 = 1) |
+
+Subtraction Example 1:
+
+code
+Text
+download
+content_copy
+expand_less
+(Borrows shown above numbers)
+  1 0 0 0     --> (8)
+- 0 0 1 1     --> (3)
+---------
+  0 1 0 1     --> (5)
+
+Subtraction Example 2:
+
+code
+Text
+download
+content_copy
+expand_less
+1 1 0 1 1 0   --> (54)
+- 0 0 1 1 1 0   --> (14)
+-------------
+  1 0 1 0 0 0   --> (40)
+
+Subtraction Example 3:
+
+code
+Text
+download
+content_copy
+expand_less
+1 0 1 0 0 1   --> (41)
+- 0 1 0 1 1 1   --> (23)
+-------------
+  0 1 0 0 1 0   --> (18)
+
+Subtraction Example 4:
+
+code
+Text
+download
+content_copy
+expand_less
+1 0 0 1 0 1 1 1 0  --> (302)
+- 0 0 0 0 1 0 0 1 1  --> (19)
+-------------------
+  1 0 0 0 1 1 0 1 1  --> (283)
+Page 5: 1st & 2nd Complement
+
+Example 1: Find Complements of 
+(
+10101
+)
+2
+(10101)
+2
+	​
+
+
+Original: 
+10101
+10101
+
+1st Complement: 
+01010
+‾
+01010
+	​
+
+ (Invert all bits)
+
+2nd Complement:
+
+01010
+01010
+
+
++
+     
+1
++     1
+
+
+−
+−
+−
+−
+−
+−−−−−
+
+
+01011
+‾
+01011
+	​
+
+
+Example 2: Find Complements of 
+(
+10010
+)
+2
+(10010)
+2
+	​
+
+
+Original: 
+10010
+10010
+
+1st Complement: 
+01101
+‾
+01101
+	​
+
+ (Invert all bits)
+
+2nd Complement:
+
+01101
+01101
+
+
++
+     
+1
++     1
+
+
+−
+−
+−
+−
+−
+−−−−−
+
+
+01110
+‾
+01110
+	​
+

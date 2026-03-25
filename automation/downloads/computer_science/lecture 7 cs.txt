@@ -1,0 +1,645 @@
+Here is the extracted text from the provided images, organized by page:
+
+Page 1 (Handwritten Notes)
+
+بسم الله الرحمن الرحيم
+
+تبسيط المحاضرة رقم 4.
+
+متغير بخزن فيه مجموع / ضرب /... رقمين m=m+n; / m=m*n; / m=m/3 / m=m%n; ⬅ normal assignment
+لما المتغير اللى بخزن فيه مجموع / ضرب / ... هو اللى بستخدمه فى كل خطوة مثل : ⬅ Compound assignment
+الشكل ده يساوى ده m+=n; ⬅ m = m + n; / m*=n; / m/=n; / m%=n;
+لكن لو مثلاً m = x + n هنا مينفعش أستخدم Compound assignment
+
+increment "زيادة 1" & Decrement "نقصان 1" operators :
+1) increment => 1) ++ x :
+
+هنا هيطبع ليا ف جملة cout قيمة x + 1
+
+هنا هيطبع ليا ف جملة cout قيمة x بدون تزويد 1، ولكن فى جملة cout اللى بعدها هيزود على x واحد ⬅ x ++ لا
+
+مثال (1) ⬅
+[Box 1]
+كتابة الكود الثابت
+
+code
+C++
+download
+content_copy
+expand_less
+int x = 10;
+int y = 2;
+// طباعة البرنامج 11
+cout << ++x; // 11  <- تبص رقم 1 فوق اللى هو
+cout << x++; // 11  <- تبص رقم 2 اللى هو
+cout << x;   // 12
+x += x; // كأنى بقول x = x + x
+// طباعة البرنامج 24
+cout << x;   // 24
+
+ملاحظة ⬅ أي عملية بيعملها بأخذ قيمة المتغير فى العملية السابقة لنستخدمها فى العملية الجديدة.
+
+[Box 2]
+مثال ؟ :- كتابة الكود الثابت
+
+code
+C++
+download
+content_copy
+expand_less
+int x = 10;
+int y = 2;
+// طباعة البرنامج
+y += 2; // y = y + 2 // 4
+cout << y; // 4
+cout << y--; // 3 <- شوفت قيمة y قبلها، ونقصت 1 ونتبتها و أزود عليها واحد فى الجملة اللى بعدها
+cout << y++; // 3
+cout << y;   // 4
+cout << ++y; // 5
+cout << --y; // 4
+cout << y++; // 4 <- هيطبع قيمة y اللى قبلها عادى، ويزود 1 ف الجملة اللى بعدها
+cout << y;   // 5
+Page 2 (Handwritten Notes)
+
+2) decrement => 1) -- x ⬅ أنقص من ال x وانقص منها واحد فى نفس جملة cout
+2) x -- ⬅ في جملة cout بتاعها بيطبع ليا قيمة x اللى قبلها لكن فى جملة cout اللى بعدها وينقص منها 1
+
+ملاحظة ⬅ لا نستخدم جملة cout فى Compound assignment مثلا مينفعش تتكتب كدا cout << x+=n;
+
+مثال 3 : كتابة الكود الثابت
+[Box 1]
+
+code
+C++
+download
+content_copy
+expand_less
+int x = 10;
+int y = 2;
+// طباعة البرنامج
+y += (x++); // 12
+cout << y;  // 12
+cout << x++ << endl; // 11
+cout << x;  // 12
+cout << ++x; // 13
+cout << ++y; // 13
+
+نفس حالة if ويكون شرطها integer / char ومينفعش أستخدم range مثل <= > أكبر أو أقل من وهكذا ⬅ جملة Switch
+شكلها العام ⬅
+[Box 2]
+
+code
+C++
+download
+content_copy
+expand_less
+char choice;
+cout<<"Enter A,B,or C;";
+cin >> choice;
+switch(choice)
+{
+    case 'A': cout<<"You entered A. endl; break;
+    case 'B': ....................... B. .......
+    case 'C': ....................... C. .......
+    default: cout<<"You did not enter A,B,or C!\n";
+}
+
+(سهم يشير إلى default): لما يكون ولا حالة من فوق.
+
+Page 3 (Handwritten Notes)
+
+ex1: A basic switch statement to determine the day of week based on a given number.
+[Box 1]
+كتابة الكود الثابت
+
+code
+C++
+download
+content_copy
+expand_less
+int day = 2; // Tuesday
+cin >> day;  // أكتب الرقم اللى عاوزه ليا على Run
+switch(day) {
+    case 1:
+        cout << "Monday"; break;
+    case 2: cout << "Tuesday"; break;
+    case 3: cout << "Wednesday"; break;
+    case 4: cout << "Thursday"; break;
+    default: cout << "Invalid day"; break;
+}
+
+عمليات آلة حاسبة : ex2
+[Box 2]
+كتابة الكود الثابت
+
+code
+C++
+download
+content_copy
+expand_less
+char operation;
+cin >> operation;
+double num1 = 10.5, num2 = 5.2, result;
+switch(operation) {
+    case '+':
+        result = num1 + num2;
+        break;
+    case '-':
+        result = num1 - num2;
+        break;
+    case '/':
+        result = num1 / num2;
+        break;
+    case '*':
+        result = num1 * num2;
+        break;
+    default: cout<<"Invalid operation";
+}
+cout << num1 << " " << operation << " " << num2 << " = " << result;
+
+(سهم يشير إلى المسافات " " في الكود): مسطرة كأني بضغط
+
+Page 4 (Handwritten Notes)
+
+مثال 3: Using a switch statement with multiple cases for Same action:
+[Box 1]
+كتابة الكود الثابت
+
+code
+C++
+download
+content_copy
+expand_less
+int month = 2 // February   البرنامج يطبع
+switch(month) {
+    case 1:
+    case 3:
+    case 5:
+    case 7:
+    case 8:
+    case 10:
+    case 12: cout<<"this month has 31 days";
+        break;
+    case 4:
+    case 6:
+    case 9:
+    case 11:
+        cout<<"this month has 30 days";
+        break;
+    case 2:
+        cout<<"this month has either 28 or 29 days";
+        break;
+    default: cout<<"inValid month";
+        break;
+}
+
+* for Statement ⬅ عندما نريد تكرار عملية معينة فى عدد معين من المرات.
+مثلاً : نريد تكرار كلمة Hello خمس مرات :
+نستخدم قاعدة Loop ⬅ Repetition code fixed iteration
+Counter ⬅ المرات اللى عاوز أكررها 1 2 3 4 5
+hello hello hello hello hello
+- Counter (start Value) = 1
+- Counter (end Value) = 5
+- incremental (+1) = (يزود أي كل مرة ؟)
+- Statement اللى عاوز أكررها hello
+
+Page 5 (Handwritten Notes)
+
+كيفية كتابة قاعدة Loop لكلمة hello :
+[Box 1]
+
+code
+C++
+download
+content_copy
+expand_less
+int count
+for ( count=1; count <= 5; count++)
+{
+    cout << " hello " <<endl;
+}
+
+مثال 2 : أجمع الأرقام من 1 : 10 ثم أجيب المتوسط بتاعهم :)
+[Box 2]
+كتابة الكود الثابت
+
+code
+C++
+download
+content_copy
+expand_less
+int sum = 0;
+for ( int i = 1 ; i <= 10 ; i++ )
+    sum += i ; // sum = sum + i يطبع sum=1
+double average = sum / 10 ;
+cout<<"sum="<<sum<<" ava = "<<average;
+
+sum = 55 , ava = 5 ⬅ Run هيظهر لينا بعد
+
+مثال 3 : أعمل لعدد معين جدول الضرب الخاص به :
+[Box 3]
+كتابة الكود الثابت
+x قيمة العدد اللى عاوز جدول الضرب بتاعه
+
+code
+C++
+download
+content_copy
+expand_less
+int x;
+cin >> x;
+for ( int i = 1; i <= 12 ; i++ )
+    cout << x << " * " << i << " = " << i * x << endl;
+Page 6 (Word Document Screenshot)
+Compound assignment	normal assignment
+m += n;	m = m + n;
+m -= n;	m = m - n;
+m *= n;	m = m * n;
+m /= n;	m = m / n;
+m %= n;	m = m % n;
+
+Increment & Decrement Operators
+X++ vs. ++X
+
+code
+C++
+download
+content_copy
+expand_less
+int x = 10;
+int y = 2;
+y += (x++);
+cout<<x++<<endl;
+cout<<++x<<endl;
+cout<<++y<<endl;
+
+Switch
+
+Page 7 (Visual Studio Screenshot)
+code
+C++
+download
+content_copy
+expand_less
+#include<iostream>
+using namespace std;
+void main()
+{
+    int x = 10;
+    int y = 2;
+    y+= 2;//y=y+2//4
+    cout << y--;//4
+    y++;//y=3
+    cout << y;//4
+
+    system("pause");
+}
+Page 8 (Visual Studio Screenshot)
+code
+C++
+download
+content_copy
+expand_less
+#include<iostream>
+using namespace std;
+int main()
+{
+    int x;
+    cin >> x;
+    for (int i = 1; i <= 12; i++)
+        cout << x << " * " << i << " = " << i * x <<endl;
+    return 0;
+}
+Page 9 (Visual Studio Screenshot)
+code
+C++
+download
+content_copy
+expand_less
+#include<iostream>
+using namespace std;
+int main()
+{
+    int sum = 0;
+    for (int i = 1; i <= 10; i++)
+        sum += i;//sum=sum+i
+                 //i=1 sum=0+1=1;
+                 //i=2 sum=1+2=3;
+                 //i=3 sum=3+3=6;
+    double ava = sum / 10;
+    cout << sum<< ava;
+    return 0;
+}
+Page 10 (Visual Studio Screenshot)
+code
+C++
+download
+content_copy
+expand_less
+int day;
+    cin >> day;
+    switch (day) {
+    case 1:
+        cout << "Monday";
+        break;
+    case 2:
+        cout << "Tuesday";
+        break;
+    case 3:
+        cout << "Wednesday";
+        break;
+    case 4:
+        cout << "Thursday";
+        break;
+    case 5:
+        cout << "Friday";
+        break;
+    case 6:
+        cout << "Saturday";
+        break;
+    case 7:
+        cout << "Sunday";
+        break;
+    default:
+Page 11 (Visual Studio Screenshot)
+code
+C++
+download
+content_copy
+expand_less
+#include<iostream>
+using namespace std;
+void main()
+{
+    int x = 10;
+    int y = 2;
+
+    cout << ++x;//11
+    cout << x++;//11
+    cout << x++;//12
+    cout << x;//13
+    system("pause");
+}
+Page 12 (Visual Studio Screenshot)
+
+(Duplicate/Similar to Page 7)
+
+code
+C++
+download
+content_copy
+expand_less
+#include<iostream>
+using namespace std;
+void main()
+{
+    int x = 10;
+    int y = 2;
+    y+= 2;//y=y+2//4
+    cout << y--;//4
+    y++;//y=3
+    cout << y;//4
+
+    system("pause");
+}
+Page 13 (Word Document Screenshot)
+code
+C++
+download
+content_copy
+expand_less
+default :
+        cout << "You did not enter A, B, or C!\n";
+
+Example 1: A basic switch statement to determine the day of the week based on a given number.
+
+code
+C++
+download
+content_copy
+expand_less
+int day = 2; // Tuesday
+switch(day) {
+    case 1:
+        cout << "Monday";
+        break;
+    case 2:
+        cout << "Tuesday";
+        break;
+    case 3:
+        cout << "Wednesday";
+        break;
+    case 4:
+        cout << "Thursday";
+        break;
+    case 5:
+        cout << "Friday";
+        break;
+    case 6:
+        cout << "Saturday";
+        break;
+    case 7:
+        cout << "Sunday";
+        break;
+    default:
+        cout << "Invalid day";
+        break;
+}
+
+Example 2: Using a switch statement to perform diff...
+
+Page 14 (Visual Studio Screenshot)
+
+(Duplicate of Page 10 Day Switch code)
+
+Page 15 (Word Document Screenshot)
+code
+Text
+download
+content_copy
+expand_less
+fact = 1
+
+Count = 1 2 3 4 5
+
+fact=fact*count
+
+1 fact = 1 * 1 = 1
+2 =1*2=2
+3 =2*3=6
+4 =6*4=24
+5 =24*5=120
+
+5 grades
+Total =
+Ave =
+Page 16 (Visual Studio Screenshot)
+code
+C++
+download
+content_copy
+expand_less
+#include<iostream>
+using namespace std;
+void main()
+{
+    char operation ;
+    cin >> operation;
+    double num1 , num2 , result;
+    cin >> num1 >> num2;
+    switch (operation) {
+    case '+':
+        result = num1 + num2;
+        break;
+    case '-':
+        result = num1 - num2;
+        break;
+    case '*':
+        result = num1 * num2;
+        break;
+    case '/':
+        result = num1 / num2;
+        break;
+    default:
+        cout << "Invalid operation";
+        return 0;
+    }
+    cout << num1 << " " << operation << " " << num2 << " = " << result;
+}
+Page 17 (Word Document Screenshot)
+
+Example 3: Using a switch statement with multiple cases for the same action
+
+code
+C++
+download
+content_copy
+expand_less
+int month = 2; // February
+switch(month) {
+    case 1:
+    case 3:
+    case 5:
+    case 7:
+    case 8:
+    case 10:
+    case 12:
+        cout << "This month has 31 days";
+        break;
+    case 4:
+    case 6:
+    case 9:
+    case 11:
+        cout << "This month has 30 days";
+        break;
+    case 2:
+        cout << "This month has either 28 or 29 days";
+        break;
+    default:
+        cout << "Invalid month";
+        break;
+}
+Page 18 (Word Document Screenshot)
+code
+C++
+download
+content_copy
+expand_less
+char operation = '*';
+double num1 = 10.5, num2 = 5.2,
+result;
+switch(operation) {
+    case '+':
+        result = num1 + num2;
+        break;
+    case '-':
+        result = num1 - num2;
+        break;
+    case '*':
+        result = num1 * num2;
+        break;
+    case '/':
+        result = num1 / num2;
+        break;
+    default:
+        cout << "Invalid operation";
+        return 0;
+}
+cout << num1 << " " << operation <<
+" " << num2 << " = " << result;
+
+Example 3: Using a switch statement with multiple cases for the same action
+(Shows snippet of the month code previously described)
+
+Page 19 (Word Document Screenshot)
+
+More examples
+Example 1: Printing numbers from 1 to 10
+
+code
+C++
+download
+content_copy
+expand_less
+for (int i = 1; i <= 10; i++) {
+    cout << i << endl;
+}
+
+Example 2: Summing numbers from 1 to 10
+
+code
+C++
+download
+content_copy
+expand_less
+int sum = 0;
+for (int i = 1; i <= 10; i++) {
+    sum += i;
+}
+cout << "The sum is " << sum << endl;
+
+Example 3: Printing even numbers from 1 to 10
+
+code
+C++
+download
+content_copy
+expand_less
+for (int i = 2; i <= 10; i += 2) {
+    cout << i << " ";
+}
+Page 20 (Visual Studio Screenshot)
+
+(Duplicate/Similar to Page 9 for summing numbers)
+
+Page 21 (Visual Studio Console Output Screenshot)
+code
+Text
+download
+content_copy
+expand_less
+sum = 55 ava =5
+C:\Users\moham\source\repos\Project1\x64\Debug\Project1.exe (process 29020) exited with code 0 (0x0).
+Press any key to close this window . . .
+Page 22 (Word Document Screenshot)
+
+Hello hello hello hello hello
+
+Counter (start value) 1
+
+Counter (end value) 5
+
+Incremental (+1) +1
+
+statement hello
+
+code
+C++
+download
+content_copy
+expand_less
+int count;
+for( count=1; count<=5; count++)
+{
+    Cout<<"Hello"<<endl;
+}

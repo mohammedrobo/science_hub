@@ -1,0 +1,83 @@
+Based on the images provided, here is the extracted text from the whiteboard. The notes have been organized into their respective sections as they appear on the board:
+
+Main Title:
+Identification of liquid organic compounds
+
+Section 1: Classification by Structure
+
+organic compounds
+(contain carbon and hydrogen)
+
+open chain (aliphatic)
+
+Straigh chain:
+CH₃-CH₂-CH₂-CH₃
+Butane
+
+Branched chain:
+CH₃-CH-CH₃
+|
+CH₃
+2-methyl Propane
+
+cyclic compounds
+
+Homocyclic compounds:
+
+alicyclic compound
+
+aromatic compound
+
+Heterocyclic compounds
+
+(There is also a note on the top right showing a drawing of a hexagon labeled "cyclohexane")
+
+Section 2: Aromaticity Rules
+
+(Accompanied by a drawing of a Benzene ring and a Cyclopentadienyl anion)
+
+Planar ✔
+
+conjugation
+
+Huck Rule
+4n + 2 = π e
+4n + 2 = 6
+4n = 4
+n = 1
+
+Section 3: * classification of organic compounds according to functional groups :-
+
+1] Hydroxyl group [OH]
+
+aliphatic alcohols: Ethanol CH₃-CH₂-OH
+
+aromatic Phenols: (Drawing of a Benzene ring with an -OH group)
+
+2] aldehyde group [CHO] R-C(=O)H
+
+aliphatic: CH₃CHO acetaldehyde
+
+aromatic: Benzaldehyde (Drawing of a Benzene ring with a -CHO group)
+
+) Keto group R-C(=O)-R' (R ≠ H)
+
+aliphatic: acetone CH₃-C(=O)-CH₃
+
+aromatic: Benzophenone (Drawing of two Benzene rings connected by a C=O group)
+
+5] carboxylic group [R-COOH]
+
+aliphatic: CH₃COOH acetic acid
+
+aromatic: Benzoic acid (Drawing of a Benzene ring with a -COOH group)
+
+3] Salts of carboxylic acids
+
+Sodium salts: R-COOH + NaOH → RCOONa + H₂O
+
+ammonium salts: R-COOH + NH₄OH → RCOONH₄ + H₂O
+
+-> amines ⇒ [R-NH₂]
+
+-> carbohydrates : CnH₂nOn

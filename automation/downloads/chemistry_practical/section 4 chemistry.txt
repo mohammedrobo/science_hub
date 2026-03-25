@@ -1,0 +1,902 @@
+Based on the whiteboard in the images, here is the extracted and organized text, divided into the main sections visible on the board:
+
+Left Section: Alcohols [ -OH ]
+
+* classification according To. number of hydroxyl group
+
+mono hydroxyl alcohols:
+
+𝐶
+𝐻
+3
+−
+𝐶
+𝐻
+2
+−
+𝑂
+𝐻
+CH
+3
+	​
+
+−CH
+2
+	​
+
+−OH
+ (ethanol) - with 
+𝛼
+α
+ carbon marked
+
+𝐶
+𝐻
+3
+−
+𝑂
+𝐻
+CH
+3
+	​
+
+−OH
+ (methanol)
+
+Di hydroxyl alcohols:
+
+𝐶
+𝐻
+2
+−
+𝑂
+𝐻
+CH
+2
+	​
+
+−OH
+ | 
+𝐶
+𝐻
+2
+−
+𝑂
+𝐻
+CH
+2
+	​
+
+−OH
+ (ethylene glycol)
+
+Poly hydroxyl alcohols:
+
+𝐶
+𝐻
+2
+−
+𝑂
+𝐻
+CH
+2
+	​
+
+−OH
+ | 
+𝐶
+𝐻
+−
+𝑂
+𝐻
+CH−OH
+ | 
+𝐶
+𝐻
+2
+−
+𝑂
+𝐻
+CH
+2
+	​
+
+−OH
+ (Glycerol)
+
+* classification according To, Number of hydrogen atoms attached to 
+𝛼
+α
+ carbon
+
+Primary: 
+𝑅
+−
+𝐶
+𝐻
+2
+−
+𝑂
+𝐻
+R−CH
+2
+	​
+
+−OH
+
+Secondary: 
+𝑅
+2
+−
+𝐶
+𝐻
+−
+𝑂
+𝐻
+R
+2
+	​
+
+−CH−OH
+
+Tertiary: 
+𝑅
+3
+−
+𝐶
+−
+𝑂
+𝐻
+R
+3
+	​
+
+−C−OH
+
+Middle Section: Chemical Tests
+
+[1] oxidation test:..
+
+Equations:
+
+3
+𝐶
+𝐻
+3
+−
+𝐶
+𝐻
+2
+−
+𝑂
+𝐻
++
+𝐾
+2
+𝐶
+𝑟
+2
+𝑂
+7
++
+4
+𝐻
+2
+𝑆
+𝑂
+4
+→
+3
+𝐶
+𝐻
+3
+−
+𝐶
+𝐻
+𝑂
++
+𝐾
+2
+𝑆
+𝑂
+4
++
+𝐶
+𝑟
+2
+(
+𝑆
+𝑂
+4
+)
+3
++
+7
+𝐻
+2
+𝑂
+3CH
+3
+	​
+
+−CH
+2
+	​
+
+−OH+K
+2
+	​
+
+Cr
+2
+	​
+
+O
+7
+	​
+
++4H
+2
+	​
+
+SO
+4
+	​
+
+→3CH
+3
+	​
+
+−CHO+K
+2
+	​
+
+SO
+4
+	​
+
++Cr
+2
+	​
+
+(SO
+4
+	​
+
+)
+3
+	​
+
++7H
+2
+	​
+
+O
+
+3
+𝐶
+𝐻
+3
+−
+𝑂
+𝐻
++
+2
+𝐾
+2
+𝐶
+𝑟
+2
+𝑂
+7
++
+8
+𝐻
+2
+𝑆
+𝑂
+4
+→
+3
+𝐻
+−
+𝐶
+𝑂
+𝑂
+𝐻
++
+2
+𝐾
+2
+𝑆
+𝑂
+4
++
+2
+𝐶
+𝑟
+2
+(
+𝑆
+𝑂
+4
+)
+3
++
+11
+𝐻
+2
+𝑂
+3CH
+3
+	​
+
+−OH+2K
+2
+	​
+
+Cr
+2
+	​
+
+O
+7
+	​
+
++8H
+2
+	​
+
+SO
+4
+	​
+
+→3H−COOH+2K
+2
+	​
+
+SO
+4
+	​
+
++2Cr
+2
+	​
+
+(SO
+4
+	​
+
+)
+3
+	​
+
++11H
+2
+	​
+
+O
+
+General Reaction: 
+𝑅
+−
+𝑂
+𝐻
+→
+𝑂
+𝑅
+−
+𝐶
+𝐻
+𝑂
+→
+𝑂
+𝑅
+𝐶
+𝑂
+𝑂
+𝐻
+R−OH
+O
+	​
+
+R−CHO
+O
+	​
+
+RCOOH
+
+Procedure:
+
+→
+→
+ 1 ml of unknown
+
+→
+→
+ 1 ml of dil 
+𝐻
+2
+𝑆
+𝑂
+4
+H
+2
+	​
+
+SO
+4
+	​
+
+
+→
+→
+ 1 ml of 
+𝐾
+2
+𝐶
+𝑟
+2
+𝑂
+7
+K
+2
+	​
+
+Cr
+2
+	​
+
+O
+7
+	​
+
+
+heating in water bath for (5-10) minute
+
+Observation: Yellow color turns into green 
+→
+→
+ Reduction of 
+𝐶
+𝑟
+6
++
+→
+𝐶
+𝑟
+3
++
+Cr
+6+
+→Cr
+3+
+ (Note included: "Transfer of electrons")
+
+[2] Borax test
+
+→
+→
+ drops of Phenol Phthalene Ph.Ph
+
+→
+→
+ 1 ml of Borax
+
+→
+→
+ heating til 
+→
+→
+ colorless 
+→
+→
+ Pink red
+
+(Small note above: ... Till Pink Red 
+→
+→
+ colorless)
+
+[3] Iodoform Test..
+
+Procedure:
+
+→
+→
+ drops of dil. 
+𝑁
+𝑎
+𝑂
+𝐻
+NaOH
+
+→
+→
+ 3 ml of 
+𝐼
+2
+I
+2
+	​
+
+
+→
+→
+ 1 ml of alcohol
+
+heating in water bath [5-10]
+
+Equations:
+
+𝐶
+𝐻
+3
+−
+𝐶
+𝐻
+2
+𝑂
+𝐻
++
+𝐼
+2
+→
+𝑁
+𝑎
+𝑂
+𝐻
+𝐶
+𝐻
+3
+−
+𝐶
+𝐻
+𝑂
+CH
+3
+	​
+
+−CH
+2
+	​
+
+OH+I
+2
+	​
+
+NaOH
+	​
+
+CH
+3
+	​
+
+−CHO
+
+𝐶
+𝐻
+3
+−
+𝐶
+𝐻
+𝑂
+→
+𝐼
+2
+𝐶
+𝐼
+3
+−
+𝐶
+𝐻
+𝑂
+CH
+3
+	​
+
+−CHO
+I
+2
+	​
+
+	​
+
+CI
+3
+	​
+
+−CHO
+
+𝐶
+𝐼
+3
+−
+𝐶
+𝐻
+𝑂
+→
+𝑁
+𝑎
+𝑂
+𝐻
+𝐶
+𝐻
+𝐼
+3
++
+𝐻
+𝐶
+𝑂
+𝑂
+𝑁
+𝑎
+CI
+3
+	​
+
+−CHO
+NaOH
+	​
+
+CHI
+3
+	​
+
++HCOONa
+
+Observation: 
+→
+→
+ Brown 
+→
+→
+ Yellow color
+
+Right Section: Esterification
+
+⋆
+⋆
+ Esterification Test
+
+1) ethanol
+
+Equation: 
+𝐶
+𝐻
+3
+−
+𝐶
+𝐻
+2
+−
+𝑂
+𝐻
++
+𝐶
+𝐻
+3
+−
+𝐶
+𝑂
+𝑂
+𝐻
+→
+𝐶
+𝑜
+𝑛
+𝑐
+.
+𝐻
+2
+𝑆
+𝑂
+4
+𝐶
+𝐻
+3
+−
+𝐶
+𝑂
+𝑂
+𝐶
+𝐻
+2
+−
+𝐶
+𝐻
+3
++
+𝐻
+2
+𝑂
+CH
+3
+	​
+
+−CH
+2
+	​
+
+−OH+CH
+3
+	​
+
+−COOH
+Conc.H
+2
+	​
+
+SO
+4
+	​
+
+	​
+
+CH
+3
+	​
+
+−COOCH
+2
+	​
+
+−CH
+3
+	​
+
++H
+2
+	​
+
+O
+
+(Product labeled as: ethyl acetate)
+
+Procedure:
+
+→
+→
+ 1 ml of conc 
+𝐻
+2
+𝑆
+𝑂
+4
+H
+2
+	​
+
+SO
+4
+	​
+
+
+→
+→
+ 1 ml of acetic
+
+→
+→
+ 1 ml of ethanol
+
+heating in water bath for [5-10] minute
+
+Result Testing:
+
+→
+→
+ drops
+
+→
+→
+ 5 ml of 
+𝑁
+𝑎
+𝐻
+𝐶
+𝑂
+3
+NaHCO
+3
+	​
+
+
+⟹
+⟹
+ effervescence and evolution of a bad apple odour 
+→
+→
+ ethanol :-)
+
+2) methanol
+
+Equation: 
+𝐶
+𝐻
+3
+−
+𝑂
+𝐻
+CH
+3
+	​
+
+−OH
+ + Salicylic acid (drawn as a benzene ring with -OH and -COOH) 
+→
+𝐶
+𝑜
+𝑛
+𝑐
+.
+𝐻
+2
+𝑆
+𝑂
+4
+Conc.H
+2
+	​
+
+SO
+4
+	​
+
+	​
+
+ Methyl salicylate (drawn as a benzene ring with -OH and -COOCH_3) + 
+𝐻
+2
+𝑂
+H
+2
+	​
+
+O
+
+Procedure:
+
+→
+→
+ 1 ml conc 
+𝐻
+2
+𝑆
+𝑂
+4
+H
+2
+	​
+
+SO
+4
+	​
+
+
+→
+→
+ 
+1
+2
+2
+1
+	​
+
+ gm of salicylic acid
+
+→
+→
+ 1 ml of methanol
+
+→
+→
+ heating in water bath [5-10] minute 
+→
+→
+
+Result Testing:
+
+⟹
+⟹
+ Effervescence and evolution of oil winter green

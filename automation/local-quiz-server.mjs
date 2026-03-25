@@ -1,3 +1,4 @@
+import fs from 'fs';
 import http from 'http';
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
@@ -10,6 +11,51 @@ const repoRoot = path.resolve(__dirname, '..');
 const PORT = Number(process.env.LOCAL_QUIZ_PORT || 8787);
 const SECRET = process.env.LOCAL_QUIZ_SECRET || '';
 const TIMEOUT_MS = Number(process.env.LOCAL_QUIZ_TIMEOUT_MS || 300000);
+
+const envPath = path.join(repoRoot, 'automation', '.env');
+
+function readEnvFile(filePath) {
+  if (!fs.existsSync(filePath)) return {};
+  const out = {};
+  const lines = fs.readFileSync(filePath, 'utf-8').split('\n');
+  for (const line of lines) {
+    const t = line.trim();
+    if (!t || t.startsWith('#') || t.startsWith('//')) continue;
+    const idx = t.indexOf('=');
+    if (idx === -1) continue;
+    const key = t.slice(0, idx).trim();
+    const val = t.slice(idx + 1).trim();
+    if (key && val) out[key] = val;
+  }
+  return out;
+}
+
+const fileEnv = readEnvFile(envPath);
+const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY || fileEnv.OPENROUTER_API_KEY || '';
+const OPENROUTER_KEYS_RAW = process.env.OPENROUTER_API_KEYS || fileEnv.OPENROUTER_API_KEYS || '';
+const OPENROUTER_ACTIVE_KEYS = Number(process.env.OPENROUTER_ACTIVE_KEYS || fileEnv.OPENROUTER_ACTIVE_KEYS || 0);
+
+const openrouterKeys = (() => {
+  const keys = [];
+  if (OPENROUTER_KEY) keys.push(OPENROUTER_KEY);
+  if (OPENROUTER_KEYS_RAW) {
+    for (const k of OPENROUTER_KEYS_RAW.split(',')) {
+      const trimmed = k.trim();
+      if (trimmed) keys.push(trimmed);
+    }
+  }
+  const unique = [...new Set(keys)];
+  if (OPENROUTER_ACTIVE_KEYS > 0) return unique.slice(0, OPENROUTER_ACTIVE_KEYS);
+  return unique;
+})();
+
+let keyCursor = 0;
+function pickOpenRouterKey() {
+  if (!openrouterKeys.length) return '';
+  const key = openrouterKeys[keyCursor % openrouterKeys.length];
+  keyCursor = (keyCursor + 1) % openrouterKeys.length;
+  return key;
+}
 
 function sendJson(res, status, payload) {
   const body = JSON.stringify(payload);
@@ -31,7 +77,11 @@ function runQuizGenerator(payload) {
       String(payload.lecture_title || ''),
     ];
 
-    const child = spawn('node', args, { cwd: repoRoot });
+    const env = { ...process.env };
+    const assignedKey = pickOpenRouterKey();
+    if (assignedKey) env.OPENROUTER_API_KEY_OVERRIDE = assignedKey;
+
+    const child = spawn('node', args, { cwd: repoRoot, env });
     let stdout = '';
     let stderr = '';
 
@@ -103,9 +153,10 @@ const server = http.createServer(async (req, res) => {
         primary_pdf_path: cleanedPdfPath,
       });
       return sendJson(res, 200, {
-        success: !!(result.quizText || result.ytQuery),
+        success: !!(result.quizText || result.ytQuery || (result.youtubeParts && result.youtubeParts.length)),
         quizText: result.quizText || '',
         ytQuery: result.ytQuery || '',
+        youtubeParts: result.youtubeParts || [],
         reason: result.reason || null,
         meta: result.meta || null,
         path: cleanedPdfPath,

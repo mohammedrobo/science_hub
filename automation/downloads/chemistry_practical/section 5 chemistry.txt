@@ -1,0 +1,167 @@
+Based on the handwritten notes in the images, here is the extracted text, maintaining the original structure, spelling, and including the Arabic side notes:
+
+Page 1
+
+. بسم الله الرحمن الرحيم .
+. Section (1) 5 Chemistry .
+
+- Aldehyde [ R . C(=O) - H ]
+1). Aliphatic 
+→
+→
+ HCHO, formaldehyde.
+
+→
+→
+ CH3CHO, Acetaldehyde.
+2). Aromatic 
+→
+→
+ [Drawing of a Benzene ring with CHO] 
+→
+→
+ Benzaldehyde.
+
+* Chemical Properties:
+(Red Arabic note on the right: تفاعلات بعملها عشان أعرف ان ده ألديهيد أولا - Reactions I do to know that this is an aldehyde first)
+
+1). Shiff's reagent:
+
+. 1mL of unknown liquid.
+
+. 1mL of shiff's reagent.
+
+observation
+
+Result 
+→
+→
+ pink Red color.
+
+2). Ammonical mirror image test:
+
+. 1mL of unknown liquid.
+
+. 5mL of ammonical AgNO3.
+
+. water bath for 15 m
+(The above three steps are bracketed together pointing to the results below:)
+
+→
+→
+ mirror image
+
+→
+→
+ بقعة زيتية (oily spot)
+black P.P.t.
+
+Page 2
+
+3). Fehling test :
+
+1mL of Fehling A.
+
+2mL ___ B.
+
+Shaking ثم الهز
+
+1 mL of Na2Co3.
+
+1 mL of unknown liquid
+
+water bath for (5-10)m
+(The above steps are bracketed together pointing to the result:) 
+→
+→
+ Red P.P.t.
+
+(Red Arabic text: تفاعلات بعملها عشان أعرف ده فورمالدهيد / أسيتالدهيد : - Reactions I do to distinguish between formaldehyde / acetaldehyde :)
+
+miscibility 
+→
+→
+ miscible 
+→
+→
+ formaldehyde - Acetaldehyde.
+
+→
+→
+ immiscible 
+→
+→
+ Benzaldehyde.
+Analine 
+→
+→
+ immisible , Brown . نخلي بالنا (let's pay attention)
+
+1) Aldol condensation test:
+
+1mL of aldehyde
+
+(3-5) mL of conc NaOH
+
+water bath (5-10)m
+(Bracketed together pointing to:) 
+→
+→
+ Yellow 
+→
+→
+ orange P.P.t.
+
+. acetaldehyde 
+→
+→
+ +ve لو (if +ve)
+
+. formaldehyde 
+→
+→
+ -ve لو (if -ve)
+
+Page 3
+
+2). Iodo form test:
+
+1mL of aldehyde
+
+3mL of I2
+
+Drops of dil NaOH
+(Bracketed together pointing to:) 
+→
+→
+ Brown 
+→
+→
+ Yellow 
+→
+→
+ Yellow P.P.t on cold.
+
+. acetaldehyde 
+→
+→
+ +ve لو (if +ve)
+
+. formaldehyde 
+→
+→
+ -ve لو (if -ve)
+
+3). Cannazore test: (Note: typically spelled Cannizzaro)
+
+(3-5) mL of conc NaOH
+
+1mL of aldehyde
+
+Bath water for (5-10)m ater cooling
+
+add 3mL of conc HCl
+(Bracketed together pointing to:) 
+→
+→
+ white P.P.t (Benzaldehyde)

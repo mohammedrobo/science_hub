@@ -1,0 +1,445 @@
+Based on the whiteboard headings across the images, the name/title of the document as written is:
+"Ohm's law"
+
+Here is the extracted text and formulas from the whiteboard images, organized by their respective sections:
+
+Pages 1 - 3: Theory & Aim
+
+Title: Ohm's law
+(Top left note): high 
+𝑉
+V
+ (
+𝑎
+a
+) 
+→
+→
+ low 
+𝑉
+V
+ (
+𝑏
+b
+)
+
+Aim:-
+[1] verifying Ohm's law experimentally.
+[2] Determination of unknown resistance (R).
+
+Formulas & Definitions:
+
+𝑉
+=
+𝑊
+𝑄
+=
+[
+𝐽
+𝐶
+=
+𝑉
+]
+V=
+Q
+W
+	​
+
+=[
+C
+J
+	​
+
+=V]
+
+𝑉
+=
+𝐼
+𝑅
+V=IR
+ (Boxed)
+
+𝐼
+=
+𝑄
+𝑡
+=
+𝑛
+𝑒
+𝑡
+=
+[
+𝐶
+𝑠
+=
+𝐴
+]
+I=
+t
+Q
+	​
+
+=
+t
+ne
+	​
+
+=[
+s
+C
+	​
+
+=A]
+
+(where 
+𝑒
+→
+1.6
+×
+10
+−
+19
+𝐶
+e→1.6×10
+−19
+C
+)
+
+𝑅
+(
+Ω
+)
+=
+𝜌
+𝑙
+𝐴
+R(Ω)=ρ
+A
+l
+	​
+
+
+𝑅
+∝
+𝑙
+R∝l
+
+𝑅
+∝
+1
+𝐴
+R∝
+A
+1
+	​
+
+
+𝜌
+=
+𝑅
+𝐴
+𝑙
+→
+Ω
+⋅
+𝑚
+ρ=
+l
+RA
+	​
+
+→Ω⋅m
+
+𝜎
+=
+1
+𝜌
+=
+Ω
+−
+1
+⋅
+𝑚
+−
+1
+σ=
+ρ
+1
+	​
+
+=Ω
+−1
+⋅m
+−1
+
+Diagrams:
+
+Circuit 1: A battery (
+𝑉
+𝐵
+V
+B
+	​
+
+), a switch, and a resistor (
+𝑅
+R
+) with a voltmeter (
+𝑉
+V
+) connected in parallel. (
+𝑟
+=
+∞
+r=∞
+)
+
+Circuit 2: A battery (
+𝑉
+𝐵
+=
+10
+𝑉
+V
+B
+	​
+
+=10V
+), an ammeter (
+𝐴
+A
+) with 
+5
+Ω
+5Ω
+, and a resistor (
+𝑅
+=
+10
+Ω
+R=10Ω
+) with a switch. Current 
+𝐼
+=
+1
+𝐴
+I=1A
+, internal resistance 
+𝑟
+=
+0
+r=0
+.
+
+Conductor Diagram: A cylindrical shape showing length (
+𝑙
+l
+) and cross-sectional area (
+𝐴
+=
+𝜋
+𝑟
+2
+A=πr
+2
+).
+
+Conductor (Cu, Fe, Al, ...)
+
+Semiconductor (Si, Ge, ...)
+
+Page 4: Observation Table
+
+A blank data table with three columns:
+| Current | Voltage | Resistance |
+| :--- | :--- | :--- |
+| | | |
+
+(Arabic text written on the side, resembling a grading rubric or lab notes):
+
+دقة (Accuracy)
+
+القراءة (Reading)
+
+الحساب (Calculation)
+
+الخطوات (Steps)
+
+النتيجة (Result)
+
+على الرسم البياني (On the graph)
+
+(Arabic text next to the table rows):
+
+رقم التجربة (Experiment number)
+
+الثانية (Second)
+
+الوحدة بالكامل (Full unit)
+
+الجهاز (Device)
+
+Pages 5 - 6: Graphs & Analog Meter Scales
+
+A table setup for 
+𝑉
+(
+𝑣
+)
+V(v)
+ and 
+𝐼
+(
+𝐴
+)
+I(A)
+.
+
+A linear graph plotting 
+𝑉
+V
+ (y-axis) vs 
+𝐼
+I
+ (x-axis), with a triangle drawn to calculate the slope. The result points to a boxed 
+𝑅
+R
+ (Resistance).
+
+Ammeter [A] Diagram:
+
+Scale showing divisions for 0.2, 0.4, 0.6 on the bottom, and 1, 2, 3 on the top.
+
+Boxed values for least counts: [0.1 A] and [0.02 A]
+
+Terminals drawn: ( - ), ( 0.6A ), ( 3A )
+
+Voltmeter [V] Diagram:
+
+Scale showing divisions for 1, 2, 3 on the bottom, and 5, 10, 15 on the top.
+
+Boxed values for least counts: [0.5 V] and [0.1 V]
+
+Terminals drawn: ( - ), ( 3V ), ( 15V )
+
+Page 7: Summary & Practical Instructions
+
+Aim:
+[1] acheivment ohm's Law Experimentely
+[2] Determin an unknown Resistance R
+
+Theory:
+law 
+𝑅
+=
+𝑉
+𝐼
+R=
+I
+V
+	​
+
+
+[1] Current intensity
+[2] Voltage (Potential)
+[3] Resistance
+[4] ohm's law 
+𝑉
+∝
+𝐼
+⇒
+𝑉
+=
+𝑅
+𝐼
+V∝I⇒V=RI
+
+Graph showing 
+𝑉
+(
+𝑉
+𝑜
+𝑙
+𝑡
+)
+V(Volt)
+ vs 
+𝐼
+(
+𝐴
+𝑚
+𝑝
+𝑒
+𝑟
+)
+I(Amper)
+ with the equation:
+
+Slope
+=
+𝑉
+𝐼
+=
+𝑅
+=
+…
+Ω
+Slope=
+I
+V
+	​
+
+=R=…Ω
+
+Meter Reading Instructions (in Arabic):
+
+Ammeter Notes:
+
+١- لو تم توصيلة مع 
+0.6
+0.6
+ 
+←
+←
+ الرقم المضروب 
+0.02
+0.02
+ (If connected to 0.6, the multiplying factor is 0.02)
+
+٢- لو تم توصيله مع 
+3
+𝐴
+3A
+ 
+←
+←
+ الرقم المضروب 
+0.1
+0.1
+ (If connected to 3A, the multiplying factor is 0.1)
+
+Voltmeter Notes:
+
+١- لو تم توصيل مع 
+15
+𝑉
+15V
+ 
+←
+←
+ الرقم المضروب 
+0.5
+0.5
+ (If connected to 15, the multiplying factor is 0.5)
+
+٢- لو تم توصيل مع 
+3
+𝑉
+3V
+ 
+←
+←
+ الرقم المضروب 
+0.1
+0.1
+ (If connected to 3V, the multiplying factor is 0.1)

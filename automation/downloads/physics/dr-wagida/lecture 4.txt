@@ -1,0 +1,162 @@
+Here is the exact extracted text from the lecture slides, page by page, without any summaries or explanations:
+
+Page 1
+Activity: general information about the intensity of light and its kinds
+
+The intensity of light (Lumen/m²) | The different kind of light
+
+100000 | Day light. (نهار ساطع)
+
+1000 | Day light with clouds. (نهار ملبد بغيوم وسحب)
+
+200 | Light in house daily (أضاءة داخلية نهارا)
+
+100 | Light in house nighty (أضاءة داخلية اصطناعية ليلا)
+
+2x10^9 | The surface of the sun. (سطح الشمس)
+
+2x10^7 | Tungsten (فتيلة متوهجة من التنجستن)
+
+2500 | The surface of white paper in the sun light. (سطح ورقة بيضاء في ضوء الشمس)
+
+6000 | Fluorescent lamp (مصباح فلورسنت)
+
+5000 | Candle (لهيب الشمع)
+
+3200 | The sky (السماء الصافية)
+
+2900 | The surface of the moon. (سطح القمر)
+
+0.2 | The light of the moon. (نور القمر)
+
+| The surface of white paper in the moon light (سطح ورقة بيضاء في نور القمر)
+
+Page 2
+1-Is there a critical angle for light traveling from glass to water and for light traveling from water to glass?
+
+Page 3
+1-Tinted glass, also called colored glass. It is made by adding colorant in the float glass materials create different colors of the glass.
+
+Tinted glass has various colors: black, blue, bronze, gold, green, grey, pink, purple, silver, etc.
+With different thicknesses 3mm, 3.2mm, 4mm, 5mm, 6mm, 8mm, 10mm, 12mm.
+
+3-Block heat transfer, (in summer) ,energy-saving effect.
+Make the solar light soft and avoid light dazzle in the room.
+Prevent indoor valuables from color fading.
+Generates different appearance of the building.
+(Image labels: Tinted Glass VS Privacy Glass)
+
+4-Tinted glasses (= glasses with slightly darkened lenses) are good for driving in bright sunlight.
+
+Page 4
+How To Detect A Two-Way Mirror
+MirrorChic.com
+
+Place your fingernail against the surface of the mirror. If there's a gap between it and it's reflection, it's a regular mirror. If your fingernail directly touches the reflection, it's a two-way mirror.
+
+Regular Mirror: glass, front surface, back surface (thin layer of silver), reflecting surface.
+
+2 - Way Mirror = Tinted glass: tinted glass, front surface, back surface, reflecting surface.
+
+Page 5
+lecture (4)
+auto headlamps
+
+Car mirrors come in different types, but the car rear mirror is manufactured with a flat or flat lens.
+
+Unlike side mirrors, which are made with a convex lens because they give a close-up image of vehicles driving on the road to increase the driver’s attention when cars are approaching him or when he is reversing the car. This type of lens has helped reduce road acciden...
+
+Page 6
+
+Convex mirror (Diagram): Parallel Rays, Principle axis, F (Focus), C, Focal length f.
+
+Concave mirror (Diagram): Parallel Rays, Principle axis, C, F (Focus), Focal length f.
+
+Convex mirror (Diagram): Object, Image, 2F, F, Principal axis, F (Focus), 2F (Center of curvature).
+
+Concave mirror (Diagram): المحور الرئيسي (Principal axis), البؤرة (Focus), الصورة (Image), الجسم (Object).
+
+Page 7
+Laser
+(Diagram of a Laser): 1st mirror, Laser tube, Laser head assembly with 3rd mirror and focus lens, 2nd mirror.
+
+Page 8
+
+planet telescope
+
+Radio telescope
+
+Space telescope
+
+Page 9
+Normal mirror- Regular mirror- Ordinary mirror -Plane mirror
+ultra-clear mirror / Ordinary mirror
+Formation of image by a plane mirror
+Convex / Concave / Convex / Convex
+
+Page 10
+(Activity- 2-1) Video in the CD., explain the interaction of light with the different surfaces.
+PEEK a BOO
+
+Page 11
+تم نقل هذا الجزء من مكانه بالباب الاول حتى يتم عرضه قبل نهايه شرح الباب الثانى
+(Activity -1-6) Video in the CD., explain the first steps for the determination of the velocity[16] of light.
+(YouTube video title: أساسيات الفيزياء: تجربة فيزو وقياس سرعة الضوء - تفهيم)
+
+(Activity -1-11) Video in the C.D., as a second step for the determination of the velocity[16] of light.
+(YouTube video title: أساسيات الضوء 2 - سرعة الضوء - عشق الفيزياء)
+
+Page 12
+Activity (2-2) – 1-Summary about the introduction of the plane and spherical surfaces. Fig.(2-5)
+2-The interaction of light with the different spherical surfaces. Fig.(2-6-a-b-c)
+
+Fig.(2-5)
+Object, Image
+
+Fig.(2-6-a-b-c)
+a) Light comes from this side, Hard surface, Focal length, Principal axis, Focus (F), Center of curvature (2F), Reflective surface.
+b) Convex mirror: Object, Image, 2F, F, Principal axis, F (Focus), 2F (Center of curvature).
+c) Concave mirror: المحور الرئيسي, البؤرة, الصورة, الجسم.
+
+Page 13
+(a) Imaging a point surface: Mirror, S, S', N, P, M, Virtual image.
+(b) Imaging an extended object: Object, Virtual Image, M.
+(c) Image is the same size: Butterfly is really here..., but it looks like it is here. Actual light path to eye, Eye, Virtual image, The eye thinks this is the light path, Flat Mirror.
+(d) Image is the same volume: Flat mirror, Virtual image, do, di.
+Fig.(2-2- a, b, c and d)
+
+Page 14
+Orientation (اتجاه)
+Size (حجم)
+location (مكانه)
+
+/ -
+
+Reflected rays are diverging.
+
+object 5 cm
+
+Image -5 cm
+
+Extend reflected rays behind mirror.
+
+Name the image: Virtual, upright, true size
+
+Page 15
+2- Mirrors[29,30] and lenses[30]:
+2-1 -Introduction:
+*Mirrors and lenses are every where-in home, auto headlamps, telescope, laser, human eye and many other places.
+*Plane and spherical mirrors are used to form three dimensional images of three-dimensional objects.
+(How can we locate the images graphically?)
+*If the size, orientation and location of an object relative to a mirror or a lens are known, the law of reflection and ray tracing can be used to locate the image graphically.
+
+2-2-Images formed with plane mirrors: Fig.(2-1 and 2-2 –a,b,c and d )
+Images with mirrors are formed under some conditions: Fig.(2-1)
+1-Nonparallel rays from any source are reflected from the mirror surface ,converge, and form a corresponding image object( point, extended object, different size and different volume,....)
+2-The law of reflection ensure that for example from Fig.(2-2 -a ): the triangle SNP and S'NP are equal, S S' is normal to the mirror, SN= S'N and the image is said to be a virtual image.
+
+The properties of the constructed images :
+1-The image is constructed at a distance behind the mirror = as the object is in front.
+2- The image is unmagnified, virtual and upright.
+3- The image having an apparent left right reversal.
+Fig.(2-2- a) (a) Imaging a point surface / Formation of image by a plane mirror

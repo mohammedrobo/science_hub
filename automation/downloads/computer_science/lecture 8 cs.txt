@@ -1,0 +1,300 @@
+Based on the provided whiteboard images, here is the extracted text, code snippets, and Arabic notes, organized page by page exactly as they appear:
+
+Page 1: for loop examples
+
+ex1: For
+
+code
+C++
+download
+content_copy
+expand_less
+for (int i = 1; i <= 10; i *= 3)
+{
+    cout << i;
+}
+
+(الأسهم توضح ترتيب التنفيذ للـ loop)
+
+الكود هيتنفذ 3 مرات فقط .
+
+ex2: For أعداد فردية
+
+code
+C++
+download
+content_copy
+expand_less
+for (int i = 1; i <= 10; i++)
+{
+    if (i % 2 == 1)
+        cout << i;
+}
+
+أو
+
+code
+C++
+download
+content_copy
+expand_less
+for (int i = 1; i <= 10; i += 2)
+{
+    cout << i;
+}
+
+من الكبير للصغير تنازلي :
+
+code
+C++
+download
+content_copy
+expand_less
+for (int i = 1; i <= 5; i++)
+{
+    cout << 6 - i;
+}
+
+أو
+
+code
+C++
+download
+content_copy
+expand_less
+for (int i = 5; i >= 1; i--)
+{
+    cout << i;
+}
+Page 2: while loop logic and output tracing
+
+بسم الله الرحمن الرحيم
+تبسيط المحاضرة رقم 8 حاسب .
+
+أكمال حالات :
+1) while
+
+code
+C++
+download
+content_copy
+expand_less
+int i = 1; // 1
+while (i <= 5) // 2 (الشرط)
+{
+    cout << i; // 3
+    i++; // 4
+}
+
+ترتيب العمليات : وهي بتتعمل 1 ثم 2 ثم 3 ثم 4 ثم 2 ثم 3 ...
+
+ex2:
+
+code
+C++
+download
+content_copy
+expand_less
+int i = 1;
+while (i <= 5)
+{
+    cout << i; // هيطبع بعدين يزود
+    i++;
+}
+i	outPut
+1	1
+2	2
+3	3
+4	
+5	
+6	
+7	
+
+ex3:
+
+code
+C++
+download
+content_copy
+expand_less
+int i = 1;
+while (i <= 5)
+{
+    i++; 
+    cout << i; // هيزود بعدين يطبع
+}
+i	outPut
+1	2
+2	3
+3	4
+4	
+5	
+6	
+7	
+Page 3: while common mistakes & do while
+
+ex4:
+
+code
+C++
+download
+content_copy
+expand_less
+int i = 1;
+while (i >= 5) // مثال على خطأ شائع
+{
+    cout << i;
+    i++;
+}
+
+no of iterations = zero .
+
+ex5:
+
+code
+C++
+download
+content_copy
+expand_less
+int i = 5;
+while (i >= 1) // مثال على خطأ شائع
+{
+    cout << i;
+    i++;
+}
+
+Infinite Loop (عدد لا نهائي من الحلقات)
+
+2) do while
+
+code
+C++
+download
+content_copy
+expand_less
+int i = 1; // 1
+do
+{
+    cout << i; // 2
+    i++; // 3
+} while (i <= 5); // 4
+
+ترتيب الخطوات 
+←
+←
+ 1 ثم 2 ثم 3 ثم 4 ثم 2 ثم 3 ثم 4 ...
+
+Page 4: do while common mistakes and loops notes
+
+أخطاء نقع بها :
+ex1:
+
+code
+C++
+download
+content_copy
+expand_less
+int i = 1;
+do
+{
+    cout << i;
+    i++;
+} while (i >= 5);
+
+no of iteration = 1
+
+لأنه أول رقم = 1 ثم هيزود 1 من ++i ثم هيجي عند i >= 5 هيكون غير موافق للشرط ، لكن لازم أنفذ الكود مرة واحدة على الأقل فيكون = 1
+
+ex2:
+
+code
+C++
+download
+content_copy
+expand_less
+int i = 5;
+do
+{
+    cout << i;
+    i++;
+} while (i >= 1);
+
+Infinite loop (عدد لا نهائي من الحلقات)
+
+ملاحظة :
+
+do while تابعة لـ Post Condition loop
+
+while, for تابعين لـ Pre Condition loop
+
+مثال على for loop :
+
+code
+C++
+download
+content_copy
+expand_less
+for (int i = 1; i <= 5; i++)
+{
+    int y;
+    cin >> y;
+    int age = 2025 - y;
+    cout << age;
+}
+
+هنا معروف إن loop هتتكرر خمس مرات ، طيب أنا عايزة يكون loop غير معلوم أزاي ؟
+
+Page 5: Unknown iterations (while vs do while)
+
+غير معلوم من loop 
+←
+←
+ (Using do while)
+
+code
+C++
+download
+content_copy
+expand_less
+char x;
+do
+{
+    int y;
+    cin >> y;
+    int age = 2025 - y;
+    cout << age;
+    cout << "Are you want to continue ? (Y/N)";
+    cin >> x;
+} while (x == 'Y' || x == 'y'); // unknown number of loops.
+
+غير معلوم من loop لـ while 
+←
+←
+
+code
+C++
+download
+content_copy
+expand_less
+char x;
+int y, age;
+cin >> y;
+age = 2025 - y;
+cout << age;
+cout << "Are you want to continue (Y/N)?";
+cin >> x;
+// (ملاحظة: هيخلي الكود يشتغل مرة واحدة على الأقل = خطوة 1)
+
+while (x == 'Y' || x == 'y')
+{
+    cin >> y;
+    age = 2025 - y;
+    cout << age;
+    cout << "Are you want to continue (Y/N)?";
+    cin >> x;
+}
+// (ملاحظة: لو كنت كتبته من غير خطوة 1 مكنش هيتنفذ خطوة 2)
+
+ملاحظة في الأسفل:
+
+لو عاوز أكتبه بطريقة أسهل ؟ كتابة الخطوة 2 مع إستبدال { while(x == 'Y' || x == 'y') بـ } while(x == 'Y' || x == 'y'); فيتعمل الكود مرة واحدة على الأقل .

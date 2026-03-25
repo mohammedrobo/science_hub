@@ -1,0 +1,642 @@
+{
+  "name": "📚 Science Hub — Local Files → Drive → Ingest",
+  "nodes": [
+    {
+      "id": "1",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "2",
+      "name": "Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH picked AS (\n  SELECT id FROM automation_queue\n  WHERE status='pending'\n  ORDER BY added_at ASC\n  LIMIT 5\n  FOR UPDATE SKIP LOCKED\n)\nUPDATE automation_queue q\nSET status='processing', started_at=NOW()\nFROM picked\nWHERE q.id = picked.id\nRETURNING q.*;"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CRED_ID",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "3",
+      "name": "Has Item?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.id }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "4",
+      "name": "Derive Metadata",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const path = require('path');\nconst fs = require('fs');\n\nconst input = $json || {};\n\nconst rawPath = String(input.primary_pdf_path || '').trim();\nconst cleanPath = rawPath\n  .replace(/[\\r\\n]+/g, '')\n  .replace(/\\u00A0/g, ' ')\n  .replace(/[\\u200e\\u200f\\u202a-\\u202e\\u2066-\\u2069]/g, '')\n  .trim();\n\nif (!cleanPath) throw new Error('Missing primary_pdf_path');\n\nconst fileName = path.basename(cleanPath);\nlet baseName = path.basename(cleanPath, path.extname(cleanPath));\nbaseName = baseName.replace(/\\s+/g, ' ').trim();\n\nconst toAsciiDigits = (s) => s.replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));\nconst ascii = toAsciiDigits(baseName);\nconst numMatch = ascii.match(/(\\d{1,2})/);\nconst parsedNum = numMatch ? parseInt(numMatch[1], 10) : null;\n\nconst parts = cleanPath.split(path.sep);\nconst downloadsIdx = parts.lastIndexOf('downloads');\nconst relParts = downloadsIdx >= 0 ? parts.slice(downloadsIdx + 1, -1) : [];\nconst topFolder = (relParts[0] || '').toLowerCase();\nconst subFolder = (relParts[1] || '').toLowerCase();\n\nconst COURSE_MAP = {\n  botany: 'B101',\n  chemistry: 'C102',\n  chemistry_practical: 'C104',\n  computer_science: 'COMP101',\n  geology: 'G102',\n  math: 'M102',\n  physics: 'P102',\n  physics_practical: 'P104',\n  zoology: 'Z102'\n};\n\nconst courseCode = input.course_code || COURSE_MAP[topFolder] || '';\n\nlet instructor = input.instructor || null;\nlet section = input.section || null;\n\nif (courseCode === 'P102') {\n  if (!instructor) {\n    if (subFolder.includes('essam')) instructor = 'Dr. Essam';\n    if (subFolder.includes('mohammed')) instructor = 'Dr. Mohammed';\n    if (subFolder.includes('wagida')) instructor = 'Dr. Wagida';\n  }\n}\n\nif (courseCode === 'C102') {\n  if (!section) {\n    if (subFolder.includes('physical')) section = 'Physical Chemistry';\n    if (subFolder.includes('organic')) section = 'Organic Chemistry';\n  }\n}\n\nlet lectureTitle = '';\nif (courseCode === 'P104') {\n  lectureTitle = baseName;\n} else if (courseCode === 'C104') {\n  lectureTitle = parsedNum ? `Section ${parsedNum}` : baseName;\n} else {\n  lectureTitle = parsedNum ? `Lecture ${parsedNum}` : baseName;\n}\n\nconst lectureNumber = parsedNum ?? (input.lecture_number != null ? parseInt(input.lecture_number, 10) : null);\n\n// ===== Drive Folder Mapping (REPLACE IDs) =====\nconst DRIVE_FOLDERS = {\n  root: 'REPLACE_WITH_ROOT_FOLDER_ID',\n  botany: 'REPLACE_WITH_BOTANY_FOLDER_ID',\n  chemistry: {\n    physical: 'REPLACE_WITH_C102_PHYSICAL_FOLDER_ID',\n    organic: 'REPLACE_WITH_C102_ORGANIC_FOLDER_ID'\n  },\n  chemistry_practical: 'REPLACE_WITH_C104_FOLDER_ID',\n  computer_science: 'REPLACE_WITH_COMP101_FOLDER_ID',\n  geology: 'REPLACE_WITH_G102_FOLDER_ID',\n  math: 'REPLACE_WITH_M102_FOLDER_ID',\n  physics: {\n    'dr-essam': 'REPLACE_WITH_P102_ESSAM_FOLDER_ID',\n    'dr-mohammed': 'REPLACE_WITH_P102_MOHAMMED_FOLDER_ID',\n    'dr-wagida': 'REPLACE_WITH_P102_WAGIDA_FOLDER_ID'\n  },\n  physics_practical: 'REPLACE_WITH_P104_FOLDER_ID',\n  zoology: 'REPLACE_WITH_Z102_FOLDER_ID'\n};\n\nlet driveParentId = DRIVE_FOLDERS.root;\nif (topFolder === 'physics' && DRIVE_FOLDERS.physics) {\n  driveParentId = DRIVE_FOLDERS.physics[subFolder] || DRIVE_FOLDERS.root;\n} else if (topFolder === 'chemistry' && DRIVE_FOLDERS.chemistry) {\n  driveParentId = DRIVE_FOLDERS.chemistry[subFolder] || DRIVE_FOLDERS.root;\n} else if (DRIVE_FOLDERS[topFolder]) {\n  driveParentId = DRIVE_FOLDERS[topFolder];\n}\n\nconst fileExists = fs.existsSync(cleanPath);\n\nreturn [{\n  json: {\n    ...input,\n    primary_pdf_path: cleanPath,\n    file_base: baseName,\n    drive_file_name: fileName,\n    drive_parent_id: driveParentId,\n    course_code: courseCode,\n    lecture_title: lectureTitle,\n    lecture_number: lectureNumber,\n    instructor,\n    section,\n    folder_top: topFolder,\n    folder_sub: subFolder,\n    file_exists: fileExists\n  }\n}];",
+        "mode": "runOnceForEachItem"
+      }
+    },
+    {
+      "id": "5",
+      "name": "File Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.file_exists }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "6",
+      "name": "Generate Quiz (Local)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8787/generate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "primary_pdf_path": "={{ $json.primary_pdf_path }}",
+          "course_code": "={{ $json.course_code }}",
+          "lecture_title": "={{ $json.lecture_title }}"
+        }
+      }
+    },
+    {
+      "id": "7",
+      "name": "Quiz OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        200
+      ],
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.quizText }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "10",
+      "name": "YouTube OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2220,
+        200
+      ],
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ ($json.videoParts || []).length > 0 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "11",
+      "name": "Read File",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        2440,
+        200
+      ],
+      "parameters": {
+        "operation": "read",
+        "fileSelector": "={{ $node['Derive Metadata'].json.primary_pdf_path }}"
+      }
+    },
+    {
+      "id": "12",
+      "name": "Upload to Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 4,
+      "position": [
+        2660,
+        200
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "upload",
+        "inputDataFieldName": "data",
+        "fileName": "={{ $node['Derive Metadata'].json.drive_file_name }}",
+        "parents": "={{ $node['Derive Metadata'].json.drive_parent_id }}"
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "GOOGLE_DRIVE_CRED_ID",
+          "name": "Google Drive Main"
+        }
+      }
+    },
+    {
+      "id": "13",
+      "name": "Share File",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 4,
+      "position": [
+        2880,
+        200
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "share",
+        "fileId": "={{ $node['Upload to Drive'].json.id }}",
+        "permissions": {
+          "permission": [
+            {
+              "type": "anyone",
+              "role": "reader",
+              "allowFileDiscovery": false
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "GOOGLE_DRIVE_CRED_ID",
+          "name": "Google Drive Main"
+        }
+      }
+    },
+    {
+      "id": "14",
+      "name": "Build PDF Url",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3100,
+        200
+      ],
+      "parameters": {
+        "jsCode": "const fileId = $node['Upload to Drive'].json.id;\nreturn [{ json: { pdfUrl: `https://drive.google.com/file/d/${fileId}/view?usp=sharing` } }];",
+        "mode": "runOnceForEachItem"
+      }
+    },
+    {
+      "id": "15",
+      "name": "Ingest Lecture",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3320,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.WEBSITE_URL ? $env.WEBSITE_URL + '/api/n8n/ingest-lecture' : 'https://minia-science-hub.vercel.app/api/n8n/ingest-lecture' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-n8n-secret",
+              "value": "={{ $env.N8N_WEBHOOK_SECRET }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "courseCode": "={{ $node['Derive Metadata'].json.course_code }}",
+          "lectureTitle": "={{ $node['Derive Metadata'].json.lecture_title }}",
+          "lectureNumber": "={{ $node['Derive Metadata'].json.lecture_number }}",
+          "instructor": "={{ $node['Derive Metadata'].json.instructor }}",
+          "section": "={{ $node['Derive Metadata'].json.section }}",
+          "youtubeUrl": "={{ $node['Normalize Videos'].json.youtubeUrl }}",
+          "quizText": "={{ $node['Generate Quiz (Local)'].json.quizText }}",
+          "pdfUrl": "={{ $node['Build PDF Url'].json.pdfUrl }}",
+          "lectureId": "={{ $node['Derive Metadata'].json.id }}",
+          "videoParts": "={{ $node['Normalize Videos'].json.videoParts }}"
+        }
+      }
+    },
+    {
+      "id": "16",
+      "name": "Mark Failed (Missing File)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        430
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE automation_queue SET status='failed', error='file_missing', processed_at=NOW() WHERE id='{{$json.id}}';"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CRED_ID",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "17",
+      "name": "Retry Quiz (Auto)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        430
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE automation_queue\nSET retry_count = COALESCE(retry_count,0) + 1,\n    status = CASE WHEN COALESCE(retry_count,0) + 1 >= 3 THEN 'failed' ELSE 'pending' END,\n    error = CASE WHEN COALESCE(retry_count,0) + 1 >= 3 THEN 'quiz_failed' ELSE 'quiz_retry' END,\n    processed_at = CASE WHEN COALESCE(retry_count,0) + 1 >= 3 THEN NOW() ELSE NULL END,\n    started_at = NULL\nWHERE id='{{$node[\"Derive Metadata\"].json.id}}';"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CRED_ID",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "18",
+      "name": "Mark Failed (YouTube)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        2220,
+        430
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE automation_queue SET status='failed', error='youtube_not_found', processed_at=NOW() WHERE id='{{$node[\"Derive Metadata\"].json.id}}';"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CRED_ID",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "8",
+      "name": "Normalize Videos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        200
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const parts = Array.isArray($json.youtubeParts) ? $json.youtubeParts : [];\nconst videoParts = parts\n  .map((p, idx) => {\n    if (!p) return null;\n    const url = p.url || p.link || p.youtubeUrl || p.youtube_url;\n    if (!url) return null;\n    return { title: (p.title || p.name || `Part ${idx + 1}`).toString().trim(), url };\n  })\n  .filter(Boolean);\n\nconst youtubeUrl = videoParts.length ? videoParts[0].url : null;\n\nreturn [{ json: { ...$json, videoParts, youtubeUrl } }];"
+      }
+    },
+    {
+      "id": "19",
+      "name": "Queue Dashboard",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        460,
+        520
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT course_code,\n  COUNT(*) FILTER (WHERE status='pending')   AS pending,\n  COUNT(*) FILTER (WHERE status='processing') AS processing,\n  COUNT(*) FILTER (WHERE status='done')      AS done,\n  COUNT(*) FILTER (WHERE status='failed')    AS failed,\n  COUNT(*) AS total\nFROM automation_queue\nGROUP BY course_code\nORDER BY course_code;"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CRED_ID",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "20",
+      "name": "Ingest OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3540,
+        200
+      ],
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.success }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "21",
+      "name": "Publish Lesson",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        3760,
+        200
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE lessons SET is_published = true WHERE id='{{$json.lessonId}}';"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CRED_ID",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Postgres",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Queue Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres": {
+      "main": [
+        [
+          {
+            "node": "Has Item?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Item?": {
+      "main": [
+        [
+          {
+            "node": "Derive Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Derive Metadata": {
+      "main": [
+        [
+          {
+            "node": "File Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "File Exists?": {
+      "main": [
+        [
+          {
+            "node": "Generate Quiz (Local)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Failed (Missing File)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Quiz (Local)": {
+      "main": [
+        [
+          {
+            "node": "Quiz OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quiz OK?": {
+      "main": [
+        [
+          {
+            "node": "Normalize Videos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Retry Quiz (Auto)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "YouTube OK?": {
+      "main": [
+        [
+          {
+            "node": "Read File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Failed (YouTube)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read File": {
+      "main": [
+        [
+          {
+            "node": "Upload to Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload to Drive": {
+      "main": [
+        [
+          {
+            "node": "Share File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Share File": {
+      "main": [
+        [
+          {
+            "node": "Build PDF Url",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build PDF Url": {
+      "main": [
+        [
+          {
+            "node": "Ingest Lecture",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Videos": {
+      "main": [
+        [
+          {
+            "node": "YouTube OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ingest Lecture": {
+      "main": [
+        [
+          {
+            "node": "Ingest OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ingest OK?": {
+      "main": [
+        [
+          {
+            "node": "Publish Lesson",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

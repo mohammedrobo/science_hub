@@ -47,7 +47,8 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
     const t = useTranslations('courses');
 
     // Check if this course has sub-sections (e.g., P102 with doctors, C102 with topics)
-    const subSectionConfig = COURSE_SUBSECTIONS[id];
+    const courseKey = (course?.code || id || '').toLowerCase();
+    const subSectionConfig = COURSE_SUBSECTIONS[courseKey];
 
     // Global Store Sync
     const { setLessonContext } = useLessonStore();
@@ -61,10 +62,9 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                 pdfUrl: currentLesson.pdf_url || (currentLesson.pdf_parts?.[0]?.url || null),
                 videoUrl: currentLesson.video_url || (currentLesson.video_parts?.[0]?.url || null)
             });
-
-
         }
     }, [currentLesson, course.code, setLessonContext]);
+
 
 
 
@@ -104,20 +104,46 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
         const grouped: Record<string, Lesson[]> = {};
         const ungrouped: Lesson[] = [];
 
+        const normalize = (value: string) =>
+            value
+                .toLowerCase()
+                .replace(/[^a-z0-9\u0600-\u06FF]+/g, '')
+                .trim();
+
+        const matchOption = (value: string) => {
+            const normalized = normalize(value);
+            return subSectionConfig.options.find(o => {
+                if (normalize(o.id) === normalized) return true;
+                if (normalize(o.name) === normalized) return true;
+                if (o.nameAr && normalize(o.nameAr) === normalized) return true;
+                return false;
+            });
+        };
+
         lessons.forEach(lesson => {
-            const match = lesson.title.match(/^\[([^\]]+)\]\s*/);
-            if (match) {
-                const prefix = match[1];
-                const option = subSectionConfig.options.find(o => o.name === prefix);
+            const fieldValue =
+                subSectionConfig.type === 'instructor'
+                    ? (lesson.instructor || null)
+                    : (lesson.section || null);
+
+            let value = fieldValue;
+
+            // Backwards-compatibility: allow legacy [Prefix] title grouping
+            if (!value) {
+                const match = lesson.title.match(/^\[([^\]]+)\]\s*/);
+                if (match) value = match[1];
+            }
+
+            if (value) {
+                const option = matchOption(value);
                 if (option) {
                     if (!grouped[option.id]) grouped[option.id] = [];
                     grouped[option.id].push(lesson);
-                } else {
-                    ungrouped.push(lesson);
+                    return;
                 }
-            } else {
-                ungrouped.push(lesson);
             }
+
+            ungrouped.push(lesson);
         });
 
         return { grouped, ungrouped };
@@ -322,6 +348,7 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                             </p>
                         </div>
                     </div>
+
                 </div>
             </div>
 

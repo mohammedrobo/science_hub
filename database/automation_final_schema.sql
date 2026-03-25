@@ -82,8 +82,10 @@ create or replace function ingest_lesson_data(
     p_course_id uuid,
     p_order_index integer,
     p_video_url text,
+    p_video_parts jsonb,
     p_pdf_url text,
     p_instructor text,
+    p_section text,
     p_quiz_title text,
     p_questions jsonb
 ) returns uuid as $$
@@ -93,8 +95,8 @@ declare
     v_question_record jsonb;
 begin
     -- Create the lesson
-    insert into lessons (course_id, title, order_index, video_url, pdf_url, instructor, is_published)
-    values (p_course_id, p_lecture_title, p_order_index, p_video_url, p_pdf_url, p_instructor, false)
+    insert into lessons (course_id, title, order_index, video_url, video_parts, pdf_url, instructor, section, is_published)
+    values (p_course_id, p_lecture_title, p_order_index, p_video_url, coalesce(p_video_parts, '[]'::jsonb), p_pdf_url, p_instructor, p_section, false)
     returning id into v_lesson_id;
 
     -- Create quiz and questions if provided

@@ -23,6 +23,8 @@ export interface Lesson {
   order_index: number;
   created_at?: string;
   is_published?: boolean;
+  instructor?: string | null;
+  section?: string | null;
 }
 
 export type CourseWithLessons = Course & {
@@ -54,4 +56,3 @@ export interface Question {
 export interface QuizWithQuestions extends Quiz {
   questions: Question[];
 }
-

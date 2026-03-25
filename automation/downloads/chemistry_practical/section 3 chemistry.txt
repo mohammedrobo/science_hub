@@ -1,0 +1,269 @@
+Based on the whiteboard in the images, here is the extracted and organized text, divided into the three main sections visible on the board:
+
+Left Section: Acetone (Ketones)
+
+Acetone 
+→
+→
+ Ketones
+
+Formula: 
+𝐶
+𝐻
+3
+−
+𝐶
+(
+=
+𝑂
+)
+−
+𝐶
+𝐻
+3
+CH
+3
+	​
+
+−C(=O)−CH
+3
+	​
+
+
+Includes a drawing of a Carbonyl group 
+−
+𝐶
+(
+=
+𝑂
+)
+−
+−C(=O)−
+
+* Physical Properties: 
+→
+→
+
+Color
+
+state
+
+Miscibility
+
+effect on litmus Paper
+
+* Chemical Properties: 
+→
+→
+
+[1] Schiff's Reagent
+
+Drawing of a test tube adding:
+
+→
+→
+ 1 ml acetone
+
+→
+→
+ 1 ml Schiff's reagent
+
+→
+→
+ (shaking) 
+→
+→
+ Purple Color
+
+Middle Section: Chemical Tests for Acetone
+
+[2] Iodoform Test: 
+→
+→
+
+→
+→
+ 1 ml acetone
+
+→
+→
+ drops of conc. NaOH (Pale-yellow Color)
+
+→
+→
+ 3 ml 
+𝐼
+2
+I
+2
+	​
+
+ (Brown)
+
+⟹
+⟹
+ Pale Yellow PPT on Cold
+
+[3] Sodium Nitroprusside Test
+
+Formula: 
+𝑁
+𝑎
+2
+[
+𝐹
+𝑒
+(
+𝐶
+𝑁
+)
+5
+𝑁
+𝑂
+]
+Na
+2
+	​
+
+[Fe(CN)
+5
+	​
+
+NO]
+
+Drawing of a test tube adding:
+
+→
+→
+ 1 ml acetone
+
+→
+→
+ 1 ml dil. NaOH
+
+→
+→
+ 1 ml Sodium Nitroprusside
+
+⟹
+⟹
+ Red Color 
+→
+→
+ Blood
+
+(Notes written at the bottom of this column related to the right section)
+
+[
+𝑁
+=
+𝑁
+]
+[N=N]
+ azo group
+
+Drawing of a benzene ring with an 
+𝑁
+𝐻
+2
+NH
+2
+	​
+
+ group 
+→
+→
+ aromatic Primary amine
+
+Right Section: Aniline (Amines)
+
+Basic immiscible 
+→
+→
+ Aniline 
+→
+→
+ Amines
+
+Primary amines 
+→
+→
+ 
+𝑁
+𝐻
+2
+NH
+2
+	​
+
+
+* Diazotisation and Coupling (forms dyes)
+
+Lists amine bonds: 
+−
+𝑁
+𝐻
+−
+−NH−
+, 
+−
+𝑁
+−
+−N−
+
+Drawing of 3 test tubes set inside an ice bath:
+
+Tube 1: 1 ml aniline + 1 ml HCl or 
+𝐻
+2
+𝑆
+𝑂
+4
+H
+2
+	​
+
+SO
+4
+	​
+
+
+Tube 2: 2 ml 
+𝑁
+𝑎
+𝑁
+𝑂
+2
+NaNO
+2
+	​
+
+ (with an arrow indicating dropwise)
+
+Tube 3: 0.25 gm 
+𝛼
+α
+ or 
+𝛽
+β
+-naphthol + 2 ml conc. NaOH
+
+⟹
+⟹
+ after 10 min ice bath
+
+⟹
+⟹
+ after 5 min ice bath
+
+Results (branches into two outcomes):
+
+Reddish Brown PPT (
+𝛼
+α
+-naphthol)
+
+Crimson Red PPT (
+𝛽
+β
+-naphthol)

@@ -1,0 +1,615 @@
+Based on the whiteboard headings across the images, the name/title of the document as written is:
+"Concave mirror"
+
+Here is the extracted text and formulas from the whiteboard images, organized by their respective sections:
+
+Part 1: Mirrors Classification & Properties (Pages 1-4)
+
+Aim:- Determination of:
+[1] focal length (
+𝑓
+f
+)[2] mirror power (
+𝐹
+F
+)
+
+Mirrors are classified into:
+1. Planner (مستوية)
+
+[1] image size = object size
+
+[2] distance = distance
+
+[3] Virtual
+
+[4] Inverted
+
+[5] upright 
+↑
+↑
+
+2. Spherical (كرية)
+
+Concave (مقعرة)
+
+(Diagram showing parallel rays reflecting and converging at a focal point)
+
+[1] Converging
+
+[2] real
+
+[3] downright 
+↓
+↓
+
+[4] infront
+
+[5] Converging of light
+
+Convex (محدبة)
+
+(Diagram showing parallel rays reflecting and diverging from a virtual focal point)
+
+[1] diverging
+
+[2] Virtual
+
+[3] upright 
+↑
+↑
+
+[4] behind
+
+[5] Converging of the extensions of rays
+
+[6] reduced
+
+Mirror Anatomy & Ray Diagram (Page 2 & 3)
+
+Principal axis (المحور الأصلي)
+
+Secondary axis
+
+Centre of Curvature (
+𝐶
+C
+)
+
+focal point (
+𝑓
+f
+) - (البؤرة)
+
+Pole of Mirror (
+𝑃
+P
+)
+
+Equation: 
+𝑅
+=
+2
+𝑓
+R=2f
+ (where R is the radius of curvature)
+
+(Additional Diagram on Page 1): Air/water boundary showing incident and reflected rays (
+𝜃
+1
+,
+𝜃
+2
+θ
+1
+	​
+
+,θ
+2
+	​
+
+) and refracted ray (
+𝜃
+3
+θ
+3
+	​
+
+).
+
+Part 2: Mirror Power Calculation (Pages 6 & 8)
+
+Demonstrating the relationship between focal length (
+𝑓
+f
+) and mirror power (
+𝐹
+F
+):
+
+𝑓
+1
+>
+𝑓
+2
+f
+1
+	​
+
+>f
+2
+	​
+
+
+𝐹
+1
+<
+𝐹
+2
+F
+1
+	​
+
+<F
+2
+	​
+
+
+Calculations:
+
+𝑓
+1
+=
+10
+ m
+f
+1
+	​
+
+=10 m
+
+
+𝐹
+1
+=
+1
+10
+ m
+=
+0.1
+ m
+−
+1
+=
+0.1
+ Diopter (D)
+F
+1
+	​
+
+=
+10 m
+1
+	​
+
+=0.1 m
+−1
+=0.1 Diopter (D)
+
+𝑓
+2
+=
+10
+ cm
+f
+2
+	​
+
+=10 cm
+
+
+𝐹
+2
+=
+1
+10
+ cm
+100
+=
+10
+ m
+−
+1
+=
+10
+ D
+F
+2
+	​
+
+=
+100
+10 cm
+	​
+
+1
+	​
+
+=10 m
+−1
+=10 D
+
+Part 3: Concave Mirror Experiment (Pages 9-10)
+
+Title: Concave mirror
+
+Aim:
+[1] Determin The focal length (
+𝑓
+f
+)
+[2] Determin The force [power] of Concave mirror at different distance (
+𝐹
+F
+)
+
+Law:
+[1] 
+1
+𝑓
+=
+1
+𝑢
++
+1
+𝑣
+f
+1
+	​
+
+=
+u
+1
+	​
+
++
+v
+1
+	​
+
+
+[2] 
+𝐹
+=
+100
+𝑓
+F=
+f
+100
+	​
+
+
+Theory:
+[1] Types of mirror
+[2] Focus[3] focal length
+[4] Method:
+(A) Identical Method
+(B) General method
+
+Method (A): Identical Method
+
+Diagram showing an object placed such that its image reflects back onto exactly the same position (at the center of curvature), meaning object distance (
+𝑢
+u
+) = image distance (
+𝑣
+v
+).
+
+1
+𝑓
+=
+1
+𝑢
++
+1
+𝑣
+f
+1
+	​
+
+=
+u
+1
+	​
+
++
+v
+1
+	​
+
+
+Since 
+𝑢
+=
+𝑣
+u=v
+:
+
+1
+𝑓
+=
+1
+𝑢
++
+1
+𝑢
+=
+2
+𝑢
+f
+1
+	​
+
+=
+u
+1
+	​
+
++
+u
+1
+	​
+
+=
+u
+2
+	​
+
+
+𝑓
+=
+𝑢
+2
+f=
+2
+u
+	​
+
+
+Example calculation:
+
+𝑓
+=
+35
+2
+=
+17.5
+ cm
+f=
+2
+35
+	​
+
+=17.5 cm
+
+
+𝐹
+=
+100
+17.5
+F=
+17.5
+100
+	​
+
+
+Method (B): General Method
+
+Mathematical manipulation (multiplying the law by 100):
+
+1
+𝑓
+=
+1
+𝑢
++
+1
+𝑣
+f
+1
+	​
+
+=
+u
+1
+	​
+
++
+v
+1
+	​
+
+ 
+→
+×
+100
+×100
+	​
+
+ 
+100
+𝑓
+=
+100
+𝑢
++
+100
+𝑣
+f
+100
+	​
+
+=
+u
+100
+	​
+
++
+v
+100
+	​
+
+
+
+𝐹
+=
+𝑈
++
+𝑉
+F=U+V
+
+(Notes from Page 7 relating to the straight-line graph):
+
+𝑋
++
+𝑌
+=
+𝐹
+⟹
+𝑌
+=
+−
+𝑋
++
+𝐹
+X+Y=F⟹Y=−X+F
+
+ص = م س + ج (Arabic equation for a straight line 
+𝑦
+=
+𝑚
+𝑥
++
+𝑐
+y=mx+c
+)
+
+Data Table:
+| 
+𝑢
+u
+ | 
+𝑣
+v
+ | 
+𝑈
+=
+100
+𝑢
+U=
+u
+100
+	​
+
+ | 
+𝑉
+=
+100
+𝑣
+V=
+v
+100
+	​
+
+ |
+| :--- | :--- | :--- | :--- |
+| 40 | 15 | | |
+| 45 | 14 | | |
+(Note: An Arabic label "الجهاز" meaning "The Device/Setup" points to the table).
+
+Graph & Final Calculation:
+
+A linear graph plotting 
+𝑉
+(
+𝑐
+𝑚
+−
+1
+)
+V(cm
+−1
+)
+ on the Y-axis vs 
+𝑈
+(
+𝑐
+𝑚
+−
+1
+)
+U(cm
+−1
+)
+ on the X-axis.
+
+The straight line intersects the axes at points 
+𝐹
+1
+F
+1
+	​
+
+ and 
+𝐹
+2
+F
+2
+	​
+
+.
+
+[1] 
+𝐹
+𝑎
+𝑣
+=
+𝐹
+1
++
+𝐹
+2
+2
+F
+av
+	​
+
+=
+2
+F
+1
+	​
+
++F
+2
+	​
+
+	​
+
+
+[2] 
+𝑓
+=
+100
+𝐹
+𝑎
+𝑣
+f=
+F
+av
+	​
+
+100
+	​
+

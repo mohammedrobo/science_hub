@@ -12,7 +12,7 @@ const COURSES = [
   { code: 'CS102', name: 'Computer Science',  ar: 'علم الحاسب', doctors: [] },
   { code: 'G102',  name: 'Geology',           ar: 'الجيولوجيا', doctors: [] },
   { code: 'M102',  name: 'Mathematics',       ar: 'الرياضيات',  doctors: [] },
-  { code: 'P102',  name: 'Physics',           ar: 'الفيزياء',   doctors: ['Dr. Essam', 'Dr. Wagida', 'Dr. Abdulrahman'] },
+  { code: 'P102',  name: 'Physics',           ar: 'الفيزياء',   doctors: ['Dr. Essam', 'Dr. Wagida', 'Dr. Mohammed'] },
   { code: 'Z102',  name: 'Zoology',           ar: 'علم الحيوان', doctors: [] },
 ];
 

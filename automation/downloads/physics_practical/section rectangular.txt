@@ -1,0 +1,406 @@
+Based on the whiteboard heading in the image, the name/title of the document as written is:
+"Rectangular prism"
+
+Here is the extracted text, formulas, and diagrams from the whiteboard image:
+
+Aim
+
+Aim:-
+[1] Prove The angle of incident equal to The angle of exist (Note: likely meant "exit" or "emergence")
+
+𝜃
+1
+=
+𝜃
+4
+θ
+1
+	​
+
+=θ
+4
+	​
+
+
+[2] Determine The Refractive index (n)
+
+Theory[1] Refraction light
+
+[2] oPtical density
+[3] Absolute Refractive index 
+=
+𝑛
+2
+=
+𝐶
+𝑣
+=
+sin
+⁡
+𝜃
+1
+sin
+⁡
+𝜃
+2
+=n
+2
+	​
+
+=
+v
+C
+	​
+
+=
+sinθ
+2
+	​
+
+sinθ
+1
+	​
+
+	​
+
+
+[4] Relative // (Refractive index) 
+1
+𝑛
+2
+=
+𝑣
+1
+𝑣
+2
+1
+	​
+
+n
+2
+	​
+
+=
+v
+2
+	​
+
+v
+1
+	​
+
+	​
+
+
+[5] Snell's law: 
+𝑛
+1
+sin
+⁡
+𝜃
+1
+=
+𝑛
+2
+sin
+⁡
+𝜃
+2
+n
+1
+	​
+
+sinθ
+1
+	​
+
+=n
+2
+	​
+
+sinθ
+2
+	​
+
+ (with 
+𝑛
+1
+n
+1
+	​
+
+ circled)
+
+Diagrams & Proof
+
+Diagrams:
+
+A diagram of a Rectangular prism showing a light ray entering, refracting, and emerging.
+
+Top (outside): 
+𝑛
+1
+n
+1
+	​
+
+, 
+𝑣
+1
+v
+1
+	​
+
+ (with an Arabic note "هواء" meaning Air). Incident angle is 
+𝜃
+1
+θ
+1
+	​
+
+.
+
+Inside the block: 
+𝑛
+2
+n
+2
+	​
+
+, 
+𝑣
+2
+v
+2
+	​
+
+ (with an Arabic note "زجاج" meaning Glass). Refracted angle is 
+𝜃
+2
+θ
+2
+	​
+
+, and the angle hitting the bottom boundary is 
+𝜃
+3
+θ
+3
+	​
+
+.
+
+Bottom (outside): 
+𝑛
+1
+n
+1
+	​
+
+. Emerging angle is 
+𝜃
+4
+θ
+4
+	​
+
+.
+
+There is a smaller diagram to the right showing a similar boundary with the normal line (عمود) and ray bending.
+
+Mathematical Proof:
+Based on Snell's Law at both interfaces (top and bottom):
+
+𝑛
+1
+sin
+⁡
+𝜃
+1
+=
+𝑛
+2
+sin
+⁡
+𝜃
+2
+n
+1
+	​
+
+sinθ
+1
+	​
+
+=n
+2
+	​
+
+sinθ
+2
+	​
+
+
+𝑛
+1
+sin
+⁡
+𝜃
+4
+=
+𝑛
+2
+sin
+⁡
+𝜃
+3
+n
+1
+	​
+
+sinθ
+4
+	​
+
+=n
+2
+	​
+
+sinθ
+3
+	​
+
+
+(Since the boundaries are parallel, 
+𝜃
+2
+=
+𝜃
+3
+θ
+2
+	​
+
+=θ
+3
+	​
+
+)
+
+sin
+⁡
+𝜃
+1
+=
+sin
+⁡
+𝜃
+4
+sinθ
+1
+	​
+
+=sinθ
+4
+	​
+
+
+𝜃
+1
+≃
+𝜃
+4
+θ
+1
+	​
+
+≃θ
+4
+	​
+
+ (Circled as the final proven statement)
+
+Data Table & Calculations
+
+Table:
+| 
+𝜃
+1
+θ
+1
+	​
+
+ | 
+𝜃
+2
+θ
+2
+	​
+
+ | 
+𝑛
+=
+sin
+⁡
+𝜃
+1
+sin
+⁡
+𝜃
+2
+n=
+sinθ
+2
+	​
+
+sinθ
+1
+	​
+
+	​
+
+ |
+| :--- | :--- | :--- |
+| 30 | - | - |
+| 40 | - | - |
+| 50 | - | - |
+
+Final Calculation:
+
+𝑛
+𝑎
+𝑣
+=
+𝑛
+1
++
+𝑛
+2
++
+𝑛
+3
+3
+n
+av
+	​
+
+=
+3
+n
+1
+	​
+
++n
+2
+	​
+
++n
+3
+	​
+
+	​
+
+
+1.5
+1.5
+ (Circled as the final average refractive index)

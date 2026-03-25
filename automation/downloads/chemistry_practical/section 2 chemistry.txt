@@ -1,0 +1,72 @@
+Based on the whiteboard image provided, here is the extracted text:
+
+Identification of liquid organic compounds
+
+carboxylic acid -> (COOH) group
+
+aliphatic
+
+aromatic
+
+-> aliphatic organic compounds
+
+monobasic acid
+
+HCOOH formic acid
+
+CH₃COOH acetic acid
+
+dibasic acid
+
+oxalic acid
+COOH
+|
+COOH
+
+Tartaric acid
+HO-CH-COOH
+|
+HO-CH-COOH
+
+succinic acid
+CH₂-COOH
+|
+CH₂-COOH
+
+tribasic acid
+
+citric acid
+CH₂-COOH
+|
+HO-C-COOH
+|
+CH₂-COOH
+
+* Physical Properties
+1] colour
+2] State
+3] miscibility
+4] Effect on litmus paper :-
+
+chemical Properties :-
+
+acidity test : 2R-COOH + Na₂CO₃ -> H₂O + 2R-COONa + CO₂
+-> Evolution and effervescence of CO₂
+(Drawing of a test tube)
+-> ½ gm of Na₂CO₃
+-> 1 ml of unknown liquid
+
+Oxidation test :-
+
+(Drawing of a test tube with 3 additions)
+-> 1 ml of acid
+-> 1 ml of Na₂CO₃
+-> 1 ml of KMnO₄
+
+(Branches into two results):
+
+change in colour of KMnO₄
+(HCOOH) formic acid
+
+No change of colour
+(CH₃COOH acetic acid)

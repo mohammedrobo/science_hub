@@ -1,0 +1,482 @@
+Based on the provided images, here is the full extraction of the handwritten notes, C++ code snippets, and console outputs, organized sequentially as they appear in the lecture.
+
+Page 1: Introduction to if statement
+
+بسم الله الرحمن الرحيم - تبسيط المحاضرة رقم (6)
+هنتكلم عن if statement في Processing
+في حاجة أسمها في Processing:
+1) Single Path (مسار واحد):
+فيه شرط واحد إذا اتحقق ينفذ الكود. وإذا لم يتحقق، البرنامج ميطبعش حاجة.
+
+code
+C++
+download
+content_copy
+expand_less
+if x > 0 
+    Print("x is Positive");
+
+2) Two Paths (مسارين):
+فيه شرطين، إذا الشرط منهم صحيح ينفذه، ولو شرط منهم غلط ينفذ كود تاني.
+
+code
+C++
+download
+content_copy
+expand_less
+if x > 0:
+    Print("x is Positive");
+else:
+    Print("x isn't Positive");
+
+(أمثلة لفهمك: لو x أكبر من صفر يطبع لا موجب، و لو x أصغر من صفر مش موجب)
+
+3) Multiple Paths (مسارات متعددة):
+فيه أكثر من شرط، ونستخدم elif (اختصار else if وأحياناً else).
+
+code
+C++
+download
+content_copy
+expand_less
+if x > 0:
+    Print ["x is Positive"]
+elif x < 0:
+    Print ["x isn't Positive"]
+else:
+    Print ["x is negative"]
+
+(أمثلة توضح: لو مش الشرطين اللي فوق)
+
+مكونات if statement:
+if (Left operand, Relational operator, Right operand)
+
+Left operand: طرف أيسر
+
+Right operand: طرف أيمن
+
+Relational operator: العمليات المنطقية (الموجودة في الـ ALU).
+
+أشكالها:
+
+>= Greater than or equal (أكبر من أو يساوي)
+
+<= Less than or equal (أصغر من أو يساوي)
+
+> (أكبر), < (أصغر)
+
+== equal (يساوي)
+
+!= not equal (لا يساوي)
+
+مثال ex: if (total >= 50)
+
+Page 2: Implementing if statement examples
+
+مثال على Single Path: لو عندي درجات طالب مثل (الميد تيرم m، فاينل f، شفوي o، عملي p) ونعمل لو ناجح يطبع Passed.
+كتابة الكود الثابت:
+
+code
+C++
+download
+content_copy
+expand_less
+int o, p, m, f;
+cin >> o;
+cin >> p;
+cin >> m;
+cin >> f;
+int total = o + p + m + f;
+cout << "total: " << total << endl;
+if (total >= 50) {
+    // هيطبع لو الشرط صح
+    cout << "Passed" << endl;
+}
+system("pause");
+
+بعدين أضغط Run وأدخل قيم للمتغيرات o,p,m,f: 10, 15, 25, 10
+طبع لو total طلعلك 60. هيطبع Passed فقط.
+
+مثال على Two Paths: نفس مثال درجات الطالب.
+
+code
+C++
+download
+content_copy
+expand_less
+// ... نفس الكود الثابت للإدخال ...
+if (total >= 50) {
+    cout << "Passed" << endl;
+} else { // شرط تاني لو متحققش الشرط الأول هيطبع ده
+    cout << "Failed" << endl;
+}
+system("pause");
+
+مثال على Multiple Paths: نفس مثال درجات الطالب.
+
+code
+C++
+download
+content_copy
+expand_less
+// ... نفس الكود الثابت للإدخال ...
+if (total >= 90) {
+    cout << "A" << endl;
+} else if (total >= 60) {
+    cout << "B" << endl;
+} else { // لو مفيش شرط أتحقق من اللي فوق هيكتب F
+    cout << "F" << endl;
+}
+Pages 3 & 4: Code Implementation & Output (Single/Two Paths)
+
+C++ Code (Visual Studio):
+
+code
+C++
+download
+content_copy
+expand_less
+#include<iostream>
+#include<string>
+using namespace std;
+
+void main()
+{
+    int o,p,m,f;
+    cin>>o;
+    cin>>p;
+    cin>>m;
+    cin>>f;
+
+    int total = o+p+m+f;
+    cout<<"Total: "<<total<<endl;
+
+    if (total >= 50)
+        cout<<"Passed"<<endl;
+    else
+        cout<<"Failed"<<endl;
+
+    system("pause");
+}
+
+Console Output:
+
+code
+Text
+download
+content_copy
+expand_less
+10
+10
+15
+25
+Total: 60
+Passed
+Press any key to continue . . .
+Page 5: Multiple single paths vs else if logic
+
+ملاحظة: لو نسيت أحط else اللي هي في الشرط الـ 3 هيعتبر جملة cout<<"F"<<endl; زي ماهي لأنه هيعتبرها جملة طباعة فـ لو حتى نتيجة الطباعة A أو B الجملة تبع F هتتكتب كدة كدة.
+
+لو فيه Single مع بعض هنعمل إيه؟ (Multiple Single Paths)
+
+code
+C++
+download
+content_copy
+expand_less
+int o, p, m, f;
+cin >> o; cin >> p; cin >> m; cin >> f;
+int total = o + p + m + f;
+if (total >= 90)
+    cout << "A" << endl;
+if (total >= 60)
+    cout << "B" << endl;
+cout << "F" << endl;
+
+(لو دخل قيم مجموعها 95، البرنامج هيطبع A و B و F مع بعض!)
+
+طيب لو المقرر أصلاً total بتاعه 100؟ هنضيف if أخرى (لإظهار Error)
+
+code
+C++
+download
+content_copy
+expand_less
+if (total > 100)
+    cout << "Error" << endl;
+else if (total >= 90)
+    cout << "A" << endl;
+// ... وهكذا
+
+طيب لو total طلع بـ السالب؟ نضيف if أخرى:
+
+code
+C++
+download
+content_copy
+expand_less
+if (total > 100)
+    cout << "Error" << endl;
+else if (total >= 90)
+    cout << "A" << endl;
+else if (total >= 60)
+    cout << "B" << endl;
+else if (total >= 0)
+    cout << "F" << endl;
+else // لو مش أي شرط من اللي فوق جه : هو أقل من الصفر
+    cout << "Error" << endl;
+system("Pause");
+Pages 6, 7 & 8: Code Implementation & Output (Error Handling)
+
+C++ Code (Visual Studio):
+
+code
+C++
+download
+content_copy
+expand_less
+// ...
+int total = o+p+m+f; // 125
+cout<<"Total: "<<total<<endl;
+
+if (total > 100) // yes Error
+    cout<<"Error"<<endl;
+else if (total >= 90)
+    cout<<"A"<<endl;
+else if (total >= 60)
+    cout<<"B"<<endl;
+else if (total >= 0)
+    cout<<"F"<<endl;
+else
+    cout<<"Error"<<endl;
+
+system("pause");
+
+Console Outputs:
+
+(Page 6 - 95 Total): Total: 95, A, B, F (This output was before adding else if properly in the demo)
+
+(Page 7 - >100): inputs: 25, 25, 25, 50 
+→
+→
+ Total: 125, Error
+
+(Page 8 - Negative): inputs: 10, 10, 10, -40 
+→
+→
+ Total: -10, Error
+
+Pages 9 & 10: Logical Operators (&&, ||, !)
+
+Logical Operators (عندي 3 أنواع):
+
+AND 
+→
+→
+ يكتب هكذا: &&
+
+OR 
+→
+→
+ يكتب هكذا: ||
+
+NOT 
+→
+→
+ يكتب هكذا: !
+
+Cond (Logical Operator) Cond = Result (Yes / No)
+
+أمثلة && (AND): (لو الاثنين Yes 
+→
+→
+ Result: Yes، أي حالة وحيدة No 
+→
+→
+ Result: No)
+
+ex: total >= 90 && total <= 100 
+→
+→
+ No && Yes = No
+
+t = 97; t >= 90 && t <= 100 
+→
+→
+ Yes && Yes = Yes
+
+أمثلة || (OR): (لو الاثنين No 
+→
+→
+ Result: No، لو أي طرف Yes 
+→
+→
+ Result: Yes)
+
+t = 85; t > 90 || t <= 100 
+→
+→
+ No || Yes = Yes
+
+t = 89; t >= 90 || t >= 100 
+→
+→
+ No || No = No (impossible case)
+
+كتابة البرنامج باستخدام && و ||:
+
+code
+C++
+download
+content_copy
+expand_less
+if (total >= 90 && total <= 100)
+    cout << "A" << endl;
+else if (total >= 60 && total < 90)
+    cout << "B" << endl;
+else if (total < 0 || total > 100)
+    cout << "Error" << endl;
+
+Not ( ! ): (تكون قدام Cond واحد بس، ولها حالتين: ! No = Yes و ! Yes = No)
+مثال: البرامج هيشتغل عكسي. لأن المفروض لو أكبر من 50 يطبع Passed لكنه كاتب Failed.
+استخدام Not يحل المشكلة:
+
+code
+C++
+download
+content_copy
+expand_less
+if (!(total >= 50)) // ! No = Yes
+    cout << "Failed" << endl;
+else
+    cout << "Passed" << endl;
+Pages 11, 12, 13, 14: Discount Offer Example
+
+مثال آخر على if statement:
+لو محل يبيع بعض القطع: لو واحد اشترى أكثر من 5 قطع يأخذ العرض ده 10% offer more than 5.
+سعر القطعة Price : 100$. إجمالي القطع Count : 10.
+
+كتابة الكود:
+
+code
+C++
+download
+content_copy
+expand_less
+cout << "Please, Enter Number of Items:" << endl;
+int c;
+cin >> c;
+cout << "Please, Enter Price:" << endl;
+double p;
+cin >> p;
+double total = 0;
+
+if (c > 5)
+    total = c * p * 0.9; // 10% discount
+else
+    total = c * p;
+
+cout << "Total is " << total << " $" << endl;
+
+Console Outputs:
+
+(Page 12): Items: 5, Price: 100 
+→
+→
+ Total is 500 $ (No discount)
+
+(Page 13): Items: 100, Price: 10 
+→
+→
+ Total is 900 $ (With discount)
+
+(Page 14): Items: 5, Price: 20 
+→
+→
+ Total is 100 $
+
+Pages 15 & 16: Conditional Operator (? :)
+
+Conditional Operator (? :):
+عبارة عن اني بكتب الجملة كاملة كالتالي:
+Variable = Condition ? Value_if_Yes : Value_if_No;
+
+أقدر أستخدمه أمتى؟ 
+→
+→
+ لما يكون نوع الـ Variable اللي في حالة if هو نفسه اللي في حالة else. (في المثالين Variable هو total).
+
+بدلاً من كتابة:
+
+code
+C++
+download
+content_copy
+expand_less
+if (c > 5)
+    total = c * p * 0.9;
+else
+    total = c * p;
+
+نكتب الكود هكذا:
+
+code
+C++
+download
+content_copy
+expand_less
+total = (c > 5) ? c * p * 0.9 : c * p;
+cout << "Total is " << total << " $" << endl;
+
+Console Output (Page 16):
+Items: 4, Price: 76.5 
+→
+→
+ Total is 306 $
+
+Pages 17, 18, 19: Inline Conditional & Modulus (Even/Odd)
+
+يمكن وضع الـ Conditional Operator داخل الـ cout مباشرة:
+
+code
+C++
+download
+content_copy
+expand_less
+cout << ((total >= 50) ? "Failed" : "Passed") << endl; // Logical error here!
+
+(بعض الأخطاء المنطقية "Logical error": إذا تحقق الشرط أكبر من 50 سيطبع Failed بدلاً من Passed لأن الترتيب خطأ!)
+
+أيضاً يمكن استخدام \n بدلاً من endl:
+
+code
+C++
+download
+content_copy
+expand_less
+cout << ((total >= 50) ? "Failed\n" : "Passed\n");
+
+مثال برنامج يستقبل عدد n وأشوفه هل هو زوجي / فردي (Even / Odd):
+
+code
+C++
+download
+content_copy
+expand_less
+int n;
+cin >> n;
+int x = n % 2; // باقي القسمة (Modulus)
+// ممكن نكتب:
+cout << ((x == 0) ? "Even" : "Odd") << endl;
+
+Console Outputs:
+
+(Page 18 - Logical Error Output): inputs 5, 5, 5, 5 
+→
+→
+ Total: 20, prints Passed (because condition >= 50 is False).
+
+(Page 19 - Even/Odd Checker): input 20 
+→
+→
+ prints Even.

@@ -55,7 +55,9 @@ export async function POST(req: NextRequest) {
   const lectureTitle  = body.lectureTitle ?? body.lecture_title ?? body.lecturetitle;
   const lectureNumber = body.lectureNumber ?? body.lecture_number ?? body.lecture_no ?? body.lectureNo;
   const instructor    = body.instructor ?? body.instructor_name ?? body.professor ?? body.doctor ?? body.teacher;
+  const section       = body.section ?? body.section_name ?? body.courseSection ?? body.course_section;
   const rawYoutubeUrl = body.youtubeUrl ?? body.youtube_url ?? body.youtube ?? body.videoUrl ?? body.video_url ?? body.video;
+  const rawVideoParts = body.videoParts ?? body.video_parts ?? body.youtubeParts ?? body.youtube_parts;
   const pdfUrl        = body.pdfUrl ?? body.pdf_url ?? body.pdf;
   const quizText      = body.quizText ?? body.quiz_text ?? body.quiz;
   const lectureId     = body.lectureId ?? body.lecture_id ?? body.queue_id ?? body.id;
@@ -93,7 +95,42 @@ export async function POST(req: NextRequest) {
     return null;
   };
 
-  const validYoutubeUrl = normalizeYoutubeUrl(rawYoutubeUrl);
+  const toVideoParts = (value: any): { title: string; url: string }[] | null => {
+    if (!value) return null;
+    let v = value;
+    if (typeof v === 'string') {
+      const trimmed = v.trim();
+      if (!trimmed) return null;
+      try {
+        v = JSON.parse(trimmed);
+      } catch {
+        // If it's a single URL string, accept it
+        const url = normalizeYoutubeUrl(trimmed);
+        return url ? [{ title: 'Part 1', url }] : null;
+      }
+    }
+    if (Array.isArray(v)) {
+      const parts = v
+        .map((item, idx) => {
+          if (typeof item === 'string') {
+            const url = normalizeYoutubeUrl(item);
+            return url ? { title: `Part ${idx + 1}`, url } : null;
+          }
+          if (item && typeof item === 'object') {
+            const url = normalizeYoutubeUrl((item as any).url || (item as any).link || (item as any).youtubeUrl || (item as any).youtube_url);
+            const title = String((item as any).title || (item as any).name || `Part ${idx + 1}`).trim();
+            return url ? { title, url } : null;
+          }
+          return null;
+        })
+        .filter(Boolean) as { title: string; url: string }[];
+      return parts.length ? parts : null;
+    }
+    return null;
+  };
+
+  const videoParts = toVideoParts(rawVideoParts);
+  const validYoutubeUrl = normalizeYoutubeUrl(rawYoutubeUrl) || (videoParts?.[0]?.url ?? null);
 
   supabase = await createServiceRoleClient();
   queueId = lectureId ? String(lectureId) : null;
@@ -204,8 +241,10 @@ export async function POST(req: NextRequest) {
     p_course_id: courseId,
     p_order_index: orderIndex,
     p_video_url: validYoutubeUrl,
+    p_video_parts: videoParts || null,
     p_pdf_url: pdfUrl || null,
     p_instructor: instructor || null,
+    p_section: section || null,
     p_quiz_title: `Quiz: ${lectureTitle}`,
     p_questions: rpcQuestions
   });

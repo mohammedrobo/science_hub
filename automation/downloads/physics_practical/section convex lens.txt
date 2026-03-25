@@ -1,0 +1,576 @@
+Based on the whiteboard headings across the images, the name/title of the document as written is:
+"Convex lens" (with the Arabic translation "عدسة محدبة" written above it).
+
+Here is the extracted text, diagrams, and formulas from the whiteboard images, organized into the two main variations of the experiment shown:
+
+Part 1: Basic Convex Lens Properties & Graph (Images 1 - 4)
+
+Aim: Determination of
+[1] Focal length (
+𝑓
+f
+)[2] lens power (
+𝐹
+F
+)
+
+Theory:-
+
+Convex (Diagram showing parallel light rays passing through a convex lens and converging to a single point).
+
+Concave (Diagram showing parallel light rays passing through a concave lens and diverging, with dashed lines tracing back to a virtual focus).
+
+Ray Diagrams & Lens Anatomy:
+
+A diagram showing the principal axis with the following points: 
+𝐶
+1
+,
+𝑓
+1
+,
+𝑂
+.
+𝐶
+C
+1
+	​
+
+,f
+1
+	​
+
+,O.C
+ (Optical Center), 
+𝑓
+2
+,
+𝐶
+2
+f
+2
+	​
+
+,C
+2
+	​
+
+.
+
+A ray diagram showing how an image is formed: a ray parallel to the principal axis passes through 
+𝑓
+2
+f
+2
+	​
+
+, and a ray passing through the Optical Center (
+𝑂
+.
+𝐶
+O.C
+) continues in a straight line without deviation.
+
+A diagram showing objects (upward arrows) placed at various distances and their corresponding real, inverted images (downward arrows) formed on the other side.
+
+Data Table:
+| 
+𝑥
+(
+𝑐
+𝑚
+)
+x(cm)
+ | 
+𝑦
+(
+𝑐
+𝑚
+)
+y(cm)
+ | 
+𝑋
+=
+100
+𝑥
+(
+𝑚
+−
+1
+)
+X=
+x
+100
+	​
+
+(m
+−1
+)
+ | 
+𝑌
+=
+100
+𝑦
+(
+𝑚
+−
+1
+)
+Y=
+y
+100
+	​
+
+(m
+−1
+)
+ |
+| :--- | :--- | :--- | :--- |
+| | | | |
+| | | | |
+| | | | |
+
+Graph & Calculations:
+
+A linear graph plotting 
+𝑌
+(
+𝑚
+−
+1
+)
+Y(m
+−1
+)
+ on the y-axis vs 
+𝑋
+(
+𝑚
+−
+1
+)
+X(m
+−1
+)
+ on the x-axis.
+
+The straight line has a negative slope and intersects the y-axis at 
+𝐹
+𝑦
+F
+y
+	​
+
+ and the x-axis at 
+𝐹
+𝑥
+F
+x
+	​
+
+.
+
+𝐹
+=
+𝐹
+𝑥
++
+𝐹
+𝑦
+2
+=
+…
+…
+𝑚
+−
+1
+F=
+2
+F
+x
+	​
+
++F
+y
+	​
+
+	​
+
+=……m
+−1
+
+𝑓
+=
+1
+𝐹
+=
+…
+…
+𝑚
+=
+…
+…
+𝑐
+𝑚
+f=
+F
+1
+	​
+
+=……m=……cm
+
+Part 2: Experimental Methods & Calculations (Image 5)
+
+Title: Convex Lens
+
+Aim:
+[1] Determin The focal length of lens (
+𝑓
+f
+)
+[2] The lens power at different distance (
+𝐹
+F
+)
+
+Law:
+
+1
+𝑓
+=
+1
+𝑢
++
+1
+𝑣
+f
+1
+	​
+
+=
+u
+1
+	​
+
++
+v
+1
+	​
+
+
+𝐹
+=
+100
+𝑓
+F=
+f
+100
+	​
+
+
+Theory:
+[1] Types of lenses[2] Focal length
+[3] Method of measure
+
+(A) Identical Method
+
+(B) General or graphical Method
+
+Method (A) Identical Method:
+(Arabic note: الطريقة الاولى - The first method)
+
+Diagram: Shows a light source, a convex lens, and a plane mirror (labeled in Arabic: مرآة مستوية) directly behind it. The light rays reflect back to form an image at the exact position of the object (
+𝑢
+u
+).
+
+Because the rays hit the mirror parallel, 
+𝑣
+=
+∞
+v=∞
+.
+
+1
+𝑓
+=
+1
+𝑢
++
+1
+𝑣
+f
+1
+	​
+
+=
+u
+1
+	​
+
++
+v
+1
+	​
+
+
+1
+𝑓
+=
+1
+𝑢
++
+1
+∞
+f
+1
+	​
+
+=
+u
+1
+	​
+
++
+∞
+1
+	​
+
+
+1
+𝑓
+=
+1
+𝑢
++
+0
+⟹
+𝑓
+=
+𝑢
+f
+1
+	​
+
+=
+u
+1
+	​
+
++0⟹f=u
+
+Example Calculation:
+
+𝑓
+=
+𝑢
+=
+23
+ cm
+f=u=23 cm
+
+
+𝐹
+=
+100
+23
+=
+…
+(
+𝑚
+−
+1
+)
+F=
+23
+100
+	​
+
+=…(m
+−1
+)
+
+Method (B) General or graphical Method:
+
+Diagram: Standard setup showing a light source, a convex lens, and a screen forming an image. Distances are marked as 
+𝑢
+u
+ (object distance) and 
+𝑣
+v
+ (image distance).
+
+Derivation for power:
+
+1
+𝑓
+=
+1
+𝑢
++
+1
+𝑣
+→
+×
+100
+f
+1
+	​
+
+=
+u
+1
+	​
+
++
+v
+1
+	​
+
+×100
+	​
+
+
+
+100
+𝑓
+=
+100
+𝑢
++
+100
+𝑣
+f
+100
+	​
+
+=
+u
+100
+	​
+
++
+v
+100
+	​
+
+
+
+𝐹
+=
+𝑈
++
+𝑉
+F=U+V
+
+Data Table:
+| 
+𝑢
+u
+ | 
+𝑣
+v
+ | 
+𝑈
+=
+100
+𝑢
+U=
+u
+100
+	​
+
+ | 
+𝑉
+=
+100
+𝑣
+V=
+v
+100
+	​
+
+ |
+| :--- | :--- | :--- | :--- |
+| 30 | 36 | | |
+| 35 | 29 | | |
+| 40 | | | |
+| 45 | | | |
+
+Graph & Final Calculation:
+
+A linear graph plotting 
+𝑈
+U
+ on the y-axis vs 
+𝑉
+V
+ on the x-axis.
+
+The intercepts on the axes are labeled 
+𝐹
+1
+F
+1
+	​
+
+ and 
+𝐹
+2
+F
+2
+	​
+
+.
+
+[1] 
+𝐹
+𝑎
+𝑣
+=
+𝐹
+1
++
+𝐹
+2
+2
+=
+20
+ m
+−
+1
+F
+av
+	​
+
+=
+2
+F
+1
+	​
+
++F
+2
+	​
+
+	​
+
+=20 m
+−1
+ (example value written on board)
+
+[2] 
+𝑓
+=
+100
+𝐹
+𝑎
+𝑣
+f=
+F
+av
+	​
+
+100
+	​
+

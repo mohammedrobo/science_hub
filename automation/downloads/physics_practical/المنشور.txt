@@ -1,0 +1,208 @@
+Based on the whiteboard content in the images, the implied name/title of this document/experiment is:
+"Prism (Minimum Angle of Deviation & Refractive Index)"
+
+Here is the extracted text, formulas, diagrams, and tables from the whiteboard:
+
+Experiment aims:
+
+[1] Determination of the min. angle of deviation (
+𝛼
+0
+α
+0
+	​
+
+).[2] // // (Determination of the) refractive index (
+𝑛
+n
+).
+
+Theory:
+
+Formula 1:
+
+𝑛
+=
+sin
+⁡
+(
+𝐴
+^
++
+𝛼
+0
+2
+)
+sin
+⁡
+(
+𝐴
+^
+2
+)
+n=
+sin(
+2
+A
+^
+	​
+
+)
+sin(
+2
+A
+^
++α
+0
+	​
+
+	​
+
+)
+	​
+
+
+Formula 2:
+
+𝑑
+𝛼
+𝑑
+𝜃
+1
+=
+1
+−
+𝑑
+𝜃
+4
+𝑑
+𝜃
+1
+dθ
+1
+	​
+
+dα
+	​
+
+=1−
+dθ
+1
+	​
+
+dθ
+4
+	​
+
+	​
+
+
+Graph
+
+A parabolic/U-shaped curve is plotted.
+
+Y-axis: 
+𝛼
+(
+∘
+)
+α(
+∘
+)
+ (Angle of deviation)
+
+X-axis: 
+𝜃
+1
+(
+∘
+)
+θ
+1
+	​
+
+(
+∘
+)
+ (Angle of incidence)
+
+Data points (circled dots) are plotted forming the curve.
+
+The lowest point on the curve (the minimum) is marked with a dashed line pointing to the y-axis, labeled as 
+𝛼
+0
+α
+0
+	​
+
+ (minimum angle of deviation).
+
+Diagrams
+
+Top Right Diagram: A smaller sketch of a triangular prism showing the apex angle labeled 
+𝐴
+^
+A
+^
+.
+
+Main Right Diagram: A larger ray diagram of a triangular prism showing:
+
+The apex angle 
+𝐴
+A
+.
+
+An incident light ray entering the left face at an angle 
+𝜃
+1
+θ
+1
+	​
+
+.
+
+The ray refracting through the prism and emerging from the right face at an angle 
+𝜃
+4
+θ
+4
+	​
+
+.
+
+Dashed lines extending the incident and emergent rays backwards to intersect, showing the angle of deviation 
+𝛼
+α
+.
+
+Data Table
+
+A two-column table set up to record experimental data:
+
+𝜃
+1
+(
+∘
+)
+θ
+1
+	​
+
+(
+∘
+)
+	
+𝛼
+(
+∘
+)
+α(
+∘
+)
+
+35	
+40	
+45	
+50	
+55	
