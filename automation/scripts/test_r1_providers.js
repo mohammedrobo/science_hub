@@ -8,9 +8,7 @@ const ROOT = path.resolve(__dirname, '../..');
 const envPath = path.join(ROOT, 'automation', '.env');
 
 let OPENROUTER_KEY = '';
-let HUGGINGFACE_KEY = '';
-let OPENROUTER_MODEL = 'deepseek/deepseek-r1';
-let HUGGINGFACE_MODEL = 'deepseek-ai/DeepSeek-R1';
+let OPENROUTER_MODEL = 'stepfun/step-3.5-flash';
 let OPENROUTER_KEYS = [];
 
 if (fs.existsSync(envPath)) {
@@ -22,9 +20,7 @@ if (fs.existsSync(envPath)) {
     if (t.startsWith('OPENROUTER_API_KEYS=')) {
       OPENROUTER_KEYS = t.split('=')[1].split(',').map(s => s.trim()).filter(Boolean);
     }
-    if (t.startsWith('HUGGINGFACE_API_KEY=')) HUGGINGFACE_KEY = t.split('=')[1].trim();
     if (t.startsWith('OPENROUTER_MODEL=')) OPENROUTER_MODEL = t.split('=')[1].trim();
-    if (t.startsWith('HUGGINGFACE_MODEL=')) HUGGINGFACE_MODEL = t.split('=')[1].trim();
   }
 }
 
@@ -81,33 +77,10 @@ async function testOpenRouter() {
   return results;
 }
 
-async function testHuggingFace() {
-  if (!HUGGINGFACE_KEY) return { ok: false, reason: 'missing_huggingface_key' };
-  const res = await httpPost('api-inference.huggingface.co', `/models/${HUGGINGFACE_MODEL}/v1/chat/completions`, {
-    'Authorization': `Bearer ${HUGGINGFACE_KEY}`,
-  }, {
-    model: HUGGINGFACE_MODEL,
-    messages: [
-      { role: 'system', content: 'Answer with exactly two words.' },
-      { role: 'user', content: 'Say: test ok' }
-    ],
-    max_tokens: 32,
-    temperature: 0.2,
-  });
-  const text = res.json?.choices?.[0]?.message?.content || '';
-  return { ok: !!text, status: res.status, sample: text.trim().slice(0, 80) };
-}
-
 (async () => {
   try {
     console.log('OpenRouter:', await testOpenRouter());
   } catch (e) {
     console.log('OpenRouter:', { ok: false, error: e.message || String(e) });
-  }
-
-  try {
-    console.log('HuggingFace:', await testHuggingFace());
-  } catch (e) {
-    console.log('HuggingFace:', { ok: false, error: e.message || String(e) });
   }
 })();

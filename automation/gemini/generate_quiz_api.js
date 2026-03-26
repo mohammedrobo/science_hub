@@ -1,10 +1,9 @@
 /**
- * Science Hub — Quiz Generator (OpenRouter + HuggingFace Fallback)
+ * Science Hub — Quiz Generator (OpenRouter only)
  * 
  * Pipeline: Extract PDF text → YouTube suggestion → Quiz generation
  * Primary: DeepSeek via OpenRouter
- * Fallback: DeepSeek via HuggingFace
- * If both fail for quiz: still return YouTube suggestion
+ * If it fails for quiz: still return YouTube suggestion
  * 
  * Usage (positional):
  *   node generate_quiz_api.js <pdfPath> <courseCode> <lectureTitle>
@@ -62,13 +61,19 @@ const envPath = path.join(__dirname, '..', '.env');
 let OPENROUTER_KEY = '';
 let OPENROUTER_KEYS = [];
 const OPENROUTER_OVERRIDE = process.env.OPENROUTER_API_KEY_OVERRIDE || '';
-let HUGGINGFACE_KEY = '';
 let YOUTUBE_KEY = '';
+let YOUTUBE_KEYS = [];
 let YOUTUBE_REGION = 'EG';
 let YOUTUBE_LANG = 'ar';
 let YOUTUBE_REGION_FALLBACKS = '';
-let OPENROUTER_MODEL = 'deepseek/deepseek-r1';
-let HUGGINGFACE_MODEL = 'deepseek-ai/DeepSeek-R1';
+let OPENROUTER_MODEL = 'stepfun/step-3.5-flash';
+let YT_MAX_TOKENS = 256;
+let QUIZ_MCQ_COUNT = 10;
+let QUIZ_TF_COUNT = 10;
+let QUIZ_MAX_TOKENS = 1800;
+let QUIZ_MCQ_MAX_TOKENS = 1200;
+let QUIZ_TF_MAX_TOKENS = 600;
+let QUIZ_RETRY_MAX_TOKENS = 1200;
 let OCR_ENABLED = '1';
 let OCR_LANGS = 'ara+eng';
 let OCR_TIMEOUT_MS = 900000;
@@ -85,13 +90,24 @@ if (fs.existsSync(envPath)) {
     if (t.startsWith('OPENROUTER_API_KEYS=')) {
       OPENROUTER_KEYS = t.split('=')[1].split(',').map(s => s.trim()).filter(Boolean);
     }
-    if (t.startsWith('HUGGINGFACE_API_KEY=')) HUGGINGFACE_KEY = t.split('=')[1].trim();
-    if (t.startsWith('YOUTUBE_API_KEY=')) YOUTUBE_KEY = t.split('=')[1].trim();
+    if (t.startsWith('YOUTUBE_API_KEY=')) YOUTUBE_KEY = t.split('=')[1].trim().replace(/^"|"$/g, '');
+    if (t.startsWith('YOUTUBE_API_KEYS=')) {
+      YOUTUBE_KEYS = t.split('=')[1]
+        .split(',')
+        .map(s => s.trim().replace(/^"|"$/g, ''))
+        .filter(Boolean);
+    }
     if (t.startsWith('YOUTUBE_REGION=')) YOUTUBE_REGION = t.split('=')[1].trim();
     if (t.startsWith('YOUTUBE_LANG=')) YOUTUBE_LANG = t.split('=')[1].trim();
     if (t.startsWith('YOUTUBE_REGION_FALLBACKS=')) YOUTUBE_REGION_FALLBACKS = t.split('=')[1].trim();
     if (t.startsWith('OPENROUTER_MODEL=')) OPENROUTER_MODEL = t.split('=')[1].trim();
-    if (t.startsWith('HUGGINGFACE_MODEL=')) HUGGINGFACE_MODEL = t.split('=')[1].trim();
+    if (t.startsWith('YT_MAX_TOKENS=')) YT_MAX_TOKENS = Number(t.split('=')[1].trim() || 256);
+    if (t.startsWith('QUIZ_MCQ_COUNT=')) QUIZ_MCQ_COUNT = Number(t.split('=')[1].trim() || 10);
+    if (t.startsWith('QUIZ_TF_COUNT=')) QUIZ_TF_COUNT = Number(t.split('=')[1].trim() || 10);
+    if (t.startsWith('QUIZ_MAX_TOKENS=')) QUIZ_MAX_TOKENS = Number(t.split('=')[1].trim() || 1800);
+    if (t.startsWith('QUIZ_MCQ_MAX_TOKENS=')) QUIZ_MCQ_MAX_TOKENS = Number(t.split('=')[1].trim() || 1200);
+    if (t.startsWith('QUIZ_TF_MAX_TOKENS=')) QUIZ_TF_MAX_TOKENS = Number(t.split('=')[1].trim() || 600);
+    if (t.startsWith('QUIZ_RETRY_MAX_TOKENS=')) QUIZ_RETRY_MAX_TOKENS = Number(t.split('=')[1].trim() || 1200);
     if (t.startsWith('OCR_ENABLED=')) OCR_ENABLED = t.split('=')[1].trim();
     if (t.startsWith('OCR_LANGS=')) OCR_LANGS = t.split('=')[1].trim();
     if (t.startsWith('OCR_TIMEOUT_MS=')) OCR_TIMEOUT_MS = Number(t.split('=')[1].trim() || 600000);
@@ -108,7 +124,33 @@ OCR_MAX_PAGES = Number(process.env.OCR_MAX_PAGES || OCR_MAX_PAGES || 12);
 OCR_DPI = Number(process.env.OCR_DPI || OCR_DPI || 200);
 OCR_PSM = Number(process.env.OCR_PSM || OCR_PSM || 6);
 OCR_OEM = Number(process.env.OCR_OEM || OCR_OEM || 1);
+YT_MAX_TOKENS = Number(process.env.YT_MAX_TOKENS || YT_MAX_TOKENS || 256);
+QUIZ_MCQ_COUNT = Number(process.env.QUIZ_MCQ_COUNT || QUIZ_MCQ_COUNT || 10);
+QUIZ_TF_COUNT = Number(process.env.QUIZ_TF_COUNT || QUIZ_TF_COUNT || 10);
+QUIZ_MAX_TOKENS = Number(process.env.QUIZ_MAX_TOKENS || QUIZ_MAX_TOKENS || 1800);
+QUIZ_MCQ_MAX_TOKENS = Number(process.env.QUIZ_MCQ_MAX_TOKENS || QUIZ_MCQ_MAX_TOKENS || 1200);
+QUIZ_TF_MAX_TOKENS = Number(process.env.QUIZ_TF_MAX_TOKENS || QUIZ_TF_MAX_TOKENS || 600);
+QUIZ_RETRY_MAX_TOKENS = Number(process.env.QUIZ_RETRY_MAX_TOKENS || QUIZ_RETRY_MAX_TOKENS || 1200);
 YOUTUBE_REGION_FALLBACKS = String(process.env.YOUTUBE_REGION_FALLBACKS || YOUTUBE_REGION_FALLBACKS || '').trim();
+if (process.env.YOUTUBE_API_KEY && !YOUTUBE_KEY) {
+  YOUTUBE_KEY = String(process.env.YOUTUBE_API_KEY).trim().replace(/^"|"$/g, '');
+}
+if (process.env.YOUTUBE_API_KEYS) {
+  const extra = String(process.env.YOUTUBE_API_KEYS)
+    .split(',')
+    .map(s => s.trim().replace(/^"|"$/g, ''))
+    .filter(Boolean);
+  YOUTUBE_KEYS = [...YOUTUBE_KEYS, ...extra];
+}
+
+function getYouTubeKeys() {
+  const keys = [];
+  if (YOUTUBE_KEY) keys.push(YOUTUBE_KEY);
+  if (YOUTUBE_KEYS && YOUTUBE_KEYS.length) {
+    for (const k of YOUTUBE_KEYS) if (k) keys.push(k);
+  }
+  return [...new Set(keys.filter(Boolean))];
+}
 
 function out(data) { console.log(JSON.stringify(data)); }
 function err(msg) { console.error(msg); }
@@ -186,22 +228,72 @@ function buildContext(text, maxChars = 9000) {
   return `${head}\n...\n${mid}\n...\n${tail}`;
 }
 
-function stripToFirstQuestion(text) {
-  if (!text) return text;
-  const idx = text.search(/^\s*1\.\s+/m);
-  if (idx >= 0) return text.slice(idx).trim();
-  return text.trim();
+function getSubjectLabel(courseCode) {
+  const code = String(courseCode || '').toUpperCase();
+  switch (code) {
+    case 'B101': return 'Botany';
+    case 'C102': return 'Chemistry';
+    case 'C104': return 'Chemistry Practical';
+    case 'COMP101': return 'Computer Science';
+    case 'G102': return 'Geology';
+    case 'M102': return 'Mathematics';
+    case 'P102': return 'Physics';
+    case 'P104': return 'Physics Practical';
+    case 'Z102': return 'Zoology';
+    default: return 'Science';
+  }
+}
+
+function getSubjectLabelArabic(courseCode) {
+  const code = String(courseCode || '').toUpperCase();
+  switch (code) {
+    case 'B101': return 'علم النبات';
+    case 'C102': return 'الكيمياء العامة';
+    case 'C104': return 'الكيمياء العملية';
+    case 'COMP101': return 'علوم الحاسب';
+    case 'G102': return 'الجيولوجيا';
+    case 'M102': return 'الرياضيات';
+    case 'P102': return 'الفيزياء العامة';
+    case 'P104': return 'فيزياء عملية';
+    case 'Z102': return 'علم الحيوان';
+    default: return 'العلوم';
+  }
 }
 
 function normalizeQuizFormat(text) {
   if (!text) return text;
-  let t = String(text);
+  let t = stripCodeFences(String(text));
   // Normalize question numbering to "1. "
-  t = t.replace(/^\s*Q\s*(\d+)\s*[:\).\-]\s+/gmi, '$1. ');
-  t = t.replace(/^\s*(\d+)\s*[\)\-:]\s+/gm, '$1. ');
+  t = t.replace(/^\s*Q\s*(\d+)\s*[:\).\-]\s*/gmi, '$1. ');
+  t = t.replace(/^\s*(\d+)\s*[\)\-:]\s*/gm, '$1. ');
   // Normalize options to "a) "
-  t = t.replace(/^\s*([ABCD])\s*[\)\.\-:]\s+/gm, (_m, p1) => `${String(p1).toLowerCase()}) `);
+  t = t.replace(/^\s*([ABCD])\s*[\)\.\-:]\s*/gm, (_m, p1) => `${String(p1).toLowerCase()}) `);
   return t.trim();
+}
+
+function splitQuizBlocks(text) {
+  if (!text) return [];
+  const lines = String(text).trim().split(/\r?\n/);
+  const blocks = [];
+  let current = [];
+  const qStart = /^\s*(?:Q\s*)?\d+\s*[\.\)\-:]\s+/i;
+  for (const line of lines) {
+    if (qStart.test(line) && current.length) {
+      blocks.push(current.join('\n').trim());
+      current = [line];
+    } else {
+      current.push(line);
+    }
+  }
+  if (current.length) blocks.push(current.join('\n').trim());
+  return blocks.filter(Boolean);
+}
+
+function renumberBlocks(blocks, startIndex = 1) {
+  let idx = startIndex;
+  return blocks.map((b) =>
+    b.replace(/^\s*(?:Q\s*)?\d+\s*[\.\)\-:]\s+/i, () => `${idx++}. `).trim()
+  );
 }
 
 function runOcr(filePath) {
@@ -362,7 +454,7 @@ function orderKeysBySeed(keys, seed) {
 
 async function callOpenRouterWithKey(apiKey, messages, opts = {}) {
   if (!apiKey) throw new Error('No OpenRouter key');
-  err('  🔗 Trying OpenRouter (DeepSeek R1)...');
+  err(`  🔗 Trying OpenRouter (${OPENROUTER_MODEL})...`);
   const temperature = typeof opts.temperature === 'number' ? opts.temperature : 0.3;
   const max_tokens = typeof opts.max_tokens === 'number' ? opts.max_tokens : 4096;
   const res = await httpPost('openrouter.ai', '/api/v1/chat/completions', {
@@ -378,27 +470,8 @@ async function callOpenRouterWithKey(apiKey, messages, opts = {}) {
   return res.choices?.[0]?.message?.content || '';
 }
 
-// ── Provider 2: HuggingFace (DeepSeek) ──
-async function callHuggingFace(messages, opts = {}) {
-  if (!HUGGINGFACE_KEY) throw new Error('No HuggingFace key');
-  err('  🤗 Trying HuggingFace (DeepSeek R1)...');
-  const temperature = typeof opts.temperature === 'number' ? opts.temperature : 0.3;
-  const max_tokens = typeof opts.max_tokens === 'number' ? opts.max_tokens : 4096;
-  const res = await httpPost('api-inference.huggingface.co', `/models/${HUGGINGFACE_MODEL}/v1/chat/completions`, {
-    'Authorization': `Bearer ${HUGGINGFACE_KEY}`,
-  }, {
-    model: HUGGINGFACE_MODEL,
-    messages,
-    max_tokens,
-    temperature,
-  });
-  if (res.error) throw new Error(`HuggingFace: ${res.error || JSON.stringify(res)}`);
-  return res.choices?.[0]?.message?.content || '';
-}
-
-// ── Smart caller: tries OpenRouter first, then HuggingFace ──
+// ── Smart caller: OpenRouter only ──
 async function callAI(messages, opts = {}) {
-  // Try OpenRouter keys (rotate on failure)
   const baseKeys = getOpenRouterKeys();
   const keys = OPENROUTER_OVERRIDE
     ? baseKeys
@@ -411,49 +484,129 @@ async function callAI(messages, opts = {}) {
       err(`  ❌ OpenRouter failed: ${e.message}`);
     }
   }
-  // Fallback to HuggingFace
-  try {
-    const result = await callHuggingFace(messages, opts);
-    if (result && result.length > 10) return result;
-  } catch (e) {
-    err(`  ❌ HuggingFace failed: ${e.message}`);
-  }
   return null;
+}
+
+function stripCodeFences(text) {
+  if (!text) return text;
+  const t = String(text).trim();
+  const fenceMatch = t.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (fenceMatch && fenceMatch[1]) return fenceMatch[1].trim();
+  return t;
+}
+
+function extractJsonSubstring(text) {
+  if (!text) return null;
+  const t = stripCodeFences(text);
+  const firstObj = t.indexOf('{');
+  const firstArr = t.indexOf('[');
+  let start = -1;
+  if (firstObj >= 0 && firstArr >= 0) start = Math.min(firstObj, firstArr);
+  else start = Math.max(firstObj, firstArr);
+  if (start < 0) return null;
+  const endObj = t.lastIndexOf('}');
+  const endArr = t.lastIndexOf(']');
+  const end = Math.max(endObj, endArr);
+  if (end <= start) return null;
+  return t.slice(start, end + 1);
 }
 
 function safeJsonParse(text) {
   if (!text) return null;
   try {
-    return JSON.parse(text);
+    return JSON.parse(stripCodeFences(text));
   } catch {
-    return null;
+    try {
+      const sub = extractJsonSubstring(text);
+      if (sub) return JSON.parse(sub);
+    } catch {
+      return null;
+    }
   }
+  return null;
 }
 
 function normalizeQuery(q) {
-  return String(q || '')
+  return stripCodeFences(String(q || ''))
     .replace(/^["']|["']$/g, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
-function ensureQueries(queries, title, course) {
+function extractKeywords(text, max = 4) {
+  if (!text) return [];
+  const stop = new Set([
+    'the','and','for','with','that','this','from','into','onto','over','under','about','between','within','without','while','where','when',
+    'your','their','there','these','those','also','more','most','such','using','use','used','than','then','them','been','being','were','was',
+    'lecture','lectures','lesson','lessons','chapter','chapters','introduction','intro','notes','slide','slides','pdf','course','courses',
+    'faculty','university','department','college','science','first','year','students','student','general',
+    'محاضرة','محاضرات','درس','دروس','مقدمة','ملاحظات','شريحة','شرائح','ملخص','كتاب','كورسات','كورس',
+    'جامعة','كلية','قسم','علوم','أولى','اولى','طلاب','طالب','عام','عامه','محاضره'
+  ]);
+  const tokens = String(text)
+    .toLowerCase()
+    .match(/[a-z\u0600-\u06FF]{3,}/g) || [];
+  const freq = new Map();
+  for (const tok of tokens) {
+    if (stop.has(tok)) continue;
+    if (tok.length > 24) continue;
+    freq.set(tok, (freq.get(tok) || 0) + 1);
+  }
+  const sorted = [...freq.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([t]) => t);
+  return sorted.slice(0, max);
+}
+
+function isGenericQuery(q) {
+  const t = String(q || '').toLowerCase();
+  if (!t) return true;
+  if (/(محاضرة|lecture|lec)\s*\d+/.test(t)) return true;
+  if (/\b(b101|c102|p102|m102|comp101|z102|g102|p104|c104)\b/i.test(t)) return true;
+  if (/علوم\s*اولى|علوم\s*أولى|first\s*year|science\s*students?/i.test(t)) return true;
+  if (/محاضرة\s*عامة|شرح\s*عام|general\s*lecture|intro\s*lecture/i.test(t)) return true;
+  return false;
+}
+
+function cleanLectureTitle(title) {
+  let t = String(title || '').trim();
+  t = t.replace(/(?:lecture|lec|محاضرة)\s*\d+/gi, '');
+  t = t.replace(/\b(b101|c102|p102|m102|comp101|z102|g102|p104|c104)\b/gi, '');
+  t = t.replace(/[^\p{L}\p{N}\s]+/gu, ' ');
+  t = t.replace(/\s+/g, ' ').trim();
+  return t;
+}
+
+function buildTopicFromKeywords(keywords) {
+  if (!keywords || !keywords.length) return '';
+  const uniq = [...new Set(keywords)].filter(Boolean);
+  return uniq.slice(0, 3).join(' ');
+}
+
+function ensureQueries(queries, title, course, keywords = [], subjectAr = '') {
   const out = [];
   const add = (query) => {
     const q = normalizeQuery(query);
     if (!q) return;
+    if (isGenericQuery(q)) return;
     if (out.some(x => x.query === q)) return;
     out.push({ title: '', query: q });
   };
   for (const q of queries || []) add(q?.query || q);
-  const base = normalizeQuery(`${title} شرح ${course}`.trim());
+  const topic = buildTopicFromKeywords(keywords);
+  const safeTitle = cleanLectureTitle(title);
+  const base = normalizeQuery(topic
+    ? `${topic} شرح`
+    : (safeTitle ? `${safeTitle} شرح ${subjectAr}`.trim() : `شرح ${subjectAr}`.trim())
+  );
   add(base);
-  add(`${title} محاضرة ${course}`);
-  add(`${title} شرح مبسط ${course}`);
-  return out.slice(0, 3).map((q, i) => ({ title: `Option ${i + 1}`, query: q.query }));
+  add(topic ? `${topic} محاضرة` : (safeTitle ? `${safeTitle} محاضرة ${subjectAr}` : `محاضرة ${subjectAr}`));
+  add(topic ? `${topic} شرح مبسط` : (safeTitle ? `${safeTitle} شرح مبسط ${subjectAr}` : `شرح مبسط ${subjectAr}`));
+  if (!out.length && subjectAr) add(`شرح ${subjectAr}`);
+  return out.slice(0, 2).map((q, i) => ({ title: `Option ${i + 1}`, query: q.query }));
 }
 
-function parseYtQueries(ytResult, title, course) {
+function parseYtQueries(ytResult, title, course, keywords = [], subjectAr = '') {
   const parsed = safeJsonParse(ytResult);
   let ytQueries = [];
   let mode = '';
@@ -491,7 +644,7 @@ function parseYtQueries(ytResult, title, course) {
       out.push({ title: normalizeQuery(q.title || ''), query });
     }
     if (!out.length) {
-      const fallback = normalizeQuery(`${title} شرح ${course}`.trim());
+      const fallback = normalizeQuery(`${cleanLectureTitle(title)} شرح ${subjectAr}`.trim());
       if (fallback) out.push({ title: 'Part 1', query: fallback });
     }
     return out.slice(0, 7).map((q, i) => ({
@@ -500,16 +653,41 @@ function parseYtQueries(ytResult, title, course) {
     }));
   }
 
-  if (ytQueries.length === 0) {
-    const fallback = normalizeQuery(`${title} شرح ${course}`.trim());
+  if (ytQueries.length === 0 || isGenericQuery(ytQueries[0]?.query)) {
+    const fallback = normalizeQuery(`${cleanLectureTitle(title)} شرح ${subjectAr}`.trim());
     if (fallback) ytQueries = [{ title: '', query: fallback }];
   }
 
-  return ensureQueries(ytQueries, title, course);
+  return ensureQueries(ytQueries, title, course, keywords, subjectAr);
 }
 
-async function ytSearch(query) {
-  if (!YOUTUBE_KEY || !query) return null;
+function isQuotaError(errJson) {
+  try {
+    const reasons = errJson?.error?.errors?.map(e => e.reason) || [];
+    return reasons.some(r =>
+      r === 'quotaExceeded' ||
+      r === 'dailyLimitExceeded' ||
+      r === 'userRateLimitExceeded' ||
+      r === 'rateLimitExceeded'
+    );
+  } catch {
+    return false;
+  }
+}
+
+function extractYouTubeError(errJson) {
+  try {
+    const err = errJson?.error;
+    const reason = err?.errors?.[0]?.reason || '';
+    const message = err?.message || '';
+    return { reason, message };
+  } catch {
+    return { reason: '', message: '' };
+  }
+}
+
+async function ytSearchWithKey(query, apiKey) {
+  if (!apiKey || !query) return null;
   const q = normalizeQuery(query);
   if (!q) return null;
   const hasArabic = /[\u0600-\u06FF]/.test(q);
@@ -524,17 +702,19 @@ async function ytSearch(query) {
   const regionList = [...new Set(regions.filter(Boolean))];
   const candidates = regionList.length ? regionList : [null];
 
-  const doSearch = (regionCode) => {
+  const doSearch = (regionCode, relaxed = false) => {
     const params = new URLSearchParams({
       part: 'snippet',
       type: 'video',
       maxResults: '8',
       safeSearch: 'moderate',
-      videoDuration: 'medium',
-      videoEmbeddable: 'true',
       q,
-      key: YOUTUBE_KEY,
+      key: apiKey,
     });
+    if (!relaxed) {
+      params.set('videoDuration', 'medium');
+      params.set('videoEmbeddable', 'true');
+    }
     if (hasArabic && YOUTUBE_LANG) params.set('relevanceLanguage', YOUTUBE_LANG);
     if (regionCode) params.set('regionCode', regionCode);
 
@@ -545,22 +725,52 @@ async function ytSearch(query) {
         res.on('data', (d) => { data += d.toString(); });
         res.on('end', () => {
           try {
-            resolve(JSON.parse(data));
+            resolve({ status: res.statusCode || 0, json: JSON.parse(data) });
           } catch {
-            resolve(null);
+            resolve({ status: res.statusCode || 0, json: null });
           }
         });
       }).on('error', () => resolve(null));
     });
   };
 
-  let last = null;
   for (const regionCode of candidates) {
-    const data = await doSearch(regionCode);
-    last = data || last;
+    const data = await doSearch(regionCode, false);
+    if (data?.json?.items?.length) return data.json;
+    if (data?.json && isQuotaError(data.json)) return { _quotaExceeded: true };
+    if (data?.json?.error) return { _error: extractYouTubeError(data.json) };
+  }
+  // Relaxed pass: drop duration/embeddable filters
+  for (const regionCode of candidates) {
+    const data = await doSearch(regionCode, true);
+    if (data?.json?.items?.length) return data.json;
+    if (data?.json && isQuotaError(data.json)) return { _quotaExceeded: true };
+    if (data?.json?.error) return { _error: extractYouTubeError(data.json) };
+  }
+  return null;
+}
+
+async function ytSearch(query) {
+  const keys = getYouTubeKeys();
+  if (!keys.length || !query) {
+    err('⚠️  YouTube API key(s) missing.');
+    return null;
+  }
+  for (const key of keys) {
+    const data = await ytSearchWithKey(query, key);
+    if (data && data._quotaExceeded) {
+      err('⚠️  YouTube quota exceeded for one key. Trying next key...');
+      continue;
+    }
+    if (data && data._error) {
+      const r = data._error.reason || 'unknown';
+      const m = data._error.message || '';
+      err(`⚠️  YouTube API error (${r}): ${m}`);
+      continue;
+    }
     if (data?.items?.length) return data;
   }
-  return last;
+  return null;
 }
 
 function pickBestVideo(items, query) {
@@ -631,22 +841,28 @@ async function run() {
   const isPractical = /^(P104|C104)$/i.test(course) || /practical/i.test(course);
   const isCompSci = /^COMP101$/i.test(course) || /computer\s*science/i.test(course);
   const forceSingleTopic = isPractical || isCompSci;
+  const subjectLabel = getSubjectLabel(course);
+  const subjectLabelAr = getSubjectLabelArabic(course);
   if (!isPdf) {
     // Non-PDF assets (images, etc.) — skip quiz, but try YouTube query from title
-    if (OPENROUTER_KEY || HUGGINGFACE_KEY) {
+    if (getOpenRouterKeys().length) {
       try {
         const ytMessages = [
-          { role: 'system', content: 'You are a helpful assistant. Output ONLY valid JSON. No markdown, no commentary.' },
-          { role: 'user', content: `Context: First-year students in the Faculty of Science in Egypt.\nGoal: Find educational Arabic YouTube explanations suitable for first-year science students.\n\nCourse: ${course}\nLecture: ${title}\n\n` +
+          { role: 'system', content: `You are a helpful assistant and professor of ${subjectLabel}. Output ONLY valid JSON. Do NOT wrap in code fences. No markdown, no commentary.` },
+          { role: 'user', content: `Context: First-year students in the Faculty of Science in Egypt.\nGoal: Find educational Arabic YouTube explanations suitable for first-year science students.\n\nCourse: ${course}\nLecture: ${title}\nSubject (Arabic): ${subjectLabelAr}\n\n` +
             (forceSingleTopic
-              ? `This lecture MUST be treated as a SINGLE topic.\nReturn exactly THREE alternative Arabic YouTube search queries.\nReturn JSON: {\"mode\":\"single\",\"queries\":[{\"title\":\"Option 1\",\"query\":\"...\"},{\"title\":\"Option 2\",\"query\":\"...\"},{\"title\":\"Option 3\",\"query\":\"...\"}]}\n`
-              : `Decide if the lecture covers MULTIPLE distinct topics or a SINGLE coherent topic.\nIf SINGLE: return exactly THREE alternatives (options).\nIf MULTI: return ONE query per topic (no options), MAX 7 topics.\nReturn JSON in ONE of these forms:\n- Single: {\"mode\":\"single\",\"queries\":[{\"title\":\"Option 1\",\"query\":\"...\"},{\"title\":\"Option 2\",\"query\":\"...\"},{\"title\":\"Option 3\",\"query\":\"...\"}]}\n- Multi: {\"mode\":\"multi\",\"queries\":[{\"title\":\"Part 1\",\"query\":\"...\"},{\"title\":\"Part 2\",\"query\":\"...\"}]}\n`) +
-            `Queries MUST be Arabic and for educational explanations (شرح/محاضرة). Avoid music, shorts, memes, gaming, or entertainment.\n` +
+              ? `This lecture MUST be treated as a SINGLE topic.\nReturn exactly TWO alternative Arabic YouTube search queries.\nReturn JSON: {\"mode\":\"single\",\"queries\":[{\"title\":\"Option 1\",\"query\":\"...\"},{\"title\":\"Option 2\",\"query\":\"...\"}]}\n`
+              : `Decide if the lecture covers MULTIPLE distinct topics or a SINGLE coherent topic.\nIf the topics can reasonably be explained in ONE YouTube lecture by a professor, treat it as SINGLE.\nIf it would be taught as multiple videos, treat it as MULTI.\nIf SINGLE: return exactly TWO alternatives (options).\nIf MULTI: return ONE query per topic (no options), MAX 7 topics.\nReturn JSON in ONE of these forms:\n- Single: {\"mode\":\"single\",\"queries\":[{\"title\":\"Option 1\",\"query\":\"...\"},{\"title\":\"Option 2\",\"query\":\"...\"}]}\n- Multi: {\"mode\":\"multi\",\"queries\":[{\"title\":\"Part 1\",\"query\":\"...\"},{\"title\":\"Part 2\",\"query\":\"...\"}]}\n`) +
+            `STRICT RULES:\n` +
+            `- Queries MUST be Arabic and for educational explanations (شرح/محاضرة).\n` +
+            `- NEVER mention PDF/file/format/stream/object/endobj/xref/document or any file-format terms.\n` +
+            `- If the title is generic, use the subject name.\n` +
+            `- Avoid music, shorts, memes, gaming, or entertainment.\n` +
             `Output ONLY valid JSON, nothing else.` }
         ];
-        const ytResult = await callAI(ytMessages, { temperature: 0.25, max_tokens: 512 });
-        let ytQueries = parseYtQueries(ytResult, title, course);
-        if (forceSingleTopic) ytQueries = ensureQueries(ytQueries, title, course);
+        const ytResult = await callAI(ytMessages, { temperature: 0.25, max_tokens: 1024 });
+        let ytQueries = parseYtQueries(ytResult, title, course, [], subjectLabelAr);
+        if (forceSingleTopic) ytQueries = ensureQueries(ytQueries, title, course, [], subjectLabelAr);
         const youtubeParts = await buildYoutubeParts(ytQueries);
         const ytQuery = ytQueries[0]?.query || '';
         out({ success: !!(ytQuery || youtubeParts.length), quizText: '', ytQuery, youtubeParts, reason: 'not_pdf' });
@@ -666,8 +882,8 @@ async function run() {
     return;
   }
 
-  if (!OPENROUTER_KEY && !HUGGINGFACE_KEY) {
-    out({ success: false, quizText: '', ytQuery: '', reason: 'no_api_keys' });
+  if (!getOpenRouterKeys().length) {
+    out({ success: false, quizText: '', ytQuery: '', reason: 'no_openrouter_keys' });
     return;
   }
 
@@ -692,23 +908,27 @@ async function run() {
   if (!pdfText || pdfText.length < 50) {
     // Try to get a YouTube query from title only
     let ytQueries = [];
-    if (OPENROUTER_KEY || HUGGINGFACE_KEY) {
+    if (getOpenRouterKeys().length) {
       try {
         const ytMessages = [
-          { role: 'system', content: 'You are a helpful assistant. Output ONLY valid JSON. No markdown, no commentary.' },
-          { role: 'user', content: `Context: First-year students in the Faculty of Science in Egypt.\nGoal: Find educational Arabic YouTube explanations suitable for first-year science students.\n\nCourse: ${course}\nLecture: ${title}\n\n` +
+          { role: 'system', content: `You are a helpful assistant and professor of ${subjectLabel}. Output ONLY valid JSON. Do NOT wrap in code fences. No markdown, no commentary.` },
+          { role: 'user', content: `Context: First-year students in the Faculty of Science in Egypt.\nGoal: Find educational Arabic YouTube explanations suitable for first-year science students.\n\nCourse: ${course}\nLecture: ${title}\nSubject (Arabic): ${subjectLabelAr}\n\n` +
             (forceSingleTopic
-              ? `This lecture MUST be treated as a SINGLE topic.\nReturn exactly THREE alternative Arabic YouTube search queries.\nReturn JSON: {\"mode\":\"single\",\"queries\":[{\"title\":\"Option 1\",\"query\":\"...\"},{\"title\":\"Option 2\",\"query\":\"...\"},{\"title\":\"Option 3\",\"query\":\"...\"}]}\n`
-              : `Decide if the lecture covers MULTIPLE distinct topics or a SINGLE coherent topic.\nIf SINGLE: return exactly THREE alternatives (options).\nIf MULTI: return ONE query per topic (no options), MAX 7 topics.\nReturn JSON in ONE of these forms:\n- Single: {\"mode\":\"single\",\"queries\":[{\"title\":\"Option 1\",\"query\":\"...\"},{\"title\":\"Option 2\",\"query\":\"...\"},{\"title\":\"Option 3\",\"query\":\"...\"}]}\n- Multi: {\"mode\":\"multi\",\"queries\":[{\"title\":\"Part 1\",\"query\":\"...\"},{\"title\":\"Part 2\",\"query\":\"...\"}]}\n`) +
-            `Queries MUST be Arabic and for educational explanations (شرح/محاضرة). Avoid music, shorts, memes, gaming, or entertainment.\n` +
+              ? `This lecture MUST be treated as a SINGLE topic.\nReturn exactly TWO alternative Arabic YouTube search queries.\nReturn JSON: {\"mode\":\"single\",\"queries\":[{\"title\":\"Option 1\",\"query\":\"...\"},{\"title\":\"Option 2\",\"query\":\"...\"}]}\n`
+              : `Decide if the lecture covers MULTIPLE distinct topics or a SINGLE coherent topic.\nIf the topics can reasonably be explained in ONE YouTube lecture by a professor, treat it as SINGLE.\nIf it would be taught as multiple videos, treat it as MULTI.\nIf SINGLE: return exactly TWO alternatives (options).\nIf MULTI: return ONE query per topic (no options), MAX 7 topics.\nReturn JSON in ONE of these forms:\n- Single: {\"mode\":\"single\",\"queries\":[{\"title\":\"Option 1\",\"query\":\"...\"},{\"title\":\"Option 2\",\"query\":\"...\"}]}\n- Multi: {\"mode\":\"multi\",\"queries\":[{\"title\":\"Part 1\",\"query\":\"...\"},{\"title\":\"Part 2\",\"query\":\"...\"}]}\n`) +
+            `STRICT RULES:\n` +
+            `- Queries MUST be Arabic and for educational explanations (شرح/محاضرة).\n` +
+            `- NEVER mention PDF/file/format/stream/object/endobj/xref/document or any file-format terms.\n` +
+            `- If the title is generic, use the subject name.\n` +
+            `- Avoid music, shorts, memes, gaming, or entertainment.\n` +
             `Output ONLY valid JSON, nothing else.` }
         ];
-        const ytResult = await callAI(ytMessages, { temperature: 0.25, max_tokens: 512 });
-        ytQueries = parseYtQueries(ytResult, title, course);
-        if (forceSingleTopic) ytQueries = ensureQueries(ytQueries, title, course);
+        const ytResult = await callAI(ytMessages, { temperature: 0.25, max_tokens: 1024 });
+        ytQueries = parseYtQueries(ytResult, title, course, [], subjectLabelAr);
+        if (forceSingleTopic) ytQueries = ensureQueries(ytQueries, title, course, [], subjectLabelAr);
       } catch (e) { /* ignore */ }
     }
-    if (!ytQueries.length) ytQueries = ensureQueries([], title, course);
+    if (!ytQueries.length) ytQueries = ensureQueries([], title, course, [], subjectLabelAr);
     const youtubeParts = await buildYoutubeParts(ytQueries);
     const ytQuery = ytQueries[0]?.query || '';
     out({ success: !!(ytQuery || youtubeParts.length), quizText: '', ytQuery, youtubeParts, reason: 'pdf_text_extraction_failed' });
@@ -721,28 +941,42 @@ async function run() {
   let quizText = '';
   const lowQualityText = isLowQualityText(pdfText);
   // ── Step 1: YouTube suggestion(s) ──
+  const skipYouTube = /^C104$/i.test(course);
+  if (skipYouTube) {
+    err('🎬 Step 1: Skipping YouTube generation for C104 (Practical Chemistry).');
+  }
   err('🎬 Step 1: Asking AI for YouTube search suggestion(s)...');
 
-  const ytMessages = [
-    { role: 'system', content: 'You are a helpful assistant. Output ONLY valid JSON. No markdown, no commentary.' },
-    { role: 'user', content: `Context: First-year students in the Faculty of Science in Egypt.\nGoal: Find educational Arabic YouTube explanations suitable for first-year science students.\n\nCourse: ${course}\nLecture: ${title}\n\nContent snippet:\n${contextText.slice(0, 2500)}\n\n` +
-      (forceSingleTopic
-        ? `This lecture MUST be treated as a SINGLE topic.\nReturn exactly THREE alternative Arabic YouTube search queries.\nReturn JSON: {\"mode\":\"single\",\"queries\":[{\"title\":\"Option 1\",\"query\":\"...\"},{\"title\":\"Option 2\",\"query\":\"...\"},{\"title\":\"Option 3\",\"query\":\"...\"}]}\n`
-        : `Decide if the lecture covers MULTIPLE distinct topics or a SINGLE coherent topic.\nIf SINGLE: return exactly THREE alternatives (options).\nIf MULTI: return ONE query per topic (no options), MAX 7 topics.\nReturn JSON in ONE of these forms:\n- Single: {\"mode\":\"single\",\"queries\":[{\"title\":\"Option 1\",\"query\":\"...\"},{\"title\":\"Option 2\",\"query\":\"...\"},{\"title\":\"Option 3\",\"query\":\"...\"}]}\n- Multi: {\"mode\":\"multi\",\"queries\":[{\"title\":\"Part 1\",\"query\":\"...\"},{\"title\":\"Part 2\",\"query\":\"...\"}]}\n`) +
-      `Queries MUST be Arabic and for educational explanations (شرح/محاضرة). Avoid music, shorts, memes, gaming, or entertainment.\n` +
-      `Output ONLY valid JSON, nothing else.`
-    }
-  ];
+  const keywords = [];
+  let ytQueries = [];
+  let youtubeParts = [];
+  if (!skipYouTube) {
+    const ytMessages = [
+      { role: 'system', content: `You are a helpful assistant and professor of ${subjectLabel}. Output ONLY valid JSON. Do NOT wrap in code fences. No markdown, no commentary.` },
+      { role: 'user', content: `Context: First-year students in the Faculty of Science in Egypt.\nGoal: Find educational Arabic YouTube explanations suitable for first-year science students.\n\nCourse: ${course}\nLecture: ${title}\nSubject: ${subjectLabel}\nSubject (Arabic): ${subjectLabelAr}\n\nLecture content:\n${contextText}\n\n` +
+        (forceSingleTopic
+          ? `This lecture MUST be treated as a SINGLE topic.\nReturn exactly TWO alternative Arabic YouTube search queries.\nReturn JSON: {\"mode\":\"single\",\"queries\":[{\"title\":\"Option 1\",\"query\":\"...\"},{\"title\":\"Option 2\",\"query\":\"...\"}]}\n`
+          : `Decide if the lecture covers MULTIPLE distinct topics or a SINGLE coherent topic.\nIf the topics can reasonably be explained in ONE YouTube lecture by a professor, treat it as SINGLE.\nIf it would be taught as multiple videos, treat it as MULTI.\nIf SINGLE: return exactly TWO alternatives (options).\nIf MULTI: return ONE query per topic (no options), MAX 7 topics.\nReturn JSON in ONE of these forms:\n- Single: {\"mode\":\"single\",\"queries\":[{\"title\":\"Option 1\",\"query\":\"...\"},{\"title\":\"Option 2\",\"query\":\"...\"}]}\n- Multi: {\"mode\":\"multi\",\"queries\":[{\"title\":\"Part 1\",\"query\":\"...\"},{\"title\":\"Part 2\",\"query\":\"...\"}]}\n`) +
+        `STRICT RULES:\n` +
+        `- Queries MUST be Arabic and for educational explanations (شرح/محاضرة).\n` +
+        `- NEVER mention PDF/file/format/stream/object/endobj/xref/document or any file-format terms.\n` +
+        `- If the snippet looks noisy, IGNORE it and base queries on the subject/course/lecture title instead.\n` +
+        `- Avoid music, shorts, memes, gaming, or entertainment.\n` +
+        `Output ONLY valid JSON, nothing else.`
+      }
+    ];
 
-  const ytResult = await callAI(ytMessages, { temperature: 0.25, max_tokens: 512 });
-  let ytQueries = parseYtQueries(ytResult, title, course);
-  if (forceSingleTopic) ytQueries = ensureQueries(ytQueries, title, course);
+    const ytResult = await callAI(ytMessages, { temperature: 0.25, max_tokens: YT_MAX_TOKENS });
+    ytQueries = parseYtQueries(ytResult, title, course, keywords, subjectLabelAr);
+    if (forceSingleTopic) ytQueries = ensureQueries(ytQueries, title, course, keywords, subjectLabelAr);
+    // No simple fallback call; rely on strict JSON output + ensureQueries fallback.
 
-  ytQuery = ytQueries[0]?.query || '';
-  if (ytQuery) err(`✅ YouTube query: ${ytQuery}`);
+    ytQuery = ytQueries[0]?.query || '';
+    if (ytQuery) err(`✅ YouTube query: ${ytQuery}`);
 
-  // ── Optional: search YouTube for each query ──
-  const youtubeParts = await buildYoutubeParts(ytQueries);
+    // ── Optional: search YouTube for each query ──
+    youtubeParts = await buildYoutubeParts(ytQueries);
+  }
 
   if (lowQualityText) {
     const stats = getTextQualityStats(pdfText);
@@ -757,72 +991,34 @@ async function run() {
     return;
   }
 
-  // ── Step 2: Quiz generation ──
+  // ── Step 2: Quiz generation (single call) ──
   err('📝 Step 2: Generating quiz...');
-  const mcqCount = isPractical ? 5 : 10;
-  const tfCount = isPractical ? 5 : 10;
+  const mcqCount = isPractical ? 5 : QUIZ_MCQ_COUNT;
+  const tfCount = isPractical ? 5 : QUIZ_TF_COUNT;
   const totalCount = mcqCount + tfCount;
 
-  const evalQuiz = (text) => {
-    if (!text || text.length < 200) return { ok: false, qCount: 0, badSignals: true };
-    const matches = text.match(/^\s*(?:Q\s*)?(\d+)\s*[\.\)\-:]\s+/gmi) || [];
-    const qCount = matches.length;
+  const evalQuizWithTotal = (text, expectedTotal, minFloor) => {
+    if (!text || text.length < 200) return { ok: false, qCount: 0, badSignals: true, minCount: 0 };
+    const numbered = text.match(/^\s*(?:Q\s*)?(\d+)\s*[\.\)\-:]/gmi) || [];
+    const answers = text.match(/^\s*Answer\s*:\s*(?:[abcd]|true|false)\s*$/gmi) || [];
+    const qCount = Math.max(numbered.length, answers.length);
     const badSignals = /(course code|lecture number|content appears|unreadable|encrypted|file format|pdf)/i.test(text);
-    const minCount = Math.max(isPractical ? 6 : 12, Math.floor(totalCount * 0.7));
+    const floor = typeof minFloor === 'number' ? minFloor : (isPractical ? 6 : 10);
+    const minCount = Math.max(floor, Math.floor(expectedTotal * 0.5));
     return { ok: qCount >= minCount && !badSignals, qCount, badSignals, minCount };
   };
+
+  const systemLine = `You are a university professor of ${subjectLabel} in the Faculty of Science (Egypt). Output ONLY the quiz in plain text. No markdown, no bold, no headers, no bullet points, no dashes before options. Follow the exact format shown. If content is insufficient, output an empty response. Output in ENGLISH ONLY. Do not include any Arabic words or letters.`;
+  const quizContext = contextText;
+
   const quizMessages = [
-    { role: 'system', content: 'You are a university professor in the Faculty of Science (Egypt). Output ONLY the quiz in plain text. No markdown, no bold, no headers, no bullet points, no dashes before options. Follow the exact format shown. If content is insufficient, output an empty response. Output in ENGLISH ONLY. Do not include any Arabic words or letters.' },
-    { role: 'user', content: `You are preparing an exam-style quiz for FIRST-YEAR students in the Faculty of Science (Egypt).\nGenerate the quiz based ONLY on this lecture content.\nIMPORTANT: Output in ENGLISH ONLY. Do NOT include any Arabic words or letters.
-
-Course: ${course}
-Lecture: ${title}
-
-Lecture content:
-${contextText}
-
-Generate exactly ${mcqCount} Multiple Choice Questions and ${tfCount} True/False Questions.
-
-You MUST follow this EXACT plain text format with NO deviations:
-
-1. What is the main topic discussed in this lecture?
-a) Option A text
-b) Option B text
-c) Option C text
-d) Option D text
-Answer: b
-
-2. Which of the following is correct?
-a) Option A text
-b) Option B text
-c) Option C text
-d) Option D text
-Answer: c
-
-${mcqCount + 1}. The earth revolves around the sun.
-Answer: True
-
-${mcqCount + 2}. Water boils at 50 degrees Celsius.
-Answer: False
-
-CRITICAL RULES:
-- Number questions 1 through ${totalCount} continuously (1-${mcqCount} for MCQ, ${mcqCount + 1}-${totalCount} for True/False)
-- Use a) b) c) d) for MCQ options (lowercase letter followed by closing parenthesis)
-- Put "Answer: " followed by the correct letter (for MCQ) or True/False on its own line after each question
-- Do NOT use any markdown formatting (no **, no ##, no -, no bullets)
-- Do NOT add any introduction, headers, or closing remarks
-- Every question must come from the lecture content
-- Do NOT use "Q1", "Question 1", bullets, or numbered lists other than "1." "2." etc.
-- Do NOT include explanations or extra text beyond the required format
-- Avoid meta questions about the course code, lecture number, file format, or that the content is unreadable/encoded
-- Each question must include at least one concrete term or concept from the lecture (not generic filler)
-- Mix difficulty: 40% easy, 40% medium, 20% hard
-- All 4 MCQ options must be plausible` }
+    { role: 'system', content: systemLine },
+    { role: 'user', content: `You are preparing an exam-style quiz for FIRST-YEAR students in the Faculty of Science (Egypt).\nYou are the professor for this subject: ${subjectLabel}.\nGenerate the quiz based ONLY on this lecture content.\nIMPORTANT: Output in ENGLISH ONLY. Do NOT include any Arabic words or letters.\n\nCourse: ${course}\nLecture: ${title}\nSubject: ${subjectLabel}\n\nLecture content:\n${quizContext}\n\nGenerate exactly ${mcqCount} Multiple Choice Questions and ${tfCount} True/False Questions.\n\nYou MUST follow this EXACT plain text format with NO deviations:\n\n1. What is the main topic discussed in this lecture?\na) Option A text\nb) Option B text\nc) Option C text\nd) Option D text\nAnswer: b\n\n2. Which of the following is correct?\na) Option A text\nb) Option B text\nc) Option C text\nd) Option D text\nAnswer: c\n\n${mcqCount + 1}. The earth revolves around the sun.\nAnswer: True\n\n${mcqCount + 2}. Water boils at 50 degrees Celsius.\nAnswer: False\n\nCRITICAL RULES:\n- Number questions 1 through ${totalCount} continuously (1-${mcqCount} for MCQ, ${mcqCount + 1}-${totalCount} for True/False)\n- Use a) b) c) d) for MCQ options (lowercase letter followed by closing parenthesis)\n- Put \"Answer: \" followed by the correct letter (for MCQ) or True/False on its own line after each question\n- Do NOT use any markdown formatting (no **, no ##, no -, no bullets)\n- Do NOT add any introduction, headers, or closing remarks\n- Every question must come from the lecture content\n- Do NOT use \"Q1\", \"Question 1\", bullets, or numbered lists other than \"1.\" \"2.\" etc.\n- Do NOT include explanations or extra text beyond the required format\n- Avoid meta questions about the course code, lecture number, file format, or that the content is unreadable/encoded\n- Each question must include at least one concrete term or concept from the lecture (not generic filler)\n- Mix difficulty: 40% easy, 40% medium, 20% hard\n- All 4 MCQ options must be plausible` }
   ];
 
-  let quizResult = await callAI(quizMessages, { temperature: 0.15, max_tokens: 4096 });
-  quizResult = normalizeQuizFormat(stripToFirstQuestion(quizResult));
-  let quizEval = evalQuiz(quizResult);
+  let quizResult = await callAI(quizMessages, { temperature: 0.2, max_tokens: QUIZ_MAX_TOKENS });
+  quizResult = normalizeQuizFormat(quizResult);
+  let quizEval = evalQuizWithTotal(quizResult, totalCount, isPractical ? 6 : 8);
 
   if (!quizEval.ok) {
     err('🔁 Retrying quiz with stricter instructions...');
@@ -833,9 +1029,26 @@ CRITICAL RULES:
         content: `${quizMessages[1].content}\n\nIMPORTANT: Output MUST begin with \"1.\" and contain exactly ${totalCount} numbered questions (1-${totalCount}). If you cannot do this, output an empty response.`,
       },
     ];
-    quizResult = await callAI(retryMessages, { temperature: 0.1, max_tokens: 4096 });
-    quizResult = normalizeQuizFormat(stripToFirstQuestion(quizResult));
-    quizEval = evalQuiz(quizResult);
+    quizResult = await callAI(retryMessages, { temperature: 0.15, max_tokens: QUIZ_RETRY_MAX_TOKENS });
+    quizResult = normalizeQuizFormat(quizResult);
+    quizEval = evalQuizWithTotal(quizResult, totalCount, isPractical ? 6 : 8);
+  }
+
+  if (!quizEval.ok) {
+    err('🔁 Final attempt with reduced question count (10 total)...');
+    const reducedMcq = 5;
+    const reducedTf = 5;
+    const reducedTotal = reducedMcq + reducedTf;
+    const reducedMessages = [
+      quizMessages[0],
+      {
+        role: 'user',
+        content: `You are preparing an exam-style quiz for FIRST-YEAR students in the Faculty of Science (Egypt).\nYou are the professor for this subject: ${subjectLabel}.\nGenerate the quiz based ONLY on this lecture content.\nIMPORTANT: Output in ENGLISH ONLY. Do NOT include any Arabic words or letters.\n\nCourse: ${course}\nLecture: ${title}\nSubject: ${subjectLabel}\n\nLecture content:\n${quizContext}\n\nGenerate exactly ${reducedMcq} Multiple Choice Questions and ${reducedTf} True/False Questions.\n\nYou MUST follow this EXACT plain text format with NO deviations:\n\n1. What is the main topic discussed in this lecture?\na) Option A text\nb) Option B text\nc) Option C text\nd) Option D text\nAnswer: b\n\n2. Which of the following is correct?\na) Option A text\nb) Option B text\nc) Option C text\nd) Option D text\nAnswer: c\n\n${reducedMcq + 1}. The earth revolves around the sun.\nAnswer: True\n\n${reducedMcq + 2}. Water boils at 50 degrees Celsius.\nAnswer: False\n\nCRITICAL RULES:\n- Number questions 1 through ${reducedTotal} continuously (1-${reducedMcq} for MCQ, ${reducedMcq + 1}-${reducedTotal} for True/False)\n- Use a) b) c) d) for MCQ options (lowercase letter followed by closing parenthesis)\n- Put \"Answer: \" followed by the correct letter (for MCQ) or True/False on its own line after each question\n- Do NOT use any markdown formatting (no **, no ##, no -, no bullets)\n- Do NOT add any introduction, headers, or closing remarks\n- Every question must come from the lecture content\n- Do NOT use \"Q1\", \"Question 1\", bullets, or numbered lists other than \"1.\" \"2.\" etc.\n- Do NOT include explanations or extra text beyond the required format\n- Avoid meta questions about the course code, lecture number, file format, or that the content is unreadable/encoded\n- Each question must include at least one concrete term or concept from the lecture (not generic filler)\n- Mix difficulty: 40% easy, 40% medium, 20% hard\n- All 4 MCQ options must be plausible`,
+      },
+    ];
+    quizResult = await callAI(reducedMessages, { temperature: 0.15, max_tokens: QUIZ_RETRY_MAX_TOKENS });
+    quizResult = normalizeQuizFormat(quizResult);
+    quizEval = evalQuizWithTotal(quizResult, reducedTotal, 10);
   }
 
   if (quizEval.ok) {

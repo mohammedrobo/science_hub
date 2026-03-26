@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
   const section       = body.section ?? body.section_name ?? body.courseSection ?? body.course_section;
   const rawYoutubeUrl = body.youtubeUrl ?? body.youtube_url ?? body.youtube ?? body.videoUrl ?? body.video_url ?? body.video;
   const rawVideoParts = body.videoParts ?? body.video_parts ?? body.youtubeParts ?? body.youtube_parts;
-  const pdfUrl        = body.pdfUrl ?? body.pdf_url ?? body.pdf;
+  const rawPdfUrl     = body.pdfUrl ?? body.pdf_url ?? body.pdf;
   const quizText      = body.quizText ?? body.quiz_text ?? body.quiz;
   const lectureId     = body.lectureId ?? body.lecture_id ?? body.queue_id ?? body.id;
 
@@ -69,6 +69,14 @@ export async function POST(req: NextRequest) {
       received: { courseCode, lectureTitle, lectureNumber, lectureId }
     }, { status: 400 });
   }
+
+  const normalizePdfUrl = (input: unknown): string | null => {
+    if (typeof input !== 'string') return null;
+    const cleaned = input.replace(/[\u200B\u200C\u200D\uFEFF]/g, '').trim();
+    if (!cleaned) return null;
+    return cleaned;
+  };
+  const pdfUrl = normalizePdfUrl(rawPdfUrl);
 
   console.log('[ingest-lecture] Webhook received:', JSON.stringify({ courseCode, lectureTitle, youtubeUrl: rawYoutubeUrl, hasQuiz: !!quizText, pdfUrl }));
   try {
