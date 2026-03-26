@@ -80,7 +80,7 @@ const UNICODE_SUB = UNICODE_SUBSCRIPTS;
 
 // ── Light LaTeX Repair ─────────────────────────────────────────────────────
 // Fix common AI outputs like \sqrt(x) without braces and stray single '$'
-function normalizeLatexText(raw: string): string {
+export function normalizeLatexText(raw: string): string {
     let text = raw;
 
     // If there's an odd number of $, drop the last one to avoid half-open math
@@ -158,7 +158,7 @@ function normalizeLatexText(raw: string): string {
 }
 
 /** Pre-process Unicode math notation to LaTeX (only outside existing $ delimiters) */
-function preprocessUnicodeMath(text: string): string {
+export function preprocessUnicodeMath(text: string): string {
     const segments: { text: string; isMath: boolean }[] = [];
     let pos = 0;
     const delimRe = /\$\$[\s\S]+?\$\$|\$[^$\n]+?\$|\\\([\s\S]+?\\\)|\\\[[\s\S]+?\\\]|\\begin\{[^}]+\}[\s\S]*?\\end\{[^}]+\}/g;
@@ -230,7 +230,7 @@ function preprocessUnicodeMath(text: string): string {
 // ── Build detection regex using shared constants ───────────────────────────
 // Uses balanced-brace matching via iterative search instead of limited nesting regex.
 
-function detectAndSplitMath(text: string): { content: string; isMath: boolean; isBlock: boolean }[] {
+export function detectAndSplitMath(text: string): { content: string; isMath: boolean; isBlock: boolean }[] {
     const parts: { content: string; isMath: boolean; isBlock: boolean }[] = [];
     let pos = 0;
 
