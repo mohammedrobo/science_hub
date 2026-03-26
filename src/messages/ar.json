@@ -305,6 +305,7 @@
     "question": "السؤال {number}",
     "of": "من",
     "submit": "إرسال الإجابة",
+    "previousQuestion": "السؤال السابق",
     "nextQuestion": "السؤال التالي",
     "results": "نتائج الاختبار",
     "score": "الدرجة",

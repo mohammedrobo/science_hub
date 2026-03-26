@@ -858,6 +858,12 @@ async function run() {
             `- NEVER mention PDF/file/format/stream/object/endobj/xref/document or any file-format terms.\n` +
             `- If the title is generic, use the subject name.\n` +
             `- Avoid music, shorts, memes, gaming, or entertainment.\n` +
+            `STRICT RESPONSE FORMAT (MUST FOLLOW EXACTLY):\n` +
+            `- Return ONE JSON object only. No code fences, no markdown, no commentary.\n` +
+            `- JSON must start with { and end with }.\n` +
+            `- Use double quotes for ALL keys and strings.\n` +
+            `- Do NOT include any extra keys or text outside the JSON.\n` +
+            `- If unsure, still choose SINGLE and provide two options.\n` +
             `Output ONLY valid JSON, nothing else.` }
         ];
         const ytResult = await callAI(ytMessages, { temperature: 0.25, max_tokens: 1024 });
@@ -890,9 +896,11 @@ async function run() {
   // ── Step 0: Extract text from PDF ──
   err('📄 Extracting text from PDF...');
   let pdfText = '';
+  let sidecarUsed = false;
   const sidecarText = readSidecarText(pdfPath);
   if (sidecarText && sidecarText.length > 50) {
     pdfText = sidecarText;
+    sidecarUsed = true;
     err('✅ Using sidecar .txt transcription.');
   } else {
     pdfText = extractPdfText(pdfPath);
@@ -921,6 +929,12 @@ async function run() {
             `- NEVER mention PDF/file/format/stream/object/endobj/xref/document or any file-format terms.\n` +
             `- If the title is generic, use the subject name.\n` +
             `- Avoid music, shorts, memes, gaming, or entertainment.\n` +
+            `STRICT RESPONSE FORMAT (MUST FOLLOW EXACTLY):\n` +
+            `- Return ONE JSON object only. No code fences, no markdown, no commentary.\n` +
+            `- JSON must start with { and end with }.\n` +
+            `- Use double quotes for ALL keys and strings.\n` +
+            `- Do NOT include any extra keys or text outside the JSON.\n` +
+            `- If unsure, still choose SINGLE and provide two options.\n` +
             `Output ONLY valid JSON, nothing else.` }
         ];
         const ytResult = await callAI(ytMessages, { temperature: 0.25, max_tokens: 1024 });
@@ -939,7 +953,8 @@ async function run() {
 
   let ytQuery = '';
   let quizText = '';
-  const lowQualityText = isLowQualityText(pdfText);
+  // If a sidecar .txt exists, trust it even if "low quality"
+  const lowQualityText = sidecarUsed ? false : isLowQualityText(pdfText);
   // ── Step 1: YouTube suggestion(s) ──
   const skipYouTube = /^C104$/i.test(course);
   if (skipYouTube) {
@@ -947,7 +962,7 @@ async function run() {
   }
   err('🎬 Step 1: Asking AI for YouTube search suggestion(s)...');
 
-  const keywords = [];
+  const keywords = extractKeywords(contextText, 3);
   let ytQueries = [];
   let youtubeParts = [];
   if (!skipYouTube) {
@@ -957,14 +972,20 @@ async function run() {
         (forceSingleTopic
           ? `This lecture MUST be treated as a SINGLE topic.\nReturn exactly TWO alternative Arabic YouTube search queries.\nReturn JSON: {\"mode\":\"single\",\"queries\":[{\"title\":\"Option 1\",\"query\":\"...\"},{\"title\":\"Option 2\",\"query\":\"...\"}]}\n`
           : `Decide if the lecture covers MULTIPLE distinct topics or a SINGLE coherent topic.\nIf the topics can reasonably be explained in ONE YouTube lecture by a professor, treat it as SINGLE.\nIf it would be taught as multiple videos, treat it as MULTI.\nIf SINGLE: return exactly TWO alternatives (options).\nIf MULTI: return ONE query per topic (no options), MAX 7 topics.\nReturn JSON in ONE of these forms:\n- Single: {\"mode\":\"single\",\"queries\":[{\"title\":\"Option 1\",\"query\":\"...\"},{\"title\":\"Option 2\",\"query\":\"...\"}]}\n- Multi: {\"mode\":\"multi\",\"queries\":[{\"title\":\"Part 1\",\"query\":\"...\"},{\"title\":\"Part 2\",\"query\":\"...\"}]}\n`) +
-        `STRICT RULES:\n` +
-        `- Queries MUST be Arabic and for educational explanations (شرح/محاضرة).\n` +
-        `- NEVER mention PDF/file/format/stream/object/endobj/xref/document or any file-format terms.\n` +
-        `- If the snippet looks noisy, IGNORE it and base queries on the subject/course/lecture title instead.\n` +
-        `- Avoid music, shorts, memes, gaming, or entertainment.\n` +
-        `Output ONLY valid JSON, nothing else.`
-      }
-    ];
+      `STRICT RULES:\n` +
+      `- Queries MUST be Arabic and for educational explanations (شرح/محاضرة).\n` +
+      `- NEVER mention PDF/file/format/stream/object/endobj/xref/document or any file-format terms.\n` +
+      `- Use the lecture content to make the query specific to the topic.\n` +
+      `- Avoid music, shorts, memes, gaming, or entertainment.\n` +
+      `STRICT RESPONSE FORMAT (MUST FOLLOW EXACTLY):\n` +
+      `- Return ONE JSON object only. No code fences, no markdown, no commentary.\n` +
+      `- JSON must start with { and end with }.\n` +
+      `- Use double quotes for ALL keys and strings.\n` +
+      `- Do NOT include any extra keys or text outside the JSON.\n` +
+      `- If unsure, still choose SINGLE and provide two options.\n` +
+      `Output ONLY valid JSON, nothing else.`
+    }
+  ];
 
     const ytResult = await callAI(ytMessages, { temperature: 0.25, max_tokens: YT_MAX_TOKENS });
     ytQueries = parseYtQueries(ytResult, title, course, keywords, subjectLabelAr);

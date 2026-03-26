@@ -143,6 +143,11 @@ export default function QuizPage() {
         }
     }, [isCompleted, quiz, quizResult, userAnswers]);
 
+    // Keep selected answer in sync when navigating between questions
+    useEffect(() => {
+        setSelectedAnswer(userAnswers[currentQuestionIndex] ?? null);
+    }, [currentQuestionIndex, userAnswers]);
+
     // ---------------- RENDER LOADING ----------------
     if (loading) {
         return (
@@ -186,6 +191,19 @@ export default function QuizPage() {
             setSelectedAnswer(null);
         } else {
             setIsCompleted(true);
+        }
+    };
+
+    const handlePrevQuestion = () => {
+        if (selectedAnswer) {
+            setUserAnswers(prev => ({
+                ...prev,
+                [currentQuestionIndex]: selectedAnswer
+            }));
+        }
+
+        if (currentQuestionIndex > 0) {
+            setCurrentQuestionIndex(prev => prev - 1);
         }
     };
 
@@ -359,11 +377,19 @@ export default function QuizPage() {
                             })}
                         </CardContent>
                         <CardFooter className="pt-2 pb-6">
-                            <div className="flex justify-end w-full pt-4">
+                            <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center pt-4">
+                                <Button
+                                    onClick={handlePrevQuestion}
+                                    disabled={currentQuestionIndex === 0}
+                                    variant="outline"
+                                    className="w-full sm:w-auto h-12 px-6"
+                                >
+                                    <ArrowLeft className="me-2 w-4 h-4" /> {t('previousQuestion')}
+                                </Button>
                                 <Button
                                     onClick={handleNextQuestion}
                                     disabled={!selectedAnswer}
-                                    className="w-full sm:w-auto h-12 px-6 bg-primary hover:bg-primary/90 text-white font-bold"
+                                    className="w-full sm:w-auto h-12 px-6 bg-primary hover:bg-primary/90 text-white font-bold sm:ml-auto"
                                 >
                                     {currentQuestionIndex < quiz.questions.length - 1 ? t('nextQuestion') : t('completeMission')} <ChevronRight className="ms-2 w-4 h-4" />
                                 </Button>
