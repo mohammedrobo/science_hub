@@ -14,6 +14,12 @@ import {
 import { QuizUploader } from '@/components/admin/QuizUploader';
 import { QuizQuestion } from '@/lib/quiz-parser';
 import { MOCK_COURSES } from '@/lib/data/mocks';
+import { COURSE_SUBSECTIONS } from '@/lib/constants';
+
+const ACTIVE_COURSE_IDS = [
+    'm101', 'p101', 'p103', 'c101', 'c101a', 'c101b', 'c103', 'z101', 'g101', 'u01', 'u02', 'u03',
+    'm102', 'p102', 'p104', 'c102', 'c104', 'g102', 'z102', 'b101', 'b102', 'comp101', 'so100'
+];
 
 export default function UploadLessonPage() {
     const router = useRouter();
@@ -23,6 +29,8 @@ export default function UploadLessonPage() {
 
     // Form State
     const [courseId, setCourseId] = useState('');
+    const [selectedInstructor, setSelectedInstructor] = useState<string>('');
+    const [selectedSection, setSelectedSection] = useState<string>('');
     const [title, setTitle] = useState('');
     const [videoParts, setVideoParts] = useState<{ title: string; url: string }[]>([{ title: '', url: '' }]);
     const [pdfParts, setPdfParts] = useState<{ title: string; url: string; file: File | null }[]>([{ title: '', url: '', file: null }]);
@@ -109,6 +117,8 @@ export default function UploadLessonPage() {
             const response = await createLesson({
                 course_id: courseId,
                 title,
+                instructor: selectedInstructor || undefined,
+                section: selectedSection || undefined,
                 video_url: mainVideoUrl || undefined,
                 video_parts: finalParts.length > 1 ? finalParts : [],
                 pdf_url: fallbackPdfUrl,
@@ -166,12 +176,19 @@ export default function UploadLessonPage() {
                                 <label className="text-sm font-medium text-zinc-300">
                                     Course <span className="text-red-400">*</span>
                                 </label>
-                                <Select value={courseId} onValueChange={setCourseId}>
+                                <Select 
+                                    value={courseId} 
+                                    onValueChange={(val) => {
+                                        setCourseId(val);
+                                        setSelectedInstructor('');
+                                        setSelectedSection('');
+                                    }}
+                                >
                                     <SelectTrigger className="w-full bg-zinc-900/80 border-zinc-700/60 rounded-xl text-zinc-100">
                                         <SelectValue placeholder="Select course..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {MOCK_COURSES.map(c => (
+                                        {MOCK_COURSES.filter(c => ACTIVE_COURSE_IDS.includes(c.id.toLowerCase())).map(c => (
                                             <SelectItem key={c.id} value={c.id}>
                                                 {c.code} — {c.name}
                                             </SelectItem>
@@ -179,6 +196,36 @@ export default function UploadLessonPage() {
                                     </SelectContent>
                                 </Select>
                             </div>
+
+                            {/* Dynamic Sub-sections based on Course */}
+                            {courseId && COURSE_SUBSECTIONS[courseId.toLowerCase()] && (
+                                <div className="space-y-2 p-4 bg-violet-950/20 border border-violet-900/50 rounded-xl">
+                                    <label className="text-sm font-medium text-amber-400 capitalize">
+                                        {COURSE_SUBSECTIONS[courseId.toLowerCase()].label} <span className="text-red-400">*</span>
+                                    </label>
+                                    <Select 
+                                        value={COURSE_SUBSECTIONS[courseId.toLowerCase()].type === 'instructor' ? selectedInstructor : selectedSection} 
+                                        onValueChange={(val) => {
+                                            if (COURSE_SUBSECTIONS[courseId.toLowerCase()].type === 'instructor') {
+                                                setSelectedInstructor(val);
+                                            } else {
+                                                setSelectedSection(val);
+                                            }
+                                        }}
+                                    >
+                                        <SelectTrigger className="w-full bg-zinc-900/80 border-zinc-700/60 rounded-xl text-zinc-100">
+                                            <SelectValue placeholder={`Choose ${COURSE_SUBSECTIONS[courseId.toLowerCase()].type}...`} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {COURSE_SUBSECTIONS[courseId.toLowerCase()].options.map(opt => (
+                                                <SelectItem key={opt.id} value={opt.id}>
+                                                    {opt.name} {opt.nameAr ? `(${opt.nameAr})` : ''}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
 
                             {/* Lesson Title */}
                             <div className="space-y-2">

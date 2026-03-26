@@ -868,7 +868,10 @@ export async function deleteLesson(lessonId: string) {
 export async function updateLesson(
     lessonId: string,
     data: {
+        course_id?: string;
         title?: string;
+        instructor?: string;
+        section?: string;
         video_url?: string;
         video_parts?: { title: string; url: string }[];
         pdf_url?: string;
@@ -954,7 +957,31 @@ export async function updateLesson(
 
         // Update lesson
         const updatePayload: any = {};
+        
+        if (data.course_id) {
+            let finalCourseId = data.course_id;
+            const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(finalCourseId);
+
+            if (!isUuid) {
+                // We need to resolve from code to UUID
+                const { data: dbCourse, error: courseError } = await supabase
+                    .from('courses')
+                    .select('id')
+                    // For MOCK_COURSES, the ID is typically lowercase like 'p102', but code in DB is 'P102'. We compare ignoring case if possible, or mapping.
+                    // The simplest is finding the code from MOCK_COURSES
+                    .ilike('code', MOCK_COURSES.find(c => c.id === data.course_id)?.code || data.course_id)
+                    .single();
+
+                if (!courseError && dbCourse) {
+                    finalCourseId = dbCourse.id;
+                }
+            }
+            updatePayload.course_id = finalCourseId;
+        }
+
         if (data.title !== undefined) updatePayload.title = data.title;
+        if (data.instructor !== undefined) updatePayload.instructor = data.instructor || null;
+        if (data.section !== undefined) updatePayload.section = data.section || null;
         if (data.video_url !== undefined) updatePayload.video_url = data.video_url || null;
         if (data.video_parts !== undefined) updatePayload.video_parts = data.video_parts;
         if (data.pdf_url !== undefined) updatePayload.pdf_url = data.pdf_url || null;
