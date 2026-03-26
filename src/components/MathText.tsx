@@ -78,6 +78,80 @@ const LATEX_ENV_RE = /\\begin\{([^}]+)\}[\s\S]*?\\end\{\1\}/;
 const UNICODE_SUP = UNICODE_SUPERSCRIPTS;
 const UNICODE_SUB = UNICODE_SUBSCRIPTS;
 
+// ── Light LaTeX Repair ─────────────────────────────────────────────────────
+// Fix common AI outputs like \sqrt(x) without braces and stray single '$'
+function normalizeLatexText(raw: string): string {
+    let text = raw;
+
+    // If there's an odd number of $, drop the last one to avoid half-open math
+    const dollarCount = (text.match(/\$/g) || []).length;
+    if (dollarCount % 2 === 1) {
+        const last = text.lastIndexOf('$');
+        if (last >= 0) text = text.slice(0, last) + text.slice(last + 1);
+    }
+
+    // Convert \sqrt( ... ) -> \sqrt{ ... } with balanced parentheses
+    const fixParenCommand = (input: string, cmd: string): string => {
+        const token = `${cmd}(`;
+        let out = '';
+        let i = 0;
+        while (i < input.length) {
+            const idx = input.indexOf(token, i);
+            if (idx === -1) {
+                out += input.slice(i);
+                break;
+            }
+            out += input.slice(i, idx);
+            // Find matching ')'
+            let j = idx + token.length;
+            let depth = 1;
+            let inner = '';
+            while (j < input.length) {
+                const ch = input[j];
+                if (ch === '\\' && j + 1 < input.length) {
+                    inner += ch + input[j + 1];
+                    j += 2;
+                    continue;
+                }
+                if (ch === '(') depth++;
+                if (ch === ')') depth--;
+                if (depth === 0) {
+                    j++; // consume ')'
+                    break;
+                }
+                inner += ch;
+                j++;
+            }
+            if (depth === 0) {
+                out += `${cmd}{${inner}}`;
+                i = j;
+            } else {
+                // Unbalanced — keep the rest as-is
+                out += input.slice(idx);
+                break;
+            }
+        }
+        return out;
+    };
+
+    // Add missing backslash for common math functions (sin, cos, log, etc.)
+    const funcList = [
+        'sin', 'cos', 'tan', 'cot', 'sec', 'csc',
+        'sinh', 'cosh', 'tanh', 'coth', 'sech', 'csch',
+        'arcsin', 'arccos', 'arctan',
+        'ln', 'log', 'exp', 'lim',
+        'sqrt',
+    ];
+    const funcRe = new RegExp(`(^|[^\\\\])\\b(${funcList.join('|')})\\b(?=\\s*[A-Za-z0-9(\\\\])`, 'gi');
+    text = text.replace(funcRe, '$1\\\\$2');
+
+    // Convert bare sqrt without backslash: sqrt( ... ) -> \sqrt( ... )
+    text = text.replace(/(^|[^\\])\bsqrt\s*\(/gi, '$1\\\\sqrt(');
+
+    text = fixParenCommand(text, '\\sqrt');
+    return text;
+}
+
 /** Pre-process Unicode math notation to LaTeX (only outside existing $ delimiters) */
 function preprocessUnicodeMath(text: string): string {
     const segments: { text: string; isMath: boolean }[] = [];
@@ -253,8 +327,8 @@ function extractLatex(match: string): { content: string; isBlock: boolean } {
 export const MathText = ({ text, className }: MathTextProps) => {
     if (!text) return null;
 
-    // Pre-process Unicode math symbols
-    const processed = preprocessUnicodeMath(text);
+    // Repair common LaTeX issues, then pre-process Unicode math symbols
+    const processed = preprocessUnicodeMath(normalizeLatexText(text));
 
     // Use balanced-brace-aware detection
     const segments = detectAndSplitMath(processed);
