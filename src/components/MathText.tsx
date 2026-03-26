@@ -80,8 +80,12 @@ const UNICODE_SUB = UNICODE_SUBSCRIPTS;
 
 // ── Light LaTeX Repair ─────────────────────────────────────────────────────
 // Fix common AI outputs like \sqrt(x) without braces and stray single '$'
-export function normalizeLatexText(raw: string): string {
+function normalizeLatexText(raw: string): string {
     let text = raw;
+
+    // 1. Fix double escaped backslashes from JSON parsing (e.g. \\sin -> \sin)
+    text = text.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
+    text = text.replace(/\\\\([()\[\]{}])/g, '\\$1');
 
     // If there's an odd number of $, drop the last one to avoid half-open math
     const dollarCount = (text.match(/\$/g) || []).length;
@@ -154,11 +158,131 @@ export function normalizeLatexText(raw: string): string {
 
     // Convert bare sqrt without backslash: sqrt( ... ) -> \sqrt( ... )
     text = fixParenCommand(text, '\\sqrt');
+
+    // 2. Convert raw slashes into \frac{}{} for better UI (e.g. 3/x -> \frac{3}{x})
+    const convertSlashToFrac = (str: string): string => {
+        let res = str;
+        let lastLen = 0;
+        
+        while (res.length !== lastLen) {
+            lastLen = res.length;
+            const slashIdx = res.indexOf('/');
+            if (slashIdx === -1) break;
+
+            // Only parse if the slash looks like a math division, not a URL
+            if (res.slice(Math.max(0, slashIdx - 4), slashIdx).includes('http')) {
+                break; // likely a URL, abort replacing slashes entirely to be safe
+            }
+
+            // Find Numerator
+            let numStart = slashIdx - 1;
+            while (numStart >= 0 && /\s/.test(res[numStart])) numStart--;
+            
+            if (numStart >= 0 && res[numStart] === ')') {
+                let depth = 1;
+                numStart--;
+                while (numStart >= 0 && depth > 0) {
+                    if (res[numStart] === ')') depth++;
+                    if (res[numStart] === '(') depth--;
+                    numStart--;
+                }
+                // Check if preceded by a function like \sin or \ln
+                let probe = numStart;
+                while (probe >= 0 && /\s/.test(res[probe])) probe--;
+                while (probe >= 0 && /[a-zA-Z\\]/.test(res[probe])) probe--;
+                const preWord = res.slice(probe + 1, numStart + 1).trim();
+                if (/^\\[a-zA-Z]+$/.test(preWord) || funcList.includes(preWord.replace('\\', ''))) {
+                    numStart = probe;
+                }
+            } else {
+                while (numStart >= 0 && /[a-zA-Z0-9.\_^\\{}]/.test(res[numStart])) {
+                    numStart--;
+                }
+                // Grab preceding math functions separated by space (e.g. "\ln a" -> num)
+                let probe = numStart;
+                while (probe >= 0 && /\s/.test(res[probe])) probe--;
+                let wordEnd = probe;
+                while (probe >= 0 && /[a-zA-Z\\]/.test(res[probe])) probe--;
+                const preWord = res.slice(probe + 1, wordEnd + 1).trim();
+                if (/^\\[a-zA-Z]+$/.test(preWord) || funcList.includes(preWord.replace('\\', ''))) {
+                    numStart = probe;
+                }
+            }
+            numStart++; // Adjust back to valid char
+
+            // Find Denominator
+            let denEnd = slashIdx + 1;
+            while (denEnd < res.length && /\s/.test(res[denEnd])) denEnd++;
+            
+            if (denEnd < res.length && res[denEnd] === '(') {
+                let depth = 1;
+                denEnd++;
+                while (denEnd < res.length && depth > 0) {
+                    if (res[denEnd] === '(') depth++;
+                    if (res[denEnd] === ')') depth--;
+                    denEnd++;
+                }
+            } else {
+                while (denEnd < res.length && /[a-zA-Z0-9.\_^\\{}]/.test(res[denEnd])) {
+                    denEnd++;
+                }
+            }
+
+            const numerator = res.slice(numStart, slashIdx).trim();
+            const denominator = res.slice(slashIdx + 1, denEnd).trim();
+            
+            // Clean matched parentheses if wrapped completely
+            const cleanNum = (numerator.startsWith('(') && numerator.endsWith(')')) ? numerator.slice(1, -1) : numerator;
+            const cleanDen = (denominator.startsWith('(') && denominator.endsWith(')')) ? denominator.slice(1, -1) : denominator;
+
+            if (numerator && denominator) {
+                res = res.slice(0, numStart) + `\\frac{${cleanNum}}{${cleanDen}}` + res.slice(denEnd);
+            } else {
+                // If parsing fails cleanly, replace / with something else temporarily so we don't infinitely loop
+                res = res.slice(0, slashIdx) + '÷' + res.slice(slashIdx + 1);
+            }
+        }
+        return res.replace(/÷/g, '/'); // restore any unparseable slashes
+    };
+
+    text = convertSlashToFrac(text);
+
+    // 3. Aggressive Math Wrapper Heuristic for Pure ASCII Math 
+    // Example: "3x^2 + 5" or "3/x + 5x^2"
+    // If the string appears to be mostly math and completely lacks standard prose
+    const isLikelyPureMath = (str: string): boolean => {
+        // If it already has delimiters covering the whole thing, ignore
+        if (/^\s*\$.*\$\s*$/.test(str)) return false;
+        if (/^\s*\\\[.*\\\]\s*$/.test(str)) return false;
+
+        // Extract words (not starting with backslash)
+        const words = str.split(/\s+/).filter(w => !w.startsWith('\\'));
+        
+        // Check for normal prose words (longer than 2 chars that aren't functions)
+        const commonVars = ['sin', 'cos', 'tan', 'log', 'ln', 'lim'];
+        const hasProseWords = words.some(w => {
+            const cleanWord = w.replace(/[^a-zA-Z]/g, '');
+            return cleanWord.length > 2 && !commonVars.includes(cleanWord.toLowerCase());
+        });
+
+        if (hasProseWords) return false;
+
+        // Ensure it actually has some math indicators
+        // operators (+, -, =, /, ^, \frac) or backslash commands or variable attached to number (3x)
+        const mathIndicators = /[\^=+\-\/\\_]|(\d[a-zA-Z])/;
+        return mathIndicators.test(str);
+    };
+
+    if (isLikelyPureMath(text)) {
+        // Wrap the whole string in inline math, ignoring stray $ that AI might have put
+        text = `$${text.replace(/\$/g, '').trim()}$`;
+    }
+
     return text;
 }
 
 /** Pre-process Unicode math notation to LaTeX (only outside existing $ delimiters) */
-export function preprocessUnicodeMath(text: string): string {
+function preprocessUnicodeMath(text: string): string {
     const segments: { text: string; isMath: boolean }[] = [];
     let pos = 0;
     const delimRe = /\$\$[\s\S]+?\$\$|\$[^$\n]+?\$|\\\([\s\S]+?\\\)|\\\[[\s\S]+?\\\]|\\begin\{[^}]+\}[\s\S]*?\\end\{[^}]+\}/g;
@@ -230,7 +354,7 @@ export function preprocessUnicodeMath(text: string): string {
 // ── Build detection regex using shared constants ───────────────────────────
 // Uses balanced-brace matching via iterative search instead of limited nesting regex.
 
-export function detectAndSplitMath(text: string): { content: string; isMath: boolean; isBlock: boolean }[] {
+function detectAndSplitMath(text: string): { content: string; isMath: boolean; isBlock: boolean }[] {
     const parts: { content: string; isMath: boolean; isBlock: boolean }[] = [];
     let pos = 0;
 
