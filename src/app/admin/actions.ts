@@ -766,6 +766,8 @@ export async function getLessons(courseId?: string) {
                 order_index,
                 created_at,
                 is_published,
+                instructor,
+                section,
                 course:courses(id, name, code)
             `)
             .order('created_at', { ascending: false });
@@ -1071,6 +1073,8 @@ export async function getLesson(lessonId: string) {
                 pdf_parts,
                 quiz_id,
                 course_id,
+                instructor,
+                section,
                 course:courses(id, name, code)
             `)
             .eq('id', lessonId)

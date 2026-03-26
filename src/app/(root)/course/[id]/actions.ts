@@ -67,7 +67,9 @@ const getCourseContentCached = unstable_cache(
             pdf_url: l.pdf_url,
             pdf_parts: l.pdf_parts || [],
             quiz_id: l.quiz_id,
-            order_index: l.order_index
+            order_index: l.order_index,
+            instructor: l.instructor,
+            section: l.section
         }));
     },
     ['course-content-v1'],
