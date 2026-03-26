@@ -148,6 +148,11 @@ function normalizeLatexText(raw: string): string {
     // Convert bare sqrt without backslash: sqrt( ... ) -> \sqrt( ... )
     text = text.replace(/(^|[^\\])\bsqrt\s*\(/gi, '$1\\\\sqrt(');
 
+    // Normalize powers/subscripts on commands: \sin^2 x -> \sin^{2} x, \tan^-1 -> \tan^{-1}
+    text = text.replace(/\\([a-zA-Z]+)\s*([\^_])\s*\{([^}]+)\}/g, '\\\\$1$2{$3}');
+    text = text.replace(/\\([a-zA-Z]+)\s*([\^_])\s*([+\-]?\d+|[a-zA-Z])/g, '\\\\$1$2{$3}');
+
+    // Convert bare sqrt without backslash: sqrt( ... ) -> \sqrt( ... )
     text = fixParenCommand(text, '\\sqrt');
     return text;
 }
@@ -199,6 +204,16 @@ function preprocessUnicodeMath(text: string): string {
         // Simple single-char form: word^X or word_X (letter, digit, +, -)
         t = t.replace(/([a-zA-Z0-9)])(\^|_)([a-zA-Z0-9+\-])/g, (_, pre, op, ch) => {
             return `${pre}$${op}{${ch}}$`;
+        });
+
+        // Convert common chemical formulas (H2O, CO2, C6H12O6) into subscripts
+        // Only for tokens that contain at least one uppercase letter and one digit.
+        t = t.replace(/\b([A-Z][A-Za-z0-9]*)\b/g, (token) => {
+            if (!/[A-Z]/.test(token) || !/\d/.test(token)) return token;
+            // Avoid plain years or IDs (e.g., 2026) and course codes like M102
+            if (/^\d+$/.test(token)) return token;
+            if (/^[A-Z]{1,4}\d{1,4}$/.test(token)) return token; // course codes
+            return token.replace(/([A-Za-z])(\d+)/g, (_m, letter, digits) => `${letter}$_{${digits}}$`);
         });
 
         // Convert standalone Unicode math symbols

@@ -1,232 +1,415 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, CheckCircle2, Loader2, AlertCircle, Zap, Clock, ListOrdered } from 'lucide-react';
+import { createLesson, getSignedUploadUrl } from '@/app/admin/actions';
+import {
+    ArrowLeft, Save, Video, FileText, BookOpen,
+    Loader2, AlertCircle, CheckCircle, Plus, Trash2, Link2, Upload
+} from 'lucide-react';
+import { QuizUploader } from '@/components/admin/QuizUploader';
+import { QuizQuestion } from '@/lib/quiz-parser';
+import { MOCK_COURSES } from '@/lib/data/mocks';
 
-const COURSES = [
-  { code: 'B102',  name: 'Botany',           ar: 'علم النبات',  doctors: [] },
-  { code: 'C102',  name: 'Chemistry',         ar: 'الكيمياء',    doctors: ['Physical Chemistry', 'Organic Chemistry'] },
-  { code: 'CS102', name: 'Computer Science',  ar: 'علم الحاسب', doctors: [] },
-  { code: 'G102',  name: 'Geology',           ar: 'الجيولوجيا', doctors: [] },
-  { code: 'M102',  name: 'Mathematics',       ar: 'الرياضيات',  doctors: [] },
-  { code: 'P102',  name: 'Physics',           ar: 'الفيزياء',   doctors: ['Dr. Essam', 'Dr. Wagida', 'Dr. Mohammed'] },
-  { code: 'Z102',  name: 'Zoology',           ar: 'علم الحيوان', doctors: [] },
-];
+export default function UploadLessonPage() {
+    const router = useRouter();
 
-type Status = 'idle' | 'uploading' | 'queued' | 'error';
+    const [saving, setSaving] = useState(false);
+    const [result, setResult] = useState<{ success?: boolean; message?: string; error?: string } | null>(null);
 
-export default function AutoUploadPage() {
-  const [courseCode, setCourseCode] = useState('');
-  const [instructor, setInstructor] = useState('');
-  const [lectureNumber, setLectureNumber] = useState('');
-  const [lectureTitle, setLectureTitle] = useState('');
-  const [file, setFile] = useState<File | null>(null);
-  const [status, setStatus] = useState<Status>('idle');
-  const [message, setMessage] = useState('');
-  const [queuePosition, setQueuePosition] = useState<number | null>(null);
-  const [dragOver, setDragOver] = useState(false);
+    // Form State
+    const [courseId, setCourseId] = useState('');
+    const [title, setTitle] = useState('');
+    const [videoParts, setVideoParts] = useState<{ title: string; url: string }[]>([{ title: '', url: '' }]);
+    const [pdfParts, setPdfParts] = useState<{ title: string; url: string; file: File | null }[]>([{ title: '', url: '', file: null }]);
+    const [quizData, setQuizData] = useState<{ questions: QuizQuestion[] } | null>(null);
 
-  const selectedCourse = COURSES.find(c => c.code === courseCode);
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!title.trim()) {
+            setResult({ error: 'Title is required' });
+            return;
+        }
+        if (!courseId) {
+            setResult({ error: 'Course is required' });
+            return;
+        }
 
-  const handleFile = (f: File) => {
-    if (f.type !== 'application/pdf') {
-      setStatus('error');
-      setMessage('Only PDF files are accepted.');
-      return;
-    }
-    setFile(f);
-    setStatus('idle');
-    setMessage('');
-  };
+        setSaving(true);
+        setResult(null);
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-    const f = e.dataTransfer.files[0];
-    if (f) handleFile(f);
-  };
+        try {
+            const finalPdfParts: { title: string; url: string }[] = [];
 
-  const handleSubmit = async () => {
-    if (!file || !courseCode) return;
-    setStatus('uploading');
+            // Handle PDF Uploads and Links
+            for (let i = 0; i < pdfParts.length; i++) {
+                const part = pdfParts[i];
+                let finalUrl = part.url;
 
-    const formData = new FormData();
-    formData.append('pdf', file);
-    formData.append('courseCode', courseCode);
-    formData.append('instructor', instructor);
-    formData.append('lectureNumber', lectureNumber);
-    formData.append('lectureTitle', lectureTitle || `${selectedCourse?.name} — Lecture ${lectureNumber}`);
+                // Handle new PDF upload if file present
+                if (part.file) {
+                    const fileExt = part.file.name.split('.').pop();
+                    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+                    const filePath = `lessons/${fileName}`;
 
-    try {
-      const res = await fetch('/api/n8n/upload-trigger', { method: 'POST', body: formData });
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      setStatus('queued');
-      setMessage(data.message);
-      setQueuePosition(data.position);
-      setFile(null);
-      setCourseCode('');
-      setInstructor('');
-      setLectureNumber('');
-      setLectureTitle('');
-    } catch (err) {
-      setStatus('error');
-      setMessage(err instanceof Error ? err.message : 'Upload failed');
-    }
-  };
+                    // 1. Get Signed URL token
+                    const { token, error: signError } = await getSignedUploadUrl(filePath);
 
-  return (
-    <div className="max-w-2xl mx-auto p-6 space-y-6">
-      <div className="flex items-center gap-3">
-        <Zap className="h-8 w-8 text-yellow-500" />
-        <div>
-          <h1 className="text-2xl font-bold">Auto Lecture Upload</h1>
-          <p className="text-muted-foreground text-sm">Upload a PDF — n8n handles everything automatically, one lecture at a time</p>
+                    if (signError || !token) {
+                        throw new Error(signError || 'Failed to get upload permission');
+                    }
+
+                    // 2. Upload directly to Supabase Storage
+                    const { createClient } = require('@supabase/supabase-js');
+                    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+                    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+                    const supabase = createClient(supabaseUrl, supabaseKey);
+
+                    const { error: uploadError } = await supabase.storage
+                        .from('pdfs')
+                        .uploadToSignedUrl(filePath, token, part.file, {
+                            contentType: part.file.type || 'application/pdf',
+                            upsert: true
+                        });
+
+                    if (uploadError) {
+                        throw new Error(`Upload failed for PDF ${i + 1}: ${uploadError.message}`);
+                    }
+
+                    // 3. Get Public URL
+                    const { data } = supabase.storage
+                        .from('pdfs')
+                        .getPublicUrl(filePath);
+
+                    finalUrl = data.publicUrl;
+                }
+
+                if (finalUrl.trim() || part.title.trim()) {
+                    finalPdfParts.push({
+                        title: part.title.trim() || `Document ${i + 1}`,
+                        url: finalUrl.trim()
+                    });
+                }
+            }
+
+            // Build final PDF URL (backwards compatibility - use the first one)
+            const fallbackPdfUrl = finalPdfParts.length > 0 ? finalPdfParts[0].url : undefined;
+
+            const validParts = videoParts.filter(p => p.url.trim());
+            const mainVideoUrl = validParts.length > 0 ? validParts[0].url : undefined;
+            const finalParts = validParts.map((p, i) => ({
+                title: p.title.trim() || `Part ${i + 1}`,
+                url: p.url.trim()
+            }));
+
+            const response = await createLesson({
+                course_id: courseId,
+                title,
+                video_url: mainVideoUrl || undefined,
+                video_parts: finalParts.length > 1 ? finalParts : [],
+                pdf_url: fallbackPdfUrl,
+                pdf_parts: finalPdfParts.length > 0 ? finalPdfParts : [],
+                quiz_data: quizData ? {
+                    title: `${title} Quiz`,
+                    questions: quizData.questions
+                } : undefined
+            });
+
+            if (response.error) {
+                setResult({ error: response.error });
+            } else {
+                setResult({ success: true, message: response.message });
+                // Redirect after short delay
+                setTimeout(() => router.push('/admin/lessons'), 1500);
+            }
+        } catch (err: any) {
+            setResult({ error: err.message || 'Unexpected error' });
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-zinc-950">
+            {/* Header */}
+            <div className="sticky top-0 z-10 bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-800/60 shadow-[0_1px_20px_-5px_rgba(0,0,0,0.5)]">
+                <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
+                    <div className="flex items-center justify-between">
+                        <Link href="/admin/lessons" className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors">
+                            <ArrowLeft className="w-5 h-5" />
+                            <span className="font-medium text-sm sm:text-base">Back</span>
+                        </Link>
+                        <h1 className="text-base sm:text-lg font-bold text-amber-400 flex items-center gap-2">
+                            <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
+                            Upload Lesson
+                        </h1>
+                    </div>
+                </div>
+            </div>
+
+            {/* Main Content */}
+            <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-3xl">
+                <Card className="glass-card rounded-2xl border-zinc-800/60">
+                    <CardHeader className="border-b border-zinc-800/50 px-4 sm:px-6">
+                        <CardTitle className="text-lg text-zinc-100">
+                            Create New Lesson
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6">
+                        <form onSubmit={handleSubmit} className="space-y-8">
+                            {/* Course Selector */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-zinc-300">
+                                    Course <span className="text-red-400">*</span>
+                                </label>
+                                <Select value={courseId} onValueChange={setCourseId}>
+                                    <SelectTrigger className="w-full bg-zinc-900/80 border-zinc-700/60 rounded-xl text-zinc-100">
+                                        <SelectValue placeholder="Select course..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {MOCK_COURSES.map(c => (
+                                            <SelectItem key={c.id} value={c.id}>
+                                                {c.code} — {c.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {/* Lesson Title */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-zinc-300">
+                                    Lesson Title <span className="text-red-400">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    placeholder="e.g., Lecture 5: Chemical Bonding"
+                                    className="w-full bg-zinc-900/80 border border-zinc-700/60 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
+                                    required
+                                />
+                            </div>
+
+                            {/* YouTube URLs */}
+                            <div className="space-y-3">
+                                <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+                                    <Video className="w-4 h-4 text-red-400" />
+                                    YouTube Links
+                                    <span className="text-zinc-500 text-xs">(optional)</span>
+                                </label>
+
+                                <div className="space-y-3">
+                                    {videoParts.map((part, index) => (
+                                        <div key={index} className="flex gap-2 items-start">
+                                            <div className="flex-1 space-y-2">
+                                                {videoParts.length > 1 && (
+                                                    <input
+                                                        type="text"
+                                                        value={part.title}
+                                                        onChange={(e) => {
+                                                            const updated = [...videoParts];
+                                                            updated[index] = { ...updated[index], title: e.target.value };
+                                                            setVideoParts(updated);
+                                                        }}
+                                                        placeholder={`Part ${index + 1} title (optional)`}
+                                                        className="w-full bg-zinc-900/50 border border-zinc-700/40 rounded-lg px-3 py-2 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm transition-all"
+                                                    />
+                                                )}
+                                                <input
+                                                    type="url"
+                                                    value={part.url}
+                                                    onChange={(e) => {
+                                                        const updated = [...videoParts];
+                                                        updated[index] = { ...updated[index], url: e.target.value };
+                                                        setVideoParts(updated);
+                                                    }}
+                                                    placeholder="https://youtu.be/..."
+                                                    className="w-full bg-zinc-900/80 border border-zinc-700/60 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
+                                                />
+                                            </div>
+                                            {videoParts.length > 1 && (
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="mt-auto h-10 w-10 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 flex-shrink-0 rounded-xl"
+                                                    onClick={() => setVideoParts(videoParts.filter((_, i) => i !== index))}
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    ))}
+
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="border-dashed border-zinc-700 text-zinc-400 hover:text-violet-400 hover:border-violet-500/50 rounded-xl"
+                                        onClick={() => setVideoParts([...videoParts, { title: '', url: '' }])}
+                                    >
+                                        <Plus className="w-4 h-4 me-1" />
+                                        Add another video
+                                    </Button>
+
+                                    {videoParts.length > 1 && (
+                                        <p className="text-xs text-zinc-500 flex items-center gap-1">
+                                            <Video className="w-3 h-3" />
+                                            {videoParts.filter(p => p.url.trim()).length} video(s) — will show as playlist with sidebar
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* PDF Section */}
+                            <div className="space-y-4 pt-4 border-t border-zinc-800/50">
+                                <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+                                    <FileText className="w-4 h-4 text-blue-400" />
+                                    PDF Documents
+                                    <span className="text-zinc-500 text-xs">(optional)</span>
+                                </label>
+
+                                <div className="space-y-4">
+                                    {pdfParts.map((part, index) => (
+                                        <div key={index} className="relative flex flex-col gap-4 glass-card p-5 rounded-2xl group hover:border-violet-500/30 transition-all duration-300">
+                                            {/* Header + Delete Button */}
+                                            <div className="flex justify-between items-center pb-3 border-b border-zinc-800/50">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-violet-500/30 to-indigo-500/30 text-violet-300 flex items-center justify-center text-xs font-bold border border-violet-500/30">
+                                                        {index + 1}
+                                                    </div>
+                                                    <span className="text-sm font-semibold text-zinc-200">Document {index + 1}</span>
+                                                </div>
+                                                {pdfParts.length > 1 && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg"
+                                                        onClick={() => setPdfParts(pdfParts.filter((_, i) => i !== index))}
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                )}
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                {/* Title Input */}
+                                                <div>
+                                                    <input
+                                                        type="text"
+                                                        value={part.title}
+                                                        onChange={(e) => {
+                                                            const updated = [...pdfParts];
+                                                            updated[index] = { ...updated[index], title: e.target.value };
+                                                            setPdfParts(updated);
+                                                        }}
+                                                        placeholder={`e.g., Chapter ${index + 1} Summary, Assignment Answers`}
+                                                        className="w-full bg-zinc-900/60 border border-zinc-800/60 rounded-xl px-4 py-2.5 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500/50 text-sm transition-all"
+                                                    />
+                                                </div>
+
+                                                {/* File / URL Split */}
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-medium text-zinc-400 flex items-center gap-1.5 px-0.5">
+                                                            <Upload className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" /> Upload File <span className="text-zinc-600 ml-auto font-normal">Max 500MB</span>
+                                                        </label>
+                                                        <div className="relative group/file">
+                                                            <input
+                                                                type="file"
+                                                                accept=".pdf"
+                                                                onChange={(e) => {
+                                                                    const updated = [...pdfParts];
+                                                                    updated[index] = { ...updated[index], file: e.target.files?.[0] || null };
+                                                                    setPdfParts(updated);
+                                                                }}
+                                                                className="w-full bg-zinc-900/60 border border-zinc-800/60 rounded-xl px-2 py-2 text-zinc-300 text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-violet-500/10 file:text-violet-400 hover:file:bg-violet-500/20 cursor-pointer transition-all h-[42px]"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-medium text-zinc-400 flex items-center gap-1.5 px-0.5">
+                                                            <Link2 className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" /> Or paste a link
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={part.url}
+                                                            onChange={(e) => {
+                                                                const updated = [...pdfParts];
+                                                                updated[index] = { ...updated[index], url: e.target.value };
+                                                                setPdfParts(updated);
+                                                            }}
+                                                            placeholder="https://drive.google.com/..."
+                                                            className="w-full bg-zinc-900/60 border border-zinc-800/60 rounded-xl px-3 py-2 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500/50 text-sm transition-all h-[42px]"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full h-12 border-dashed border-zinc-700/60 hover:border-violet-500/50 text-zinc-400 hover:text-violet-400 hover:bg-violet-500/5 transition-all outline-none rounded-2xl bg-zinc-900/20 mt-2"
+                                        onClick={() => setPdfParts([...pdfParts, { title: '', url: '', file: null }])}
+                                    >
+                                        <Plus className="w-4 h-4 mr-2" />
+                                        Add another PDF document
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {/* Quiz Section */}
+                            <div className="space-y-4 pt-4 border-t border-zinc-800/50">
+                                <QuizUploader onQuizDataChange={setQuizData} />
+                            </div>
+
+                            {/* Result Message */}
+                            {result && (
+                                <div className={`p-4 rounded-xl flex items-start gap-3 ${result.success
+                                    ? 'bg-emerald-500/10 border border-emerald-500/30 animate-success-pop'
+                                    : 'bg-red-500/10 border border-red-500/30'
+                                    }`}>
+                                    {result.success ? (
+                                        <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                                    ) : (
+                                        <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                                    )}
+                                    <p className={result.success ? 'text-emerald-300' : 'text-red-300'}>
+                                        {result.message || result.error}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Submit Button */}
+                            <Button
+                                type="submit"
+                                disabled={saving}
+                                className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white py-6 text-base font-semibold shadow-lg shadow-violet-900/30 rounded-2xl transition-all duration-300 hover:shadow-violet-900/50"
+                            >
+                                {saving ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                        Creating Lesson...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Save className="w-5 h-5 mr-2" />
+                                        Create Lesson
+                                    </>
+                                )}
+                            </Button>
+                        </form>
+                    </CardContent>
+                </Card>
+            </div>
         </div>
-      </div>
-
-      {/* Pipeline explanation */}
-      <Card className="border-purple-200 bg-purple-50/50">
-        <CardContent className="pt-4">
-          <p className="text-sm font-semibold text-purple-900 mb-3">🤖 Automated pipeline (runs every 15 min):</p>
-          <div className="grid grid-cols-2 gap-2 text-sm text-purple-800">
-            {['1. PDF saved locally', '2. Gemini reads PDF', '3. 20 MCQ + 10 T/F quiz generated', '4. YouTube searched in Arabic', '5. Lesson created as draft', '6. You review & publish'].map(step => (
-              <div key={step} className="flex items-center gap-2">
-                <span className="text-purple-500">✓</span> {step}
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Status banner */}
-      {status === 'queued' && (
-        <Card className="border-green-300 bg-green-50">
-          <CardContent className="pt-4 flex gap-3">
-            <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-green-800">{message}</p>
-              {queuePosition && (
-                <p className="text-xs text-green-700 mt-1 flex items-center gap-1">
-                  <ListOrdered className="h-3 w-3" />
-                  Queue position: #{queuePosition} — estimated wait: ~{queuePosition * 15} minutes
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Upload PDF Lecture</CardTitle>
-          <CardDescription>Fill in details, then drop your PDF</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Course */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Course *</label>
-            <Select value={courseCode} onValueChange={v => { setCourseCode(v); setInstructor(''); }}>
-              <SelectTrigger><SelectValue placeholder="Select course..." /></SelectTrigger>
-              <SelectContent>
-                {COURSES.map(c => (
-                  <SelectItem key={c.code} value={c.code}>
-                    {c.name} <span className="text-muted-foreground text-xs ml-2">{c.ar}</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Doctor (only for Physics) */}
-          {selectedCourse?.doctors && selectedCourse.doctors.length > 0 && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Doctor / Section</label>
-              <Select value={instructor} onValueChange={setInstructor}>
-                <SelectTrigger><SelectValue placeholder="Select doctor..." /></SelectTrigger>
-                <SelectContent>
-                  {selectedCourse.doctors.map(d => (
-                    <SelectItem key={d} value={d}>{d}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {/* Lecture number + title */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Lecture Number *</label>
-              <input
-                type="number"
-                value={lectureNumber}
-                onChange={e => setLectureNumber(e.target.value)}
-                placeholder="e.g. 3"
-                className="w-full rounded-md border px-3 py-2 text-sm"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Title (optional)</label>
-              <input
-                type="text"
-                value={lectureTitle}
-                onChange={e => setLectureTitle(e.target.value)}
-                placeholder="e.g. Wave Motion"
-                className="w-full rounded-md border px-3 py-2 text-sm"
-              />
-            </div>
-          </div>
-
-          {/* Drop zone */}
-          <div
-            onDrop={handleDrop}
-            onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-            onDragLeave={() => setDragOver(false)}
-            onClick={() => document.getElementById('pdf-file')?.click()}
-            className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all ${dragOver ? 'border-primary bg-primary/5 scale-[1.01]' : 'border-muted-foreground/30 hover:border-primary/40'}`}
-          >
-            <Upload className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-            {file ? (
-              <div>
-                <p className="font-medium text-green-700">{file.name}</p>
-                <p className="text-sm text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-              </div>
-            ) : (
-              <div>
-                <p className="font-medium">Drop PDF here or click to browse</p>
-                <p className="text-xs text-muted-foreground mt-1">Only .pdf files</p>
-              </div>
-            )}
-            <input id="pdf-file" type="file" accept=".pdf" className="hidden"
-              onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
-          </div>
-
-          {status === 'error' && (
-            <div className="flex items-center gap-2 text-red-700 bg-red-50 border border-red-200 rounded-lg p-3 text-sm">
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              {message}
-            </div>
-          )}
-
-          <Button
-            onClick={handleSubmit}
-            disabled={!file || !courseCode || !lectureNumber || status === 'uploading'}
-            className="w-full" size="lg"
-          >
-            {status === 'uploading'
-              ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Uploading...</>
-              : <><Zap className="h-4 w-4 mr-2" />Add to Queue</>}
-          </Button>
-
-          <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1">
-            <Clock className="h-3 w-3" />
-            Lectures are processed one at a time, every 15 minutes
-          </p>
-        </CardContent>
-      </Card>
-    </div>
-  );
+    );
 }
