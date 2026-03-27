@@ -330,48 +330,6 @@ function preprocessUnicodeMath(text: string): string {
         if (seg.isMath) return seg.text;
         let t = seg.text;
 
-        // Convert Unicode superscripts: x² → x$^{2}$
-        const supChars = Object.keys(UNICODE_SUP);
-        if (supChars.length > 0) {
-            const supRe = new RegExp(`([a-zA-Z0-9])([${supChars.join('')}]+)`, 'g');
-            t = t.replace(supRe, (_, base: string, sups: string) => {
-                const digits = [...sups].map(c => UNICODE_SUP[c] || c).join('');
-                return `${base}$^{${digits}}$`;
-            });
-        }
-
-        // Convert Unicode subscripts: H₂ → H$_{2}$
-        const subChars = Object.keys(UNICODE_SUB);
-        if (subChars.length > 0) {
-            const subRe = new RegExp(`([a-zA-Z0-9])([${subChars.join('')}]+)`, 'g');
-            t = t.replace(subRe, (_, base: string, subs: string) => {
-                const digits = [...subs].map(c => UNICODE_SUB[c] || c).join('');
-                return `${base}$_{${digits}}$`;
-            });
-        }
-
-        // Convert ASCII superscripts/subscripts outside math delimiters:
-        //   x^{2n+1} → x$^{2n+1}$   CO_{2} → CO$_{2}$
-        //   x^2 → x$^{2}$   a_i → a$_{i}$   H^+ → H$^{+}$   e^- → e$^{-}$
-        // Braced form: word^{...} or word_{...}
-        t = t.replace(/([a-zA-Z0-9)])(\^|_)\{([^}]+)\}/g, (_, pre, op, inner) => {
-            return `${pre}$${op}{${inner}}$`;
-        });
-        // Simple single-char form: word^X or word_X (letter, digit, +, -)
-        t = t.replace(/([a-zA-Z0-9)])(\^|_)([a-zA-Z0-9+\-])/g, (_, pre, op, ch) => {
-            return `${pre}$${op}{${ch}}$`;
-        });
-
-        // Convert common chemical formulas (H2O, CO2, C6H12O6) into subscripts
-        // Only for tokens that contain at least one uppercase letter and one digit.
-        t = t.replace(/\b([A-Z][A-Za-z0-9]*)\b/g, (token) => {
-            if (!/[A-Z]/.test(token) || !/\d/.test(token)) return token;
-            // Avoid plain years or IDs (e.g., 2026) and course codes like M102
-            if (/^\d+$/.test(token)) return token;
-            if (/^[A-Z]{1,4}\d{1,4}$/.test(token)) return token; // course codes
-            return token.replace(/([A-Za-z])(\d+)/g, (_m, letter, digits) => `${letter}$_{${digits}}$`);
-        });
-
         // Convert standalone Unicode math symbols
         for (const [pattern, replacement] of UNICODE_MATH_MAP) {
             t = t.replace(pattern, `$${replacement}$`);
