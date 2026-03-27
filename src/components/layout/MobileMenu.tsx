@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetClose } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Menu, Calculator, Trophy, Crown, User, LogOut, Shield, Calendar, Sparkles, BarChart3, X } from 'lucide-react';
+import { Menu, Calculator, Trophy, Crown, User, LogOut, Shield, Calendar, BarChart3, X, Megaphone } from 'lucide-react';
 import { signout } from '@/app/login/actions';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useTranslations } from 'next-intl';
@@ -106,11 +106,13 @@ export function MobileMenu({ isAdmin, session, userNameInitial, profilePictureUr
                                 <Calendar className="h-[18px] w-[18px] text-violet-500 shrink-0" />
                                 <span className="text-[13px] font-medium">{t('schedule')}</span>
                             </Link>
-                            <Link href="/updates" onClick={closeMenu}
+                            <Link href="/announcements" onClick={closeMenu}
                                 className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/80 active:bg-muted transition-colors">
-                                <Sparkles className="h-[18px] w-[18px] text-fuchsia-500 shrink-0" />
-                                <span className="text-[13px] font-medium">{t('whatsNew')}</span>
+                                <Megaphone className="h-[18px] w-[18px] text-blue-500 shrink-0" />
+                                <span className="text-[13px] font-medium">{t('announcements')}</span>
                             </Link>
+
+
                         </div>
 
                         {/* Admin / Leader */}

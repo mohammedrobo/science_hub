@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Bell, Trash2 } from 'lucide-react';
+import { Bell, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { getNotifications, clearAllNotifications, type Notification } from '@/app/actions/notifications';
 import { formatDistanceToNow } from 'date-fns';
@@ -23,15 +23,27 @@ const MIN_REFETCH_GAP_MS = examModeValue(
     20 * 60 * 1000
 ); // 10m normal, 20m exam mode burst throttle
 
+const MESSAGE_PREVIEW_LENGTH = 120; // characters before "Read more"
+
 export function NotificationBell({ userRole = 'student' }: NotificationBellProps) {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [isOpen, setIsOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isClearing, setIsClearing] = useState(false);
+    const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
     const canManage = userRole === 'super_admin' || userRole === 'admin' || userRole === 'leader';
     const t = useTranslations('notifications');
     const lastFetchRef = useRef(0);
     const isFetchingRef = useRef(false);
+
+    const toggleExpand = (id: string) => {
+        setExpandedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
 
     const refreshNotifications = useCallback(async (force = false) => {
         const now = Date.now();
@@ -132,7 +144,7 @@ export function NotificationBell({ userRole = 'student' }: NotificationBellProps
                 </button>
             </PopoverTrigger>
             <PopoverContent 
-                className="w-[calc(100vw-24px)] sm:w-80 max-w-[320px] p-0 bg-zinc-900 border-zinc-800 shadow-xl" 
+                className="w-[calc(100vw-24px)] sm:w-96 max-w-[420px] p-0 bg-zinc-900 border-zinc-800 shadow-xl" 
                 align="end"
                 sideOffset={8}
             >
@@ -154,40 +166,62 @@ export function NotificationBell({ userRole = 'student' }: NotificationBellProps
                         )}
                     </div>
                 </div>
-                <div className="max-h-[60vh] sm:max-h-[350px] overflow-y-auto custom-scrollbar">
+                <div className="max-h-[70vh] sm:max-h-[450px] overflow-y-auto custom-scrollbar">
                     {notifications.length === 0 ? (
                         <div className="p-8 text-center text-zinc-500 text-sm">
                             <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
                             {t('noNotifications')}
                         </div>
                     ) : (
-                        notifications.map((n) => (
-                            <div key={n.id} className="p-3 border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors">
-                                <div className="flex justify-between items-start mb-1">
-                                    <h4 className="font-semibold text-sm text-foreground">{n.title}</h4>
-                                    <span className="text-[10px] text-zinc-500 whitespace-nowrap ms-2">
-                                        {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
-                                    </span>
-                                </div>
-                                <p className="text-xs text-zinc-400 line-clamp-2">{n.message}</p>
-                                <div className="mt-2 flex items-center justify-between flex-wrap gap-1">
-                                    <span className="text-[10px] text-primary/70 px-1.5 py-0.5 rounded-full bg-primary/10 font-medium">
-                                        {n.sender_role === 'super_admin' ? t('superAdmin') : n.sender_role === 'admin' ? t('admin') : n.sender_full_name || t('leader')}
-                                    </span>
-                                    <div className="flex items-center gap-1">
-                                        {n.target_section ? (
-                                            <span className="text-[10px] text-amber-500 border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 rounded">
-                                                → {n.target_section}
-                                            </span>
-                                        ) : (
-                                            <span className="text-[10px] text-emerald-500 border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                                                {t('toAll')}
-                                            </span>
-                                        )}
+                        notifications.map((n) => {
+                            const isExpanded = expandedIds.has(n.id);
+                            const isLong = n.message.length > MESSAGE_PREVIEW_LENGTH;
+                            const displayMessage = isLong && !isExpanded
+                                ? n.message.slice(0, MESSAGE_PREVIEW_LENGTH) + '...'
+                                : n.message;
+
+                            return (
+                                <div key={n.id} className="p-3 border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors">
+                                    <div className="flex justify-between items-start mb-1">
+                                        <h4 className="font-semibold text-sm text-foreground">{n.title}</h4>
+                                        <span className="text-[10px] text-zinc-500 whitespace-nowrap ms-2">
+                                            {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-zinc-400 whitespace-pre-wrap break-words leading-relaxed">
+                                        {displayMessage}
+                                    </p>
+                                    {isLong && (
+                                        <button
+                                            onClick={() => toggleExpand(n.id)}
+                                            className="mt-1 text-[11px] text-primary/80 hover:text-primary flex items-center gap-0.5 transition-colors"
+                                        >
+                                            {isExpanded ? (
+                                                <><ChevronUp className="w-3 h-3" /> Show less</>
+                                            ) : (
+                                                <><ChevronDown className="w-3 h-3" /> Read more</>
+                                            )}
+                                        </button>
+                                    )}
+                                    <div className="mt-2 flex items-center justify-between flex-wrap gap-1">
+                                        <span className="text-[10px] text-primary/70 px-1.5 py-0.5 rounded-full bg-primary/10 font-medium">
+                                            {n.sender_role === 'super_admin' ? t('superAdmin') : n.sender_role === 'admin' ? t('admin') : n.sender_full_name || t('leader')}
+                                        </span>
+                                        <div className="flex items-center gap-1">
+                                            {n.target_section ? (
+                                                <span className="text-[10px] text-amber-500 border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                                                    → {n.target_section}
+                                                </span>
+                                            ) : (
+                                                <span className="text-[10px] text-emerald-500 border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                                                    {t('toAll')}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))
+                            );
+                        })
                     )}
                 </div>
             </PopoverContent>

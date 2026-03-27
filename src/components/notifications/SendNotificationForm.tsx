@@ -111,12 +111,17 @@ export function SendNotificationForm({ role, userSection }: SendNotificationForm
 
                 <div className="space-y-1">
                     <textarea
-                        placeholder="Message content..."
+                        placeholder="Message content... (supports long announcements with multiple lines)"
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
-                        rows={3}
-                        className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-1 focus:ring-primary outline-none resize-none"
+                        rows={5}
+                        className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-1 focus:ring-primary outline-none resize-y min-h-[100px]"
                     />
+                    <div className="flex justify-end">
+                        <span className={`text-[10px] ${message.length > 500 ? 'text-amber-400' : 'text-zinc-600'}`}>
+                            {message.length} characters
+                        </span>
+                    </div>
                 </div>
 
                 <button

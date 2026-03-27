@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getNotifications, deleteNotification, updateNotification, type Notification } from '@/app/actions/notifications';
-import { Trash2, Edit2, Save, X, Loader2, MoreHorizontal } from 'lucide-react';
+import { Trash2, Edit2, Save, X, Loader2, MoreHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
@@ -18,6 +18,16 @@ export function ManageNotifications() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editForm, setEditForm] = useState({ title: '', message: '' });
     const [loading, setLoading] = useState(false);
+    const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+    const toggleExpand = (id: string) => {
+        setExpandedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
 
     useEffect(() => {
         loadNotifications();
@@ -87,9 +97,9 @@ export function ManageNotifications() {
                                     <textarea
                                         value={editForm.message}
                                         onChange={e => setEditForm(prev => ({ ...prev, message: e.target.value }))}
-                                        className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-sm text-white resize-none"
+                                        className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-sm text-white resize-y min-h-[60px]"
                                         placeholder="Message"
-                                        rows={2}
+                                        rows={4}
                                     />
                                     <div className="flex justify-end gap-2">
                                         <Button size="sm" variant="ghost" onClick={() => setEditingId(null)} disabled={loading}>
@@ -109,7 +119,23 @@ export function ManageNotifications() {
                                                 {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
                                             </span>
                                         </div>
-                                        <p className="text-xs text-zinc-400 line-clamp-1">{n.message}</p>
+                                        <p className="text-xs text-zinc-400 whitespace-pre-wrap break-words leading-relaxed">
+                                            {expandedIds.has(n.id) || n.message.length <= 100
+                                                ? n.message
+                                                : n.message.slice(0, 100) + '...'}
+                                        </p>
+                                        {n.message.length > 100 && (
+                                            <button
+                                                onClick={() => toggleExpand(n.id)}
+                                                className="mt-0.5 text-[10px] text-primary/70 hover:text-primary flex items-center gap-0.5"
+                                            >
+                                                {expandedIds.has(n.id) ? (
+                                                    <><ChevronUp className="w-3 h-3" /> Less</>
+                                                ) : (
+                                                    <><ChevronDown className="w-3 h-3" /> More</>
+                                                )}
+                                            </button>
+                                        )}
                                         <div className="mt-1 flex gap-2">
                                             {n.target_section && (
                                                 <span className="text-[10px] bg-zinc-900 border border-zinc-800 px-1 rounded text-zinc-500">

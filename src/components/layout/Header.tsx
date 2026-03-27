@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { SemesterToggle } from './SemesterToggle';
 import { UserNav } from './UserNav';
-import { BookOpen, Sparkles, BarChart3, Calculator, Trophy, Calendar, Shield } from 'lucide-react';
+import { BookOpen, BarChart3, Calculator, Trophy, Calendar, Shield, Megaphone } from 'lucide-react';
 import { type SessionData } from '@/lib/auth/session-read';
 import { MobileMenu } from './MobileMenu';
 import { getHeaderStats } from '@/lib/gamification';
@@ -67,10 +67,12 @@ export async function Header({ session }: HeaderProps) {
                         <Calendar className="h-3.5 w-3.5 text-violet-500" />
                         {t('schedule')}
                     </Link>
-                    <Link href="/updates" className="nav-link-underline flex items-center gap-1.5 px-3 py-1.5 rounded-md text-zinc-400 hover:text-fuchsia-400 hover:bg-fuchsia-500/10 transition-all">
-                        <Sparkles className="h-3.5 w-3.5 text-fuchsia-500" />
-                        {t('whatsNew')}
+                    <Link href="/announcements" className="nav-link-underline flex items-center gap-1.5 px-3 py-1.5 rounded-md text-zinc-400 hover:text-blue-400 hover:bg-blue-500/10 transition-all">
+                        <Megaphone className="h-3.5 w-3.5 text-blue-500" />
+                        {t('announcements')}
                     </Link>
+
+
 
                     {/* Admin Button */}
                     {isAdmin && (
