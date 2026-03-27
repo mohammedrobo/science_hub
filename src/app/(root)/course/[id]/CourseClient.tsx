@@ -41,7 +41,23 @@ interface CourseClientProps {
 
 export default function CourseClient({ id, course, initialLessons, initialProgress, isAdmin = false }: CourseClientProps) {
     // State
-    const [lessons] = useState<Lesson[]>(initialLessons);
+    const [lessons] = useState<Lesson[]>(() => {
+        // Sort lessons by "Lecture N" extraction if available.
+        // Falls back to existing order_index if no number is found.
+        return [...initialLessons].sort((a, b) => {
+            const extractNum = (title: string) => {
+                const m = title.match(/\b(?:lecture|lec|l|part|session)\s*(?:#|no\.?)?\s*(\d+)/i);
+                return m ? parseInt(m[1]) : null;
+            };
+            const numA = extractNum(a.title);
+            const numB = extractNum(b.title);
+            
+            if (numA !== null && numB !== null) return numA - numB;
+            if (numA !== null) return -1;
+            if (numB !== null) return 1;
+            return a.order_index - b.order_index;
+        });
+    });
     const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
     const [quizProgress] = useState<Record<string, { score: number }>>(initialProgress);
     const t = useTranslations('courses');
