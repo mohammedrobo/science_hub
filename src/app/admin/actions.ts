@@ -279,6 +279,44 @@ export async function getSignedUploadUrl(path: string) {
     }
 }
 
+// ============ YOUTUBE PLAYLIST FETCH ============
+
+export async function fetchPlaylistDetails(playlistUrl: string) {
+    try {
+        await ensureLeaderOrAdmin();
+        if (!playlistUrl) return { error: 'Playlist URL is required' };
+        
+        const PLAYLIST_ID_REGEX = /[?&]list=([^#&?]+)/;
+        const match = playlistUrl.trim().match(PLAYLIST_ID_REGEX);
+        const playlistId = match ? match[1] : null;
+
+        if (!playlistId) return { error: 'Invalid YouTube playlist URL' };
+
+        const { Innertube } = require('youtubei.js');
+        const yt = await Innertube.create({ generate_session_locally: true });
+        
+        const playlist = await yt.getPlaylist(playlistId);
+        
+        if (!playlist || !playlist.items || playlist.items.length === 0) {
+            return { error: 'Playlist is empty, private, or not found' };
+        }
+
+        const videos = playlist.items.map((item: any) => ({
+            title: item.title?.text || item.title || 'Unknown Title',
+            url: `https://youtu.be/${item.id}`
+        }));
+
+        return {
+            success: true,
+            title: playlist.info?.title || 'Fetched Playlist',
+            videos
+        };
+    } catch (error: any) {
+        console.error('Fetch playlist error:', error);
+        return { error: 'Failed to fetch playlist items: ' + error.message };
+    }
+}
+
 // ============ USER MANAGEMENT ============
 
 export async function updateStudentName(username: string, newName: string) {

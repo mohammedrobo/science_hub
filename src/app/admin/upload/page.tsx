@@ -6,10 +6,10 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { createLesson, getSignedUploadUrl } from '@/app/admin/actions';
+import { createLesson, getSignedUploadUrl, fetchPlaylistDetails } from '@/app/admin/actions';
 import {
     ArrowLeft, Save, Video, FileText, BookOpen,
-    Loader2, AlertCircle, CheckCircle, Plus, Trash2, Link2, Upload
+    Loader2, AlertCircle, CheckCircle, Plus, Trash2, Link2, Upload, ListVideo
 } from 'lucide-react';
 import { QuizUploader } from '@/components/admin/QuizUploader';
 import { QuizQuestion } from '@/lib/quiz-parser';
@@ -143,6 +143,34 @@ export default function UploadLessonPage() {
         }
     };
 
+    const [fetchingPlaylist, setFetchingPlaylist] = useState(false);
+
+    const handleVideoUrlChange = async (index: number, newUrl: string) => {
+        const updated = [...videoParts];
+        updated[index] = { ...updated[index], url: newUrl };
+        setVideoParts(updated);
+
+        // Auto-detect playlist URL and extract videos
+        if (newUrl.includes('list=') && !fetchingPlaylist) {
+            setFetchingPlaylist(true);
+            setResult({ success: true, message: '⏳ Extracting playlist videos...' });
+            try {
+                const res = await fetchPlaylistDetails(newUrl);
+                if (res.error) {
+                    setResult({ error: res.error });
+                } else if (res.success && res.videos) {
+                    setVideoParts(res.videos);
+                    if (!title) setTitle(res.title);
+                    setResult({ success: true, message: `✅ Extracted ${res.videos.length} videos from playlist!` });
+                }
+            } catch (err: any) {
+                setResult({ error: err.message });
+            } finally {
+                setFetchingPlaylist(false);
+            }
+        }
+    };
+
     return (
         <div className="min-h-screen bg-zinc-950">
             {/* Header */}
@@ -246,7 +274,7 @@ export default function UploadLessonPage() {
                             <div className="space-y-3">
                                 <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
                                     <Video className="w-4 h-4 text-red-400" />
-                                    YouTube Links
+                                    YouTube Video or Playlist
                                     <span className="text-zinc-500 text-xs">(optional)</span>
                                 </label>
 
@@ -270,13 +298,10 @@ export default function UploadLessonPage() {
                                                 <input
                                                     type="url"
                                                     value={part.url}
-                                                    onChange={(e) => {
-                                                        const updated = [...videoParts];
-                                                        updated[index] = { ...updated[index], url: e.target.value };
-                                                        setVideoParts(updated);
-                                                    }}
-                                                    placeholder="https://youtu.be/..."
-                                                    className="w-full bg-zinc-900/80 border border-zinc-700/60 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
+                                                    onChange={(e) => handleVideoUrlChange(index, e.target.value)}
+                                                    disabled={fetchingPlaylist}
+                                                    placeholder="https://youtu.be/... or paste a playlist URL"
+                                                    className="w-full bg-zinc-900/80 border border-zinc-700/60 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all disabled:opacity-50"
                                                 />
                                             </div>
                                             {videoParts.length > 1 && (
@@ -292,6 +317,13 @@ export default function UploadLessonPage() {
                                             )}
                                         </div>
                                     ))}
+
+                                    {fetchingPlaylist && (
+                                        <div className="flex items-center gap-2 p-3 bg-violet-500/10 border border-violet-500/30 rounded-xl">
+                                            <Loader2 className="w-4 h-4 text-violet-400 animate-spin" />
+                                            <span className="text-sm text-violet-300">Extracting playlist videos...</span>
+                                        </div>
+                                    )}
 
                                     <Button
                                         type="button"

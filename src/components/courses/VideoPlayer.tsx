@@ -528,9 +528,13 @@ export function VideoPlayer({ url, title, parts }: VideoPlayerProps) {
   useEffect(() => {
     const newUrl = primaryEmbedUrl ?? firstPartEmbedUrl;
     setActiveUrl(newUrl);
-    setPlayerState('thumbnail');
+    
+    const rawForNew = url ?? (hasParts && parts.length > 0 ? parts[0].url : null);
+    const hasThumb = rawForNew ? getYouTubeThumbnailUrl(rawForNew) !== null : false;
+    
+    setPlayerState(hasThumb ? 'thumbnail' : 'loading');
     setRetryCount(0);
-  }, [primaryEmbedUrl, firstPartEmbedUrl]);
+  }, [primaryEmbedUrl, firstPartEmbedUrl, url, parts, hasParts]);
 
   // ── Responsive detection with matchMedia ───────────────────────────────────
   useEffect(() => {
@@ -572,10 +576,15 @@ export function VideoPlayer({ url, title, parts }: VideoPlayerProps) {
   const handlePartSelect = useCallback(
     (embedUrl: string) => {
       setActiveUrl(embedUrl);
-      setPlayerState('thumbnail');
+      
+      const selectedPart = parts?.find(p => buildEmbedUrl(p.url, origin) === embedUrl);
+      const rawUrl = selectedPart ? selectedPart.url : url;
+      const hasThumb = rawUrl ? getYouTubeThumbnailUrl(rawUrl) !== null : false;
+      
+      setPlayerState(hasThumb ? 'thumbnail' : 'loading');
       setRetryCount(0);
     },
-    []
+    [parts, url, origin]
   );
 
   // ── No video available ─────────────────────────────────────────────────────
