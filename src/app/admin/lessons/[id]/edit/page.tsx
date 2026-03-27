@@ -166,10 +166,10 @@ export default function EditLessonPage({ params }: PageProps) {
             }
 
             // Built final PDF URL (backwards compatibility - use the first one)
-            const fallbackPdfUrl = finalPdfParts.length > 0 ? finalPdfParts[0].url : undefined;
+            const fallbackPdfUrl = finalPdfParts.length > 0 ? finalPdfParts[0].url : null;
 
             const validParts = videoParts.filter(p => p.url.trim());
-            const mainVideoUrl = validParts.length > 0 ? validParts[0].url : undefined;
+            const mainVideoUrl = validParts.length > 0 ? validParts[0].url : null;
             const finalParts = validParts.map((p, i) => ({
                 title: p.title.trim() || `Part ${i + 1}`,
                 url: p.url.trim()
@@ -178,9 +178,9 @@ export default function EditLessonPage({ params }: PageProps) {
             const response = await updateLesson(id, {
                 course_id: courseId !== courseInfo?.code.toLowerCase() ? courseId : undefined,
                 title,
-                instructor: selectedInstructor || undefined,
-                section: selectedSection || undefined,
-                video_url: mainVideoUrl || undefined,
+                instructor: selectedInstructor || null,
+                section: selectedSection || null,
+                video_url: mainVideoUrl,
                 video_parts: finalParts.length > 1 ? finalParts : [],
                 pdf_url: fallbackPdfUrl,
                 pdf_parts: finalPdfParts.length > 0 ? finalPdfParts : [],

@@ -872,11 +872,11 @@ export async function updateLesson(
     data: {
         course_id?: string;
         title?: string;
-        instructor?: string;
-        section?: string;
-        video_url?: string;
+        instructor?: string | null;
+        section?: string | null;
+        video_url?: string | null;
         video_parts?: { title: string; url: string }[];
-        pdf_url?: string;
+        pdf_url?: string | null;
         pdf_parts?: { title: string; url: string }[];
         quiz_data?: {
             title: string;
@@ -984,9 +984,9 @@ export async function updateLesson(
         if (data.title !== undefined) updatePayload.title = data.title;
         if (data.instructor !== undefined) updatePayload.instructor = data.instructor || null;
         if (data.section !== undefined) updatePayload.section = data.section || null;
-        if (data.video_url !== undefined) updatePayload.video_url = data.video_url || null;
+        if ('video_url' in data) updatePayload.video_url = data.video_url;
         if (data.video_parts !== undefined) updatePayload.video_parts = data.video_parts;
-        if (data.pdf_url !== undefined) updatePayload.pdf_url = data.pdf_url || null;
+        if ('pdf_url' in data) updatePayload.pdf_url = data.pdf_url;
         if (data.pdf_parts !== undefined) updatePayload.pdf_parts = data.pdf_parts;
         if (quizId !== existingLesson.quiz_id) updatePayload.quiz_id = quizId;
 
