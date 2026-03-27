@@ -69,18 +69,7 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
 
 
     const isLessonLocked = (index: number) => {
-        if (isAdmin) return false; // Admins bypass locks completely
-        if (index === 0) return false; // First lesson always unlocked
-
-        const prevLesson = lessons[index - 1];
-
-        if (prevLesson.quiz_id) {
-            const progress = quizProgress[prevLesson.quiz_id];
-            if (!progress || progress.score < 50) {
-                return true;
-            }
-        }
-
+        // Feature removed per request: all lessons open by default
         return false;
     };
 

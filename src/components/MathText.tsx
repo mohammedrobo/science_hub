@@ -159,6 +159,38 @@ function normalizeLatexText(raw: string): string {
     // Convert bare sqrt without backslash: sqrt( ... ) -> \sqrt( ... )
     text = fixParenCommand(text, '\\sqrt');
 
+    // Convert plain text piecewise functions into proper LaTeX \begin{cases} environments
+    // Example: { x^2 for x<1, 5 for x=1 } -> \begin{cases} x^2 & \text{for } x<1 \\ 5 & \text{for } x=1 \end{cases}
+    const piecewiseRe = /\{((?:[^{}]+?(?:for|if|when)[^{}]+?(?:,|;|\n)\s*)+[^{}]+?(?:for|if|when)[^{}]+?)\}/gi;
+    text = text.replace(piecewiseRe, (match, inner) => {
+        const lines = inner.split(/[,;\n]/);
+        let casesContent = '';
+        let valid = true;
+        
+        for (let line of lines) {
+            line = line.trim();
+            if(!line) continue;
+            const parts = line.split(/\s+(for|if|when)\s+/i);
+            if (parts.length >= 3) {
+                const keyword = parts[parts.length - 2];
+                const cond = parts[parts.length - 1];
+                const expr = parts.slice(0, parts.length - 2).join('').trim();
+                casesContent += `${expr} & \\text{${keyword} } ${cond} \\\\ `;
+            } else if (line.toLowerCase().includes('otherwise')) {
+                const expr = line.replace(/\s*otherwise\s*/i, '').trim();
+                casesContent += `${expr} & \\text{otherwise} \\\\ `;
+            } else {
+                valid = false;
+                break;
+            }
+        }
+        
+        if (valid && casesContent) {
+            return `\\begin{cases} ${casesContent} \\end{cases}`;
+        }
+        return match;
+    });
+
     // 2. Convert raw slashes into \frac{}{} for better UI (e.g. 3/x -> \frac{3}{x})
     const convertSlashToFrac = (str: string): string => {
         let res = str;
@@ -416,22 +448,22 @@ function detectAndSplitMath(text: string): { content: string; isMath: boolean; i
             // \begin{...}...\end{...}
             addMath(matchStart, matchStart + fullMatch.length, true);
             masterRegex.lastIndex = pos;
-        } else if (match[4]) {
+        } else if (match[5]) {  // shifted due to match[4] being the inner group of begin
             // $...$
             addMath(matchStart, matchStart + fullMatch.length, false);
             masterRegex.lastIndex = pos;
-        } else if (match[5]) {
+        } else if (match[6]) {
             // \(...\)
             addMath(matchStart, matchStart + fullMatch.length, false);
             masterRegex.lastIndex = pos;
-        } else if (match[6]) {
+        } else if (match[7]) {
             // Standalone command — use balanced brace matching for full extent
             const cmdEnd = matchStart + fullMatch.length;
             const consumed = consumeBraceGroups(text, cmdEnd);
             const realEnd = consumed > cmdEnd ? consumed : cmdEnd;
             addMath(matchStart, realEnd, false);
             masterRegex.lastIndex = pos;
-        } else if (match[7]) {
+        } else if (match[8]) {
             // Standalone symbol
             addMath(matchStart, matchStart + fullMatch.length, false);
             masterRegex.lastIndex = pos;
