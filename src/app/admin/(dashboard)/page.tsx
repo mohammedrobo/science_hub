@@ -16,7 +16,7 @@ import { ResetAllButton } from './ResetAllButton';
 interface UserWithStats {
     username: string;
     full_name: string;
-    access_role: 'student' | 'leader' | 'admin' | 'super_admin';
+    access_role: 'student' | 'leader' | 'admin' | 'super_admin' | 'doctor';
     created_at?: string;
 }
 
@@ -180,7 +180,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
 
                 {/* Quick Stats */}
                 {selectedSection && users.length > 0 && (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                         <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3 sm:p-4">
                             <p className="text-xs text-zinc-500">Total</p>
                             <p className="text-xl sm:text-2xl font-bold text-white">{users.length}</p>
@@ -192,6 +192,10 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
                         <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3 sm:p-4">
                             <p className="text-xs text-zinc-500">Leaders</p>
                             <p className="text-xl sm:text-2xl font-bold text-violet-400">{users.filter(u => u.access_role === 'leader').length}</p>
+                        </div>
+                        <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3 sm:p-4">
+                            <p className="text-xs text-zinc-500">Doctors</p>
+                            <p className="text-xl sm:text-2xl font-bold text-teal-400">{users.filter(u => u.access_role === 'doctor').length}</p>
                         </div>
                         <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3 sm:p-4">
                             <p className="text-xs text-zinc-500">Admins</p>

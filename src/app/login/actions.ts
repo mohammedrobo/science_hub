@@ -174,7 +174,7 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     }
 
     // 6. Check if needs onboarding - redirect to onboarding
-    if (!hasOnboarded && !['admin', 'super_admin'].includes(user.access_role)) {
+    if (!hasOnboarded && !['admin', 'super_admin', 'doctor'].includes(user.access_role)) {
         redirect('/onboarding');
     }
 

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowUpCircle, ArrowDownCircle, Crown, Trash2, ImageOff, RotateCcw, ShieldAlert, Pencil, KeyRound, MoreVertical } from 'lucide-react';
+import { ArrowUpCircle, ArrowDownCircle, Crown, Trash2, ImageOff, RotateCcw, ShieldAlert, Pencil, KeyRound, MoreVertical, AtSign, Stethoscope } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -13,13 +13,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { RoleChangeDialog } from './RoleChangeDialog';
 import { EditNameDialog } from './EditNameDialog';
+import { ChangeUsernameDialog } from './ChangeUsernameDialog';
 import { deleteUser, resetUserProgress, removeProfilePicture, resetFullAccount, resetUserPassword } from '../actions';
 import { toast } from 'sonner';
 
 interface UserActionsProps {
     username: string;
     fullName: string;
-    currentRole: 'student' | 'leader' | 'admin' | 'super_admin';
+    currentRole: 'student' | 'leader' | 'admin' | 'super_admin' | 'doctor';
     isSuperAdmin: boolean;
 }
 
@@ -27,9 +28,10 @@ export function UserActions({ username, fullName, currentRole, isSuperAdmin }: U
     const router = useRouter();
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editNameOpen, setEditNameOpen] = useState(false);
-    const [targetRole, setTargetRole] = useState<'student' | 'leader' | 'admin' | 'super_admin'>('student');
+    const [editUsernameOpen, setEditUsernameOpen] = useState(false);
+    const [targetRole, setTargetRole] = useState<'student' | 'leader' | 'admin' | 'super_admin' | 'doctor'>('student');
 
-    const openRoleDialog = (newRole: 'student' | 'leader' | 'admin' | 'super_admin') => {
+    const openRoleDialog = (newRole: 'student' | 'leader' | 'admin' | 'super_admin' | 'doctor') => {
         setTargetRole(newRole);
         setDialogOpen(true);
     };
@@ -56,6 +58,19 @@ export function UserActions({ username, fullName, currentRole, isSuperAdmin }: U
                     onClick={() => openRoleDialog(currentRole === 'leader' ? 'student' : 'leader')}
                 >
                     {currentRole === 'leader' ? <ArrowDownCircle className="w-4 h-4" /> : <ArrowUpCircle className="w-4 h-4" />}
+                </Button>
+            )}
+
+            {/* Doctor Toggle — super_admin only */}
+            {isSuperAdmin && currentRole !== 'admin' && currentRole !== 'super_admin' && (
+                <Button
+                    size="icon"
+                    variant="ghost"
+                    className={`h-8 w-8 ${currentRole === 'doctor' ? 'text-teal-500 hover:text-zinc-500' : 'text-zinc-500 hover:text-teal-500'}`}
+                    title={currentRole === 'doctor' ? 'Demote from Doctor' : 'Promote to Doctor'}
+                    onClick={() => openRoleDialog(currentRole === 'doctor' ? 'student' : 'doctor')}
+                >
+                    <Stethoscope className="w-4 h-4" />
                 </Button>
             )}
 
@@ -118,6 +133,15 @@ export function UserActions({ username, fullName, currentRole, isSuperAdmin }: U
                             <Pencil className="w-4 h-4 text-blue-400" />
                             Edit Name
                         </DropdownMenuItem>
+                        {isSuperAdmin && (
+                            <DropdownMenuItem
+                                className="gap-2 text-zinc-300 focus:text-white focus:bg-zinc-800 cursor-pointer"
+                                onSelect={() => setEditUsernameOpen(true)}
+                            >
+                                <AtSign className="w-4 h-4 text-cyan-400" />
+                                Change Username
+                            </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                             className="gap-2 text-zinc-300 focus:text-white focus:bg-zinc-800 cursor-pointer"
                             onSelect={async () => {
@@ -218,6 +242,15 @@ export function UserActions({ username, fullName, currentRole, isSuperAdmin }: U
                 open={editNameOpen}
                 onOpenChange={setEditNameOpen}
             />
+
+            {isSuperAdmin && (
+                <ChangeUsernameDialog
+                    username={username}
+                    fullName={fullName}
+                    open={editUsernameOpen}
+                    onOpenChange={setEditUsernameOpen}
+                />
+            )}
         </div>
     );
 }

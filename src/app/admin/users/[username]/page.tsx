@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { notFound, redirect } from 'next/navigation';
 import { readSession } from '@/lib/auth/session-read';
+import { ChangeUsernameForm } from './ChangeUsernameForm';
 
 interface PageProps {
     params: Promise<{ username: string }>;
@@ -69,9 +70,7 @@ export default async function UserAuditPage({ params }: PageProps) {
                                 <CardTitle className="text-xl text-white">
                                     {allowedUser?.full_name || decodedUsername}
                                 </CardTitle>
-                                <div className="text-zinc-400 font-mono text-sm mt-1">
-                                    @{decodedUsername}
-                                </div>
+                                <ChangeUsernameForm currentUsername={decodedUsername} />
                                 <div className="flex gap-2 mt-2">
                                     <Badge variant="outline" className="border-zinc-700 text-zinc-400">
                                         Rank: {user.current_rank}

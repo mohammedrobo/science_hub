@@ -9,6 +9,7 @@ export interface Notification {
     id: string;
     sender_username: string;
     target_section: string | null; // null = All
+    category: string | null; // course code (e.g. 'P102') or null for general
     title: string;
     message: string;
     created_at: string;
@@ -21,6 +22,7 @@ type NotificationRow = {
     id: string;
     sender_username: string;
     target_section: string | null;
+    category: string | null;
     title: string;
     message: string;
     created_at: string;
@@ -116,7 +118,8 @@ function invalidateNotificationCaches() {
 export async function sendNotification(
     title: string,
     message: string,
-    targetSection: string | null // null for All
+    targetSection: string | null, // null for All
+    category: string | null = null // course code or null for general
 ) {
     const session = await readSession();
     if (!session) return { error: "Unauthorized" };
@@ -124,7 +127,7 @@ export async function sendNotification(
     const { username, role } = session;
 
     // Permission Check
-    if (role === 'super_admin' || role === 'admin') {
+    if (role === 'super_admin' || role === 'admin' || role === 'doctor') {
         // Admin / Super Admin can send to anyone (NULL, group, or specific section)
     } else if (role === 'leader') {
         // Leader MUST have a target section, and it MUST match their own section
@@ -155,6 +158,7 @@ export async function sendNotification(
         const inserts = sections.map(sec => ({
             sender_username: username,
             target_section: sec,
+            category: category || null,
             title,
             message,
             created_at: now
@@ -177,6 +181,7 @@ export async function sendNotification(
             .insert({
                 sender_username: username,
                 target_section: targetSection ? targetSection.toUpperCase() : null,
+                category: category || null,
                 title,
                 message,
                 created_at: now
@@ -206,7 +211,7 @@ export async function getNotifications() {
     const userSection = extractSectionFromUsername(username);
 
     try {
-        if (role === 'super_admin' || role === 'admin') {
+        if (role === 'super_admin' || role === 'admin' || role === 'doctor') {
             return await getAdminNotificationsCached();
         }
         if (userSection) {
@@ -239,7 +244,7 @@ export async function deleteNotification(id: string) {
     }
 
     // Permission Check
-    if (role === 'super_admin' || role === 'admin') {
+    if (role === 'super_admin' || role === 'admin' || role === 'doctor') {
         // Admin / Super Admin can delete anything
     } else if (role === 'leader') {
         // Leader can only delete their own
@@ -285,7 +290,7 @@ export async function updateNotification(id: string, title: string, message: str
     }
 
     // Permission Check
-    if (role === 'super_admin' || role === 'admin') {
+    if (role === 'super_admin' || role === 'admin' || role === 'doctor') {
         // Admin / Super Admin can edit anything
     } else if (role === 'leader') {
         if (notification.sender_username !== username) {
@@ -317,14 +322,14 @@ export async function clearAllNotifications() {
 
     const { username, role } = session;
 
-    if (role !== 'super_admin' && role !== 'admin' && role !== 'leader') {
+    if (role !== 'super_admin' && role !== 'admin' && role !== 'doctor' && role !== 'leader') {
         return { error: "Only admins and leaders can clear notifications." };
     }
 
     // Use service role client to bypass RLS for delete operations
     const supabase = await createServiceRoleClient();
     
-    if (role === 'super_admin' || role === 'admin') {
+    if (role === 'super_admin' || role === 'admin' || role === 'doctor') {
         // Admin clears ALL notifications
         const { error } = await supabase
             .from('notifications')
@@ -359,5 +364,5 @@ export async function clearAllNotifications() {
     invalidateNotificationCaches();
     revalidatePath('/');
     revalidatePath('/schedule');
-    return { success: true, message: (role === 'super_admin' || role === 'admin') ? 'All notifications cleared' : 'Section notifications cleared' };
+    return { success: true, message: (role === 'super_admin' || role === 'admin' || role === 'doctor') ? 'All notifications cleared' : 'Section notifications cleared' };
 }

@@ -729,7 +729,7 @@ export async function resetAllAccounts() {
 }
 
 
-export async function updateUserRole(username: string, role: 'student' | 'leader' | 'admin' | 'super_admin') {
+export async function updateUserRole(username: string, role: 'student' | 'leader' | 'admin' | 'super_admin' | 'doctor') {
     const session = await readSession();
     if (!session?.role || !['super_admin', 'admin'].includes(session.role)) {
         throw new Error('Unauthorized');
@@ -1207,6 +1207,88 @@ export async function toggleLessonPublishStatus(lessonId: string, currentStatus:
         updateTag('lessons');
         updateTag('course-progress');
         return { success: true, message: `Lesson ${!currentStatus ? 'Published' : 'Unpublished'} successfully` };
+    } catch (e: any) {
+        return { error: e.message || 'Unexpected error' };
+    }
+}
+
+// ─── Change Username (Super Admin Only) ───────────────────────
+export async function changeUsername(oldUsername: string, newUsername: string) {
+    try {
+        await ensureSuperAdmin();
+
+        if (!oldUsername?.trim() || !newUsername?.trim()) {
+            return { error: 'Both old and new usernames are required' };
+        }
+
+        const trimmedNew = newUsername.trim();
+        const trimmedOld = oldUsername.trim();
+
+        if (trimmedNew === trimmedOld) {
+            return { error: 'New username is the same as the old one' };
+        }
+
+        if (trimmedNew.length < 2) {
+            return { error: 'Username must be at least 2 characters' };
+        }
+
+        const supabase = await createServiceRoleClient();
+
+        // Check if new username is already taken
+        const { data: existing } = await supabase
+            .from('allowed_users')
+            .select('username')
+            .eq('username', trimmedNew)
+            .single();
+
+        if (existing) {
+            return { error: `Username "${trimmedNew}" is already taken` };
+        }
+
+        // Cascade update across all tables
+        // Update allowed_users — FK ON UPDATE CASCADE will auto-update user_stats & user_progress
+        const { error: mainError } = await supabase
+            .from('allowed_users')
+            .update({ username: trimmedNew })
+            .eq('username', trimmedOld);
+
+        if (mainError) {
+            console.error('Failed to update allowed_users:', mainError);
+            return { error: `Failed to update username: ${mainError.message}` };
+        }
+
+        // Update tables WITHOUT FK constraints (won't cascade automatically)
+        await supabase.from('push_subscriptions').update({ username: trimmedNew }).eq('username', trimmedOld);
+
+        // Update sender_username in notifications
+        await supabase
+            .from('notifications')
+            .update({ sender_username: trimmedNew })
+            .eq('sender_username', trimmedOld);
+
+        // Update sender_username in guild_messages
+        await supabase
+            .from('guild_messages')
+            .update({ sender_username: trimmedNew })
+            .eq('sender_username', trimmedOld);
+
+        // Update assigned_to in guild_quests
+        await supabase
+            .from('guild_quests')
+            .update({ assigned_to: trimmedNew })
+            .eq('assigned_to', trimmedOld);
+
+        // Update feedback
+        await supabase
+            .from('feedback')
+            .update({ username: trimmedNew })
+            .eq('username', trimmedOld);
+
+        revalidatePath('/admin');
+        revalidatePath(`/admin/users/${encodeURIComponent(trimmedNew)}`);
+        updateTag('course-progress');
+
+        return { success: true, newUsername: trimmedNew };
     } catch (e: any) {
         return { error: e.message || 'Unexpected error' };
     }

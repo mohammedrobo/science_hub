@@ -102,7 +102,7 @@ export async function proxy(request: NextRequest) {
 
         // Onboarding check: if user hasn't completed onboarding and is not on /onboarding, redirect there
         // Skip for super_admin/admin users since they may not need onboarding
-        if (!session.isFirstLogin && session.hasOnboarded === false && !['super_admin', 'admin'].includes(session.role)) {
+        if (!session.isFirstLogin && session.hasOnboarded === false && !['super_admin', 'admin', 'doctor'].includes(session.role)) {
             if (!pathname.startsWith('/onboarding')) {
                 const onboardingUrl = new URL('/onboarding', request.url);
                 return NextResponse.redirect(onboardingUrl);

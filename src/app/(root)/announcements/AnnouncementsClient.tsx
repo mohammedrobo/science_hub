@@ -1,32 +1,52 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Megaphone, Send, Loader2, Trash2, Edit2, Save, X, Filter, ChevronDown, ChevronUp, Pin } from 'lucide-react';
+import { Megaphone, Send, Loader2, Trash2, Edit2, Save, X, Filter, ChevronDown, ChevronUp, BookOpen } from 'lucide-react';
 import { getNotifications, sendNotification, deleteNotification, updateNotification, type Notification } from '@/app/actions/notifications';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useTranslations } from 'next-intl';
-import Link from 'next/link';
 
-interface AnnouncementsPageProps {
-    userRole: 'super_admin' | 'admin' | 'leader' | 'student';
-    userSection?: string | null;
-    userName?: string;
+interface CourseInfo {
+    id: string;
+    name: string;
+    code: string;
 }
 
-export default function AnnouncementsClient({ userRole, userSection, userName }: AnnouncementsPageProps) {
+interface AnnouncementsPageProps {
+    userRole: 'super_admin' | 'admin' | 'leader' | 'student' | 'doctor';
+    userSection?: string | null;
+    userGroup?: string | null;
+    userName?: string;
+    courses?: CourseInfo[];
+}
+
+// Short display name for course badges
+function shortCourseName(name: string): string {
+    return name
+        .replace('General ', '')
+        .replace('Practical ', 'Pr. ')
+        .replace('Introduction to ', '')
+        .replace(' (ثقافة بيئية)', '')
+        .replace('Environmental Culture', 'Env. Culture');
+}
+
+export default function AnnouncementsClient({ userRole, userSection, userGroup, userName, courses = [] }: AnnouncementsPageProps) {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState<string>('all');
+    const [filterCategory, setFilterCategory] = useState<string>('all'); // 'all' | 'general' | course code
+    const [filterSection, setFilterSection] = useState<string>('all'); // 'all' | section like 'A1'
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
     // Compose state
-    const canPost = userRole === 'super_admin' || userRole === 'admin' || userRole === 'leader';
+    const canPost = userRole === 'super_admin' || userRole === 'admin' || userRole === 'leader' || userRole === 'doctor';
+    const isAdmin = userRole === 'super_admin' || userRole === 'admin' || userRole === 'doctor';
     const [showCompose, setShowCompose] = useState(false);
     const [composeTitle, setComposeTitle] = useState('');
     const [composeMessage, setComposeMessage] = useState('');
     const [composeTarget, setComposeTarget] = useState<string>('all');
+    const [composeCategory, setComposeCategory] = useState<string>('general');
     const [sending, setSending] = useState(false);
 
     // Edit state
@@ -62,17 +82,20 @@ export default function AnnouncementsClient({ userRole, userSection, userName }:
         if (!composeTitle.trim() || !composeMessage.trim()) return;
 
         setSending(true);
-        const targetSection = (userRole === 'super_admin' || userRole === 'admin')
+        const targetSection = isAdmin
             ? (composeTarget === 'all' ? null : composeTarget)
-            : userSection;
+            : userSection; // leaders send to their own section only
 
-        const result = await sendNotification(composeTitle, composeMessage, targetSection || null);
+        const category = composeCategory === 'general' ? null : composeCategory;
+
+        const result = await sendNotification(composeTitle, composeMessage, targetSection || null, category);
 
         if (result.success) {
             toast.success(t('sent'));
             setComposeTitle('');
             setComposeMessage('');
             setComposeTarget('all');
+            setComposeCategory('general');
             setShowCompose(false);
             await loadAnnouncements();
         } else {
@@ -113,15 +136,53 @@ export default function AnnouncementsClient({ userRole, userSection, userName }:
         setActionLoading(false);
     };
 
-    // Filter logic
-    const filtered = filter === 'all'
-        ? notifications
-        : notifications.filter(n => n.target_section === filter || !n.target_section);
+    // Build list of used categories from existing notifications
+    const usedCategories = new Set(notifications.map(n => n.category).filter(Boolean));
 
-    const getRoleBadge = (n: Notification) => {
-        if (n.sender_role === 'super_admin') return { label: tn('superAdmin'), color: 'text-red-400 bg-red-500/10 border-red-500/30' };
-        if (n.sender_role === 'admin') return { label: tn('admin'), color: 'text-amber-400 bg-amber-500/10 border-amber-500/30' };
-        return { label: n.sender_full_name || tn('leader'), color: 'text-violet-400 bg-violet-500/10 border-violet-500/30' };
+    // ─── Visibility logic ───
+    const visibleNotifications = (() => {
+        let filtered = notifications;
+
+        if (isAdmin) {
+            // Category filter
+            if (filterCategory === 'general') {
+                filtered = filtered.filter(n => !n.category);
+            } else if (filterCategory !== 'all') {
+                filtered = filtered.filter(n => n.category === filterCategory);
+            }
+            // Section filter
+            if (filterSection !== 'all') {
+                filtered = filtered.filter(n => n.target_section === filterSection || !n.target_section);
+            }
+        } else {
+            // Students & leaders: only see their own group/section or global
+            filtered = filtered.filter(n => {
+                if (!n.target_section) return true;
+                if (userSection && n.target_section === userSection) return true;
+                if (userGroup && n.target_section === `group_${userGroup}`) return true;
+                return false;
+            });
+        }
+
+        return filtered;
+    })();
+
+    // Get course name from code
+    const getCourseName = (code: string) => {
+        const course = courses.find(c => c.code === code);
+        return course ? shortCourseName(course.name) : code;
+    };
+
+    // Course badge color by subject area
+    const getCourseColor = (code: string) => {
+        if (code.startsWith('M')) return 'text-orange-400 bg-orange-500/10 border-orange-500/30';
+        if (code.startsWith('P')) return 'text-purple-400 bg-purple-500/10 border-purple-500/30';
+        if (code.startsWith('C')) return 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30';
+        if (code.startsWith('Z') || code.startsWith('B')) return 'text-green-400 bg-green-500/10 border-green-500/30';
+        if (code.startsWith('G')) return 'text-amber-400 bg-amber-500/10 border-amber-500/30';
+        if (code.startsWith('U') || code.startsWith('SO')) return 'text-rose-400 bg-rose-500/10 border-rose-500/30';
+        if (code.startsWith('COMP')) return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
+        return 'text-zinc-400 bg-zinc-500/10 border-zinc-500/30';
     };
 
     return (
@@ -165,8 +226,27 @@ export default function AnnouncementsClient({ userRole, userSection, userName }:
                             {t('compose')}
                         </h3>
 
-                        {/* Target (Admin/Super Admin) */}
-                        {(userRole === 'super_admin' || userRole === 'admin') && (
+                        {/* Category Selector (Admin/Doctor) */}
+                        {isAdmin && courses.length > 0 && (
+                            <div className="space-y-1">
+                                <label className="text-xs text-zinc-400">Category</label>
+                                <select
+                                    value={composeCategory}
+                                    onChange={(e) => setComposeCategory(e.target.value)}
+                                    className="w-full bg-zinc-900/80 border border-zinc-700/50 rounded-xl px-3 py-2.5 text-sm text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                >
+                                    <option value="general">📢 General Announcement</option>
+                                    <optgroup label="📚 Course-specific">
+                                        {courses.map(c => (
+                                            <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
+                                        ))}
+                                    </optgroup>
+                                </select>
+                            </div>
+                        )}
+
+                        {/* Target (Admin/Super Admin only) */}
+                        {isAdmin && (
                             <div className="space-y-1">
                                 <label className="text-xs text-zinc-400">{t('targetAudience')}</label>
                                 <select
@@ -237,51 +317,102 @@ export default function AnnouncementsClient({ userRole, userSection, userName }:
                     </form>
                 )}
 
-                {/* Filter Bar */}
-                <div className="flex items-center gap-3 mb-6 flex-wrap">
-                    <div className="flex items-center gap-1.5 text-sm text-zinc-500">
-                        <Filter className="w-3.5 h-3.5" />
-                        {t('filter')}:
-                    </div>
-                    <div className="flex gap-1 flex-wrap">
-                        {['all', 'A1', 'A2', 'B1', 'B2'].map(f => (
-                            <button
-                                key={f}
-                                onClick={() => setFilter(f)}
-                                className={`px-3 py-1 text-xs rounded-full border transition-all ${
-                                    filter === f
-                                        ? 'bg-blue-500/20 border-blue-500/40 text-blue-300'
-                                        : 'bg-zinc-900/50 border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700'
-                                }`}
+                {/* Filter Bar — Admin/Doctor only */}
+                {isAdmin && (
+                    <div className="mb-6 space-y-3">
+                        {/* Category Tabs */}
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <div className="flex items-center gap-1.5 text-sm text-zinc-500">
+                                <Filter className="w-3.5 h-3.5" />
+                                {t('filter')}:
+                            </div>
+                            <div className="flex gap-1.5 flex-wrap">
+                                <button
+                                    onClick={() => setFilterCategory('all')}
+                                    className={`px-3 py-1.5 text-xs rounded-full border transition-all font-medium ${
+                                        filterCategory === 'all'
+                                            ? 'bg-blue-500/20 border-blue-500/40 text-blue-300'
+                                            : 'bg-zinc-900/50 border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700'
+                                    }`}
+                                >
+                                    {t('allFilter')}
+                                </button>
+                                <button
+                                    onClick={() => setFilterCategory('general')}
+                                    className={`px-3 py-1.5 text-xs rounded-full border transition-all font-medium ${
+                                        filterCategory === 'general'
+                                            ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                                            : 'bg-zinc-900/50 border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700'
+                                    }`}
+                                >
+                                    📢 General
+                                </button>
+                                {/* Course tabs — only show courses that have at least 1 announcement */}
+                                {courses.filter(c => usedCategories.has(c.code)).map(c => (
+                                    <button
+                                        key={c.code}
+                                        onClick={() => setFilterCategory(c.code)}
+                                        className={`px-3 py-1.5 text-xs rounded-full border transition-all font-medium flex items-center gap-1 ${
+                                            filterCategory === c.code
+                                                ? `${getCourseColor(c.code)} border-current`
+                                                : 'bg-zinc-900/50 border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700'
+                                        }`}
+                                    >
+                                        <BookOpen className="w-3 h-3" />
+                                        {shortCourseName(c.name)}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Section Dropdown */}
+                        <div className="flex items-center gap-3">
+                            <select
+                                value={filterSection}
+                                onChange={(e) => setFilterSection(e.target.value)}
+                                className="bg-zinc-900/80 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-400 focus:ring-1 focus:ring-blue-500 outline-none"
                             >
-                                {f === 'all' ? t('allFilter') : f}
-                            </button>
-                        ))}
+                                <option value="all">All sections</option>
+                                {['A', 'B', 'C', 'D'].map(g => (
+                                    <optgroup key={g} label={`Group ${g}`}>
+                                        {[1, 2, 3, 4].map(n => (
+                                            <option key={`${g}${n}`} value={`${g}${n}`}>Section {g}{n}</option>
+                                        ))}
+                                    </optgroup>
+                                ))}
+                            </select>
+                            <span className="text-xs text-zinc-600 ms-auto">{visibleNotifications.length} {t('total')}</span>
+                        </div>
                     </div>
-                    <span className="text-xs text-zinc-600 ms-auto">{filtered.length} {t('total')}</span>
-                </div>
+                )}
+
+                {/* Count for non-admin */}
+                {!isAdmin && (
+                    <div className="mb-6">
+                        <span className="text-xs text-zinc-600">{visibleNotifications.length} {t('total')}</span>
+                    </div>
+                )}
 
                 {/* Announcements List */}
                 {loading ? (
                     <div className="flex items-center justify-center py-20">
                         <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
                     </div>
-                ) : filtered.length === 0 ? (
+                ) : visibleNotifications.length === 0 ? (
                     <div className="text-center py-20">
                         <Megaphone className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
                         <p className="text-zinc-500">{t('noAnnouncements')}</p>
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        {filtered.map((n) => {
+                        {visibleNotifications.map((n) => {
                             const isExpanded = expandedIds.has(n.id);
                             const isLong = n.message.length > 200;
                             const displayMessage = isLong && !isExpanded
                                 ? n.message.slice(0, 200) + '...'
                                 : n.message;
-                            const badge = getRoleBadge(n);
                             const canModify = canPost && (
-                                userRole === 'super_admin' || userRole === 'admin' || n.sender_username === userName
+                                isAdmin || n.sender_username === userName
                             );
 
                             if (editingId === n.id) {
@@ -320,9 +451,17 @@ export default function AnnouncementsClient({ userRole, userSection, userName }:
                                         <div className="flex-1 min-w-0">
                                             <h3 className="font-bold text-base sm:text-lg text-zinc-100 mb-1">{n.title}</h3>
                                             <div className="flex items-center gap-2 flex-wrap">
-                                                <span className={`text-[11px] px-2 py-0.5 rounded-full border font-medium ${badge.color}`}>
-                                                    {badge.label}
+                                                <span className="text-[11px] px-2 py-0.5 rounded-full border font-medium text-blue-400 bg-blue-500/10 border-blue-500/30">
+                                                    {n.sender_username}
                                                 </span>
+                                                {/* Course category badge */}
+                                                {n.category ? (
+                                                    <span className={`text-[11px] px-2 py-0.5 rounded-full border font-medium flex items-center gap-1 ${getCourseColor(n.category)}`}>
+                                                        <BookOpen className="w-2.5 h-2.5" />
+                                                        {getCourseName(n.category)}
+                                                    </span>
+                                                ) : null}
+                                                {/* Target badge */}
                                                 {n.target_section ? (
                                                     <span className="text-[11px] text-amber-500 border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 rounded-full">
                                                         → {n.target_section}

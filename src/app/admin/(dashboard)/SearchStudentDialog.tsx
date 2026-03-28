@@ -11,7 +11,7 @@ import { searchUsersByName } from '../actions';
 interface SearchResult {
     username: string;
     full_name: string;
-    access_role: 'student' | 'leader' | 'admin' | 'super_admin';
+    access_role: 'student' | 'leader' | 'admin' | 'super_admin' | 'doctor';
     original_section: string | null;
     original_group: string | null;
 }

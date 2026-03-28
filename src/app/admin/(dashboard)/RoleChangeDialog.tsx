@@ -19,8 +19,8 @@ import { updateUserRole } from '../actions';
 interface RoleChangeDialogProps {
     username: string;
     fullName: string;
-    currentRole: 'student' | 'leader' | 'admin' | 'super_admin';
-    targetRole: 'student' | 'leader' | 'admin' | 'super_admin';
+    currentRole: 'student' | 'leader' | 'admin' | 'super_admin' | 'doctor';
+    targetRole: 'student' | 'leader' | 'admin' | 'super_admin' | 'doctor';
     open: boolean;
     onOpenChange: (open: boolean) => void;
 }
@@ -28,6 +28,7 @@ interface RoleChangeDialogProps {
 const ROLE_CONFIG = {
     student: { label: 'Student', color: 'bg-zinc-800 text-zinc-400', icon: '🎓' },
     leader: { label: 'Leader', color: 'bg-violet-500/20 text-violet-400 border-violet-500/50', icon: '⭐' },
+    doctor: { label: 'Doctor', color: 'bg-teal-500/20 text-teal-400 border-teal-500/50', icon: '🩺' },
     admin: { label: 'Admin', color: 'bg-red-500/20 text-red-400 border-red-500/50', icon: '🛡️' },
     super_admin: { label: 'Super Admin', color: 'bg-amber-500/20 text-amber-400 border-amber-500/50', icon: '👑' },
 };
@@ -35,7 +36,7 @@ const ROLE_CONFIG = {
 export function RoleChangeDialog({ username, fullName, currentRole, targetRole, open, onOpenChange }: RoleChangeDialogProps) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
-    const isPromotion = ['student', 'leader', 'admin', 'super_admin'].indexOf(targetRole) > ['student', 'leader', 'admin', 'super_admin'].indexOf(currentRole);
+    const isPromotion = ['student', 'leader', 'doctor', 'admin', 'super_admin'].indexOf(targetRole) > ['student', 'leader', 'doctor', 'admin', 'super_admin'].indexOf(currentRole);
 
     const handleConfirm = () => {
         startTransition(async () => {

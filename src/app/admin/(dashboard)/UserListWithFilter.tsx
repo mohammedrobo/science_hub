@@ -8,7 +8,7 @@ import { UserActions } from './UserActions';
 interface User {
     username: string;
     full_name: string;
-    access_role: 'student' | 'leader' | 'admin' | 'super_admin';
+    access_role: 'student' | 'leader' | 'admin' | 'super_admin' | 'doctor';
     original_group?: string;
 }
 
@@ -24,6 +24,8 @@ function RoleBadge({ role }: { role: string }) {
             return <Badge className="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border-amber-500/50">Super Admin</Badge>;
         case 'admin':
             return <Badge className="bg-red-500/20 text-red-400 hover:bg-red-500/30 border-red-500/50">Admin</Badge>;
+        case 'doctor':
+            return <Badge className="bg-teal-500/20 text-teal-400 hover:bg-teal-500/30 border-teal-500/50">Doctor</Badge>;
         case 'leader':
             return <Badge className="bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border-violet-500/50">Leader</Badge>;
         default:

@@ -6,7 +6,7 @@ import { Send, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface SendNotificationFormProps {
-    role: 'super_admin' | 'admin' | 'leader';
+    role: 'super_admin' | 'admin' | 'leader' | 'doctor';
     userSection?: string | null; // Required for leader
 }
 
@@ -22,7 +22,7 @@ export function SendNotificationForm({ role, userSection }: SendNotificationForm
 
         setSending(true);
 
-        const targetSection = (role === 'super_admin' || role === 'admin')
+        const targetSection = (role === 'super_admin' || role === 'admin' || role === 'doctor')
             ? (target === 'all' ? null : target) // Admin/Super Admin can pick
             : userSection; // Leader forces their section
 
@@ -49,7 +49,7 @@ export function SendNotificationForm({ role, userSection }: SendNotificationForm
 
             <div className="space-y-3">
                 {/* Target Selector (Admin / Super Admin) */}
-                {(role === 'super_admin' || role === 'admin') && (
+                {(role === 'super_admin' || role === 'admin' || role === 'doctor') && (
                     <div className="space-y-1">
                         <label className="text-xs text-zinc-400">Target Audience</label>
                         <select

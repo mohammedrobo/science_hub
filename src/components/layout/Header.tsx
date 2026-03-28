@@ -91,7 +91,7 @@ export async function Header({ session }: HeaderProps) {
                         <LanguageSwitcher />
                     </div>
                     <div className="shrink-0">
-                        <NotificationBell userRole={session?.role as 'super_admin' | 'admin' | 'leader' | 'student'} />
+                        <NotificationBell userRole={session?.role as 'super_admin' | 'admin' | 'leader' | 'student' | 'doctor'} />
                     </div>
                     <div className="shrink-0 hidden lg:block">
                         <UserNav

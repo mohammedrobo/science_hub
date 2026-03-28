@@ -172,7 +172,7 @@ export async function POST(request: Request) {
         let redirectTo = '/';
         if (isFirstLogin) {
             redirectTo = '/change-password';
-        } else if (!hasOnboarded && !['admin', 'super_admin'].includes(user.access_role)) {
+        } else if (!hasOnboarded && !['admin', 'super_admin', 'doctor'].includes(user.access_role)) {
             redirectTo = '/onboarding';
         }
 

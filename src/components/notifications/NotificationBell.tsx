@@ -11,7 +11,7 @@ import { useTranslations } from 'next-intl';
 import { EXAM_MODE_ENABLED, examModeValue } from '@/lib/exam-mode';
 
 interface NotificationBellProps {
-    userRole?: 'super_admin' | 'admin' | 'leader' | 'student';
+    userRole?: 'super_admin' | 'admin' | 'leader' | 'student' | 'doctor';
 }
 
 const REFRESH_INTERVAL_MS = examModeValue(
@@ -31,7 +31,7 @@ export function NotificationBell({ userRole = 'student' }: NotificationBellProps
     const [unreadCount, setUnreadCount] = useState(0);
     const [isClearing, setIsClearing] = useState(false);
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-    const canManage = userRole === 'super_admin' || userRole === 'admin' || userRole === 'leader';
+    const canManage = userRole === 'super_admin' || userRole === 'admin' || userRole === 'doctor' || userRole === 'leader';
     const t = useTranslations('notifications');
     const lastFetchRef = useRef(0);
     const isFetchingRef = useRef(false);
@@ -205,7 +205,7 @@ export function NotificationBell({ userRole = 'student' }: NotificationBellProps
                                     )}
                                     <div className="mt-2 flex items-center justify-between flex-wrap gap-1">
                                         <span className="text-[10px] text-primary/70 px-1.5 py-0.5 rounded-full bg-primary/10 font-medium">
-                                            {n.sender_role === 'super_admin' ? t('superAdmin') : n.sender_role === 'admin' ? t('admin') : n.sender_full_name || t('leader')}
+                                            {n.sender_username}
                                         </span>
                                         <div className="flex items-center gap-1">
                                             {n.target_section ? (
