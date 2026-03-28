@@ -645,3 +645,32 @@ video {
     font-family: var(--font-serif);
   }
 }
+
+/* ============================================
+   MOBILE LANDSCAPE MODE
+   Targets phones in landscape (max-height ensures
+   it doesn't fire on tablets/desktops)
+   ============================================ */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* Hide non-essential chrome */
+  .mobile-landscape-hidden {
+    display: none !important;
+  }
+
+  /* Video fills the viewport */
+  .mobile-landscape-fullvh {
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+  }
+
+  /* Hide the site header/nav on course page */
+  header,
+  nav {
+    display: none !important;
+  }
+
+  /* Remove bottom border from the hero wrapper */
+  .mobile-landscape-no-border {
+    border-bottom: none !important;
+  }
+}
