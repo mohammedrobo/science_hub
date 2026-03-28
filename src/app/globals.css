@@ -674,3 +674,11 @@ video {
     border-bottom: none !important;
   }
 }
+
+/* ─── Radix Select: enable mouse-wheel scrolling ─────────────────────────── */
+/* Radix's RemoveScroll blocks wheel events unless the target is scrollable.  */
+/* Force the viewport to have a constrained height so it becomes scrollable.  */
+[data-radix-select-viewport] {
+  max-height: 300px !important;
+  overflow-y: auto !important;
+}

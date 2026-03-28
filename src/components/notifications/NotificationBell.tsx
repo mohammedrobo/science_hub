@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Bell, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Bell, Trash2, ChevronDown, ChevronUp, Pin, BarChart3, AlertTriangle } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { getNotifications, clearAllNotifications, type Notification } from '@/app/actions/notifications';
+import { getNotifications, clearAllNotifications, markNotificationAsRead, type Notification } from '@/app/actions/notifications';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -36,13 +36,30 @@ export function NotificationBell({ userRole = 'student' }: NotificationBellProps
     const lastFetchRef = useRef(0);
     const isFetchingRef = useRef(false);
 
-    const toggleExpand = (id: string) => {
+    const toggleExpand = async (id: string) => {
+        const isExpanding = !expandedIds.has(id);
+        
         setExpandedIds(prev => {
             const next = new Set(prev);
-            if (next.has(id)) next.delete(id);
-            else next.add(id);
+            if (isExpanding) next.add(id);
+            else next.delete(id);
             return next;
         });
+
+        if (isExpanding) {
+            const notification = notifications.find(n => n.id === id);
+            if (notification && !notification.is_read) {
+                // Optimistically update
+                setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+                setUnreadCount(prev => Math.max(0, prev - 1));
+                
+                try {
+                    await markNotificationAsRead(id);
+                } catch (err) {
+                    console.error("Failed to mark as read", err);
+                }
+            }
+        }
     };
 
     const refreshNotifications = useCallback(async (force = false) => {
@@ -54,14 +71,7 @@ export function NotificationBell({ userRole = 'student' }: NotificationBellProps
         try {
             const data = await getNotifications();
             setNotifications(data);
-
-            const lastRead = localStorage.getItem('last_read_notification');
-            if (!lastRead) {
-                setUnreadCount(data.length);
-            } else {
-                const count = data.filter(n => new Date(n.created_at) > new Date(lastRead)).length;
-                setUnreadCount(count);
-            }
+            setUnreadCount(data.filter(n => !n.is_read).length);
             lastFetchRef.current = Date.now();
         } finally {
             isFetchingRef.current = false;
@@ -104,11 +114,6 @@ export function NotificationBell({ userRole = 'student' }: NotificationBellProps
 
         if (open) {
             refreshNotifications(true);
-        }
-
-        if (open && notifications.length > 0) {
-            setUnreadCount(0);
-            localStorage.setItem('last_read_notification', new Date().toISOString());
         }
     };
 
@@ -181,9 +186,14 @@ export function NotificationBell({ userRole = 'student' }: NotificationBellProps
                                 : n.message;
 
                             return (
-                                <div key={n.id} className="p-3 border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors">
+                                <div key={n.id} className={`p-3 border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors ${n.type === 'urgent' ? 'border-l-2 border-l-red-500/60' : n.type === 'poll' ? 'border-l-2 border-l-violet-500/60' : ''}`}>
                                     <div className="flex justify-between items-start mb-1">
-                                        <h4 className="font-semibold text-sm text-foreground">{n.title}</h4>
+                                        <div className="flex items-center gap-1.5 min-w-0">
+                                            {n.is_pinned && <Pin className="w-3 h-3 text-amber-400 shrink-0" />}
+                                            {n.type === 'urgent' && <AlertTriangle className="w-3 h-3 text-red-400 shrink-0" />}
+                                            {!n.is_read && <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 shadow-[0_0_8px_rgba(59,130,246,0.8)]" title="Unread" />}
+                                            <h4 className={`font-semibold text-sm truncate ${!n.is_read ? 'text-zinc-50' : 'text-zinc-300'}`}>{n.title}</h4>
+                                        </div>
                                         <span className="text-[10px] text-zinc-500 whitespace-nowrap ms-2">
                                             {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
                                         </span>
@@ -204,9 +214,16 @@ export function NotificationBell({ userRole = 'student' }: NotificationBellProps
                                         </button>
                                     )}
                                     <div className="mt-2 flex items-center justify-between flex-wrap gap-1">
-                                        <span className="text-[10px] text-primary/70 px-1.5 py-0.5 rounded-full bg-primary/10 font-medium">
-                                            {n.sender_username}
-                                        </span>
+                                        <div className="flex items-center gap-1">
+                                            <span className="text-[10px] text-primary/70 px-1.5 py-0.5 rounded-full bg-primary/10 font-medium">
+                                                {n.sender_username}
+                                            </span>
+                                            {n.poll && (
+                                                <span className="text-[10px] text-violet-400 px-1.5 py-0.5 rounded-full bg-violet-500/10 font-medium flex items-center gap-0.5">
+                                                    <BarChart3 className="w-2.5 h-2.5" /> Poll
+                                                </span>
+                                            )}
+                                        </div>
                                         <div className="flex items-center gap-1">
                                             {n.target_section ? (
                                                 <span className="text-[10px] text-amber-500 border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 rounded">
