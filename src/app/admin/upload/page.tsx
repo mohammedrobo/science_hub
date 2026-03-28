@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { createLesson, getSignedUploadUrl, fetchPlaylistDetails } from '@/app/admin/actions';
+import { createLesson, getSignedUploadUrl, fetchPlaylistDetails, fetchVideoTitle } from '@/app/admin/actions';
 import {
     ArrowLeft, Save, Video, FileText, BookOpen,
     Loader2, AlertCircle, CheckCircle, Plus, Trash2, Link2, Upload, ListVideo
@@ -144,6 +144,7 @@ export default function UploadLessonPage() {
     };
 
     const [fetchingPlaylist, setFetchingPlaylist] = useState(false);
+    const [fetchingTitle, setFetchingTitle] = useState(false);
 
     const handleVideoUrlChange = async (index: number, newUrl: string) => {
         const updated = [...videoParts];
@@ -167,6 +168,24 @@ export default function UploadLessonPage() {
                 setResult({ error: err.message });
             } finally {
                 setFetchingPlaylist(false);
+            }
+        } else if (
+            newUrl.match(/youtu\.?be/) &&
+            !newUrl.includes('list=') &&
+            !fetchingTitle &&
+            videoParts.length <= 1
+        ) {
+            // Single video URL — auto-fetch title
+            setFetchingTitle(true);
+            try {
+                const res = await fetchVideoTitle(newUrl);
+                if (res.success && res.title) {
+                    // Auto-fill the lesson title if empty
+                    if (!title) setTitle(res.title);
+                    setResult({ success: true, message: `🎬 ${res.title}` });
+                }
+            } catch { /* silent */ } finally {
+                setFetchingTitle(false);
             }
         }
     };

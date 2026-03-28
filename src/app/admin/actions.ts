@@ -4,6 +4,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { readSession } from '@/lib/auth/session-read';
 import { revalidatePath, updateTag } from 'next/cache';
 import { hashPassword } from '@/lib/auth/password';
+import { extractVideoId } from '@/lib/youtube-utils';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -314,6 +315,32 @@ export async function fetchPlaylistDetails(playlistUrl: string) {
     } catch (error: any) {
         console.error('Fetch playlist error:', error);
         return { error: 'Failed to fetch playlist items: ' + error.message };
+    }
+}
+
+// ============ YOUTUBE SINGLE VIDEO TITLE FETCH ============
+
+export async function fetchVideoTitle(videoUrl: string) {
+    try {
+        await ensureLeaderOrAdmin();
+        if (!videoUrl) return { error: 'Video URL is required' };
+
+        const videoId = extractVideoId(videoUrl);
+
+        if (!videoId) return { error: 'Invalid YouTube video URL' };
+
+        const { Innertube } = require('youtubei.js');
+        const yt = await Innertube.create({ generate_session_locally: true });
+
+        const info = await yt.getBasicInfo(videoId);
+        const title = info?.basic_info?.title || null;
+
+        if (!title) return { error: 'Could not extract video title' };
+
+        return { success: true, title };
+    } catch (error: any) {
+        console.error('Fetch video title error:', error);
+        return { error: 'Failed to fetch video title: ' + error.message };
     }
 }
 
