@@ -707,3 +707,39 @@ export async function togglePinNotification(id: string) {
     return { success: true, pinned: !notification.is_pinned };
 }
 
+// Get detailed voter info for a poll (admin/super_admin only)
+export async function getPollVoterDetails(pollId: string) {
+    const session = await readSession();
+    if (!session) return { error: "Unauthorized" };
+
+    if (session.role !== 'admin' && session.role !== 'super_admin') {
+        return { error: "Only admins can view voter details." };
+    }
+
+    const supabase = await createServiceRoleClient();
+
+    // Get all votes for this poll with voter full names
+    const { data: votes, error } = await supabase
+        .from('notification_poll_votes')
+        .select('selected_option, voter_username, allowed_users!inner(full_name)')
+        .eq('poll_id', pollId)
+        .order('selected_option', { ascending: true });
+
+    if (error) {
+        console.error("Get Poll Voter Details Error:", error);
+        return { error: "Failed to fetch voter details." };
+    }
+
+    // Group voters by option index
+    const votersByOption: Record<number, { username: string; fullName: string }[]> = {};
+    for (const vote of votes || []) {
+        const optIdx = vote.selected_option;
+        if (!votersByOption[optIdx]) votersByOption[optIdx] = [];
+        votersByOption[optIdx].push({
+            username: vote.voter_username,
+            fullName: (vote.allowed_users as any)?.full_name || vote.voter_username,
+        });
+    }
+
+    return { success: true, votersByOption };
+}

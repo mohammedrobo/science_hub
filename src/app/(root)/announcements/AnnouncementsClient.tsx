@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Megaphone, Send, Loader2, Trash2, Edit2, Save, X, Filter, ChevronDown, ChevronUp, BookOpen, Pin, BarChart3, AlertTriangle, Bell, Plus, Minus, Vote, Clock } from 'lucide-react';
-import { getNotifications, sendNotification, deleteNotification, updateNotification, votePoll, removePollVote, togglePinNotification, markNotificationAsRead, type Notification, type PollData } from '@/app/actions/notifications';
+import { getNotifications, sendNotification, deleteNotification, updateNotification, votePoll, removePollVote, togglePinNotification, markNotificationAsRead, getPollVoterDetails, type Notification, type PollData } from '@/app/actions/notifications';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -42,13 +42,17 @@ const TYPE_CONFIG: Record<string, { labelKey: string; icon: string; accent: stri
 };
 
 // ─── Poll Widget ──────────────────────────────────────────────────────────────
-function PollWidget({ poll, onVote, onRemoveVote, t }: {
+function PollWidget({ poll, onVote, onRemoveVote, t, canViewVoters }: {
     poll: PollData;
     onVote: (pollId: string, optionIndex: number) => Promise<void>;
     onRemoveVote: (pollId: string, optionIndex: number) => Promise<void>;
     t: (key: string) => string;
+    canViewVoters?: boolean;
 }) {
     const [voting, setVoting] = useState<number | null>(null);
+    const [showVoters, setShowVoters] = useState(false);
+    const [voterDetails, setVoterDetails] = useState<Record<number, { username: string; fullName: string }[]> | null>(null);
+    const [loadingVoters, setLoadingVoters] = useState(false);
     const hasVoted = poll.user_vote && poll.user_vote.length > 0;
     const isEnded = poll.ends_at && new Date(poll.ends_at) < new Date();
     const showResults = hasVoted || isEnded;
@@ -157,12 +161,75 @@ function PollWidget({ poll, onVote, onRemoveVote, t }: {
                 <span className="text-[11px] text-zinc-500">
                     {poll.total_votes} {poll.total_votes === 1 ? t('vote') : t('votes')}
                 </span>
-                {hasVoted && !isEnded && (
-                    <span className="text-[10px] text-violet-400/70">
-                        {t('youVoted')}
-                    </span>
-                )}
+                <div className="flex items-center gap-3">
+                    {hasVoted && !isEnded && (
+                        <span className="text-[10px] text-violet-400/70">
+                            {t('youVoted')}
+                        </span>
+                    )}
+                    {canViewVoters && poll.total_votes > 0 && (
+                        <button
+                            type="button"
+                            onClick={async (e) => {
+                                e.stopPropagation();
+                                if (showVoters) {
+                                    setShowVoters(false);
+                                    return;
+                                }
+                                if (!voterDetails) {
+                                    setLoadingVoters(true);
+                                    const res = await getPollVoterDetails(poll.id);
+                                    if (res.success && res.votersByOption) {
+                                        setVoterDetails(res.votersByOption);
+                                    }
+                                    setLoadingVoters(false);
+                                }
+                                setShowVoters(true);
+                            }}
+                            className="text-[10px] font-medium text-emerald-400/80 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/20 hover:border-emerald-500/40 px-2 py-0.5 rounded-md transition-all flex items-center gap-1"
+                        >
+                            {loadingVoters ? (
+                                <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                            ) : (
+                                <>{showVoters ? <ChevronUp className="w-2.5 h-2.5" /> : <ChevronDown className="w-2.5 h-2.5" />}</>  
+                            )}
+                            {showVoters ? t('hideVoters') : t('viewVoters')}
+                        </button>
+                    )}
+                </div>
             </div>
+
+            {/* Voter Details Panel (Admin Only) */}
+            {showVoters && voterDetails && (
+                <div className="mt-3 space-y-2 border-t border-zinc-800/60 pt-3">
+                    {poll.options.map((option, idx) => {
+                        const voters = voterDetails[idx] || [];
+                        return (
+                            <div key={idx} className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[11px] font-semibold text-zinc-400">{option}</span>
+                                    <span className="text-[10px] text-zinc-600">({voters.length})</span>
+                                </div>
+                                {voters.length > 0 ? (
+                                    <div className="flex flex-wrap gap-1 ps-3">
+                                        {voters.map((v) => (
+                                            <span
+                                                key={v.username}
+                                                className="text-[10px] bg-zinc-800/80 text-zinc-300 border border-zinc-700/40 px-2 py-0.5 rounded-md"
+                                                title={v.username}
+                                            >
+                                                {v.fullName}
+                                            </span>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <span className="text-[10px] text-zinc-600 ps-3">—</span>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 }
@@ -240,7 +307,6 @@ export default function AnnouncementsClient({ userRole, userSection, userGroup, 
 
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!composeTitle.trim() || !composeMessage.trim()) return;
 
         // Validate poll data if poll form is open or type is poll
         let pollData = null;
@@ -271,14 +337,22 @@ export default function AnnouncementsClient({ userRole, userSection, userGroup, 
 
         const category = composeCategory === 'general' ? null : composeCategory;
         
-        // If it's a standalone poll, map the question to the title and empty the message
+        // If it's a standalone poll, map the question to the title and use a placeholder message
         const finalTitle = composeType === 'poll' ? pollQuestion.trim() : composeTitle;
-        const finalMessage = composeType === 'poll' ? '' : composeMessage;
+        const finalMessage = composeType === 'poll' ? '📊' : composeMessage;
 
-        const result = await sendNotification(
-            finalTitle, finalMessage, targetSection || null, category,
-            composeType, pollData
-        );
+        let result;
+        try {
+            result = await sendNotification(
+                finalTitle, finalMessage, targetSection || null, category,
+                composeType, pollData
+            );
+        } catch (err) {
+            console.error('handleSend error:', err);
+            toast.error(t('sendFailed', { defaultMessage: 'Failed to send. Check console.' }));
+            setSending(false);
+            return;
+        }
 
         if (result.success) {
             toast.success(t('sent'));
@@ -333,6 +407,12 @@ export default function AnnouncementsClient({ userRole, userSection, userGroup, 
     };
 
     const handleVote = async (pollId: string, optionIndex: number) => {
+        // Mark the parent notification as read when voting
+        const parentNotification = notifications.find(n => n.poll?.id === pollId);
+        if (parentNotification && !parentNotification.is_read) {
+            setNotifications(prev => prev.map(x => x.id === parentNotification.id ? { ...x, is_read: true } : x));
+            try { await markNotificationAsRead(parentNotification.id); } catch {}
+        }
         const result = await votePoll(pollId, optionIndex);
         if (result.success) {
             await loadAnnouncements();
@@ -886,7 +966,7 @@ export default function AnnouncementsClient({ userRole, userSection, userGroup, 
                             }
 
                             return (
-                                <div key={n.id} className={`glass-card rounded-2xl p-5 sm:p-6 transition-all duration-300 group ${cardBorder} ${n.is_read ? 'opacity-60 hover:opacity-100 grayscale-[0.2]' : 'hover:border-blue-500/20 shadow-md'}`}>
+                                <div key={n.id} className={`glass-card rounded-2xl p-5 sm:p-6 transition-all duration-300 group ${cardBorder} ${n.is_read ? 'opacity-60 grayscale-[0.2]' : 'hover:border-blue-500/20 shadow-md'}`}>
                                     {/* Header row */}
                                     <div className="flex items-start justify-between gap-3 mb-3">
                                         <div className="flex-1 min-w-0">
@@ -1003,6 +1083,7 @@ export default function AnnouncementsClient({ userRole, userSection, userGroup, 
                                             onVote={handleVote}
                                             onRemoveVote={handleRemoveVote}
                                             t={t}
+                                            canViewVoters={userRole === 'admin' || userRole === 'super_admin'}
                                         />
                                     )}
                                 </div>

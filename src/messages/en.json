@@ -468,6 +468,8 @@
     "votes": "votes",
     "vote": "vote",
     "youVoted": "✓ You voted",
+    "viewVoters": "View Voters",
+    "hideVoters": "Hide Voters",
     "urgentNotice": "This is an urgent notification",
     "pinned": "Pinned!",
     "unpinned": "Unpinned",
