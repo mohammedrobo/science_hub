@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Bell, Trash2, ChevronDown, ChevronUp, Pin, BarChart3, AlertTriangle } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { getNotifications, clearAllNotifications, markNotificationAsRead, type Notification } from '@/app/actions/notifications';
+import { getNotifications, clearAllNotifications, markNotificationAsRead } from '@/app/actions/notifications';
+import type { Notification } from '@/types/notifications';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -70,8 +71,10 @@ export function NotificationBell({ userRole = 'student' }: NotificationBellProps
         isFetchingRef.current = true;
         try {
             const data = await getNotifications();
-            setNotifications(data);
-            setUnreadCount(data.filter(n => !n.is_read).length);
+            // Filter to only show unread notifications in the Bell dropdown!
+            const unreadOnly = data.filter(n => !n.is_read);
+            setNotifications(unreadOnly);
+            setUnreadCount(unreadOnly.length);
             lastFetchRef.current = Date.now();
         } finally {
             isFetchingRef.current = false;
@@ -186,7 +189,17 @@ export function NotificationBell({ userRole = 'student' }: NotificationBellProps
                                 : n.message;
 
                             return (
-                                <div key={n.id} className={`p-3 border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors ${n.type === 'urgent' ? 'border-l-2 border-l-red-500/60' : n.type === 'poll' ? 'border-l-2 border-l-violet-500/60' : ''}`}>
+                                <div 
+                                    key={n.id} 
+                                    onClick={async () => {
+                                        if (!n.is_read) {
+                                            setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, is_read: true } : x));
+                                            setUnreadCount(prev => Math.max(0, prev - 1));
+                                            try { await markNotificationAsRead(n.id); } catch {}
+                                        }
+                                    }}
+                                    className={`p-3 border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-all cursor-pointer ${n.is_read ? 'opacity-40 grayscale-[0.5]' : ''} ${n.type === 'urgent' ? 'border-l-2 border-l-red-500/60' : n.type === 'poll' ? 'border-l-2 border-l-violet-500/60' : ''}`}
+                                >
                                     <div className="flex justify-between items-start mb-1">
                                         <div className="flex items-center gap-1.5 min-w-0">
                                             {n.is_pinned && <Pin className="w-3 h-3 text-amber-400 shrink-0" />}

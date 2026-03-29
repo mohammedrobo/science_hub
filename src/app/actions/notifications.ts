@@ -4,34 +4,9 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { readSession } from '@/lib/auth/session-read';
 import { revalidatePath, unstable_cache, revalidateTag } from 'next/cache';
 import { examModeValue } from '@/lib/exam-mode';
+// SWC Webpack HMR cache invalidation
 
-export interface PollData {
-    id: string;
-    question: string;
-    options: string[];
-    allow_multiple: boolean;
-    ends_at: string | null;
-    votes: { option: number; count: number }[];
-    user_vote: number[] | null;
-    total_votes: number;
-}
-
-export interface Notification {
-    id: string;
-    sender_username: string;
-    target_section: string | null; // null = All
-    category: string | null; // course code (e.g. 'P102') or null for general
-    type: string; // 'announcement' | 'urgent' | 'reminder' | 'poll'
-    is_pinned: boolean;
-    title: string;
-    message: string;
-    created_at: string;
-    sender_full_name?: string;
-    sender_role?: string;
-    sender_section?: string | null;
-    poll?: PollData | null;
-    is_read?: boolean;
-}
+import type { PollData, Notification } from '@/types/notifications';
 
 type NotificationRow = {
     id: string;
@@ -236,7 +211,7 @@ function invalidateNotificationCaches() {
 }
 
 // Send a notification
-export async function sendNotification(
+export async function createAppNotification(
     title: string,
     message: string,
     targetSection: string | null, // null for All

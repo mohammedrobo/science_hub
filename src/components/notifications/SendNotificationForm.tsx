@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { sendNotification } from '@/app/actions/notifications';
+import { createAppNotification } from '@/app/actions/notifications';
 import { Send, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+// Next.js Webpack cache invalidation
 
 interface SendNotificationFormProps {
     role: 'super_admin' | 'admin' | 'leader' | 'doctor';
@@ -26,7 +27,7 @@ export function SendNotificationForm({ role, userSection }: SendNotificationForm
             ? (target === 'all' ? null : target) // Admin/Super Admin can pick
             : userSection; // Leader forces their section
 
-        const result = await sendNotification(title, message, targetSection || null);
+        const result = await createAppNotification(title, message, targetSection || null);
 
         if (result.success) {
             toast.success("Notification sent!");

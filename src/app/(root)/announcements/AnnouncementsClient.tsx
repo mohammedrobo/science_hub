@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Megaphone, Send, Loader2, Trash2, Edit2, Save, X, Filter, ChevronDown, ChevronUp, BookOpen, Pin, BarChart3, AlertTriangle, Bell, Plus, Minus, Vote, Clock } from 'lucide-react';
-import { getNotifications, sendNotification, deleteNotification, updateNotification, votePoll, removePollVote, togglePinNotification, markNotificationAsRead, getPollVoterDetails, type Notification, type PollData } from '@/app/actions/notifications';
+import { getNotifications, createAppNotification, deleteNotification, updateNotification, votePoll, removePollVote, togglePinNotification, markNotificationAsRead, getPollVoterDetails } from '@/app/actions/notifications';
+import type { Notification, PollData } from '@/types/notifications';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -343,7 +344,7 @@ export default function AnnouncementsClient({ userRole, userSection, userGroup, 
 
         let result;
         try {
-            result = await sendNotification(
+            result = await createAppNotification(
                 finalTitle, finalMessage, targetSection || null, category,
                 composeType, pollData
             );

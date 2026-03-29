@@ -1,75 +1,82 @@
 'use client';
 
-import { useLocale, useTranslations } from 'next-intl';
+import { useLocale } from 'next-intl';
 import { setLocale } from '@/app/actions/locale';
-import { Globe } from 'lucide-react';
 import { useTransition } from 'react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
+import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { Languages } from 'lucide-react';
 
-export function LanguageSwitcher({ variant = 'icon' }: { variant?: 'icon' | 'full' }) {
+export function LanguageDropdownItem() {
   const locale = useLocale();
-  const t = useTranslations('common');
   const [isPending, startTransition] = useTransition();
 
-  const switchLocale = (newLocale: string) => {
+  const switchLocale = () => {
     startTransition(async () => {
-      await setLocale(newLocale);
+      await setLocale(locale === 'en' ? 'ar' : 'en');
     });
   };
 
-  if (variant === 'full') {
-    return (
-      <button
-        onClick={() => switchLocale(locale === 'en' ? 'ar' : 'en')}
-        disabled={isPending}
-        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-foreground hover:bg-muted/80 active:bg-muted transition-colors w-full"
-      >
-        <Globe className="h-[18px] w-[18px] text-sky-500 shrink-0" />
-        <span className="text-[13px] font-medium">
-          {locale === 'en' ? 'العربية' : 'English'}
-        </span>
-      </button>
-    );
-  }
+  return (
+    <DropdownMenuItem
+      onClick={(e) => {
+        e.preventDefault();
+        if (!isPending) switchLocale();
+      }}
+      disabled={isPending}
+      className={`focus:bg-zinc-800 focus:text-white cursor-pointer w-full text-foreground ${isPending ? 'opacity-50' : ''}`}
+    >
+      <Languages className={`me-2 h-4 w-4 ${locale === 'en' ? 'text-violet-400' : 'text-sky-400'}`} />
+      <span>{locale === 'en' ? 'Arabic' : 'English'}</span>
+    </DropdownMenuItem>
+  );
+}
+
+export function LanguageMobileButton({ className }: { className?: string }) {
+  const locale = useLocale();
+  const [isPending, startTransition] = useTransition();
+
+  const switchLocale = () => {
+    startTransition(async () => {
+      await setLocale(locale === 'en' ? 'ar' : 'en');
+    });
+  };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 text-zinc-400 hover:text-white"
-          disabled={isPending}
-        >
-          <Globe className="h-4 w-4" />
-          <span className="sr-only">{t('switchLanguage')}</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        className="bg-zinc-900 border-zinc-800 min-w-[140px]"
-      >
-        <DropdownMenuItem
-          onClick={() => switchLocale('en')}
-          className={`cursor-pointer focus:bg-zinc-800 focus:text-white ${locale === 'en' ? 'text-violet-400' : ''}`}
-        >
-          <span className="text-base me-2">🇺🇸</span>
-          English
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => switchLocale('ar')}
-          className={`cursor-pointer focus:bg-zinc-800 focus:text-white ${locale === 'ar' ? 'text-violet-400' : ''}`}
-        >
-          <span className="text-base me-2">🇸🇦</span>
-          العربية
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <button
+      onClick={(e) => {
+        e.preventDefault();
+        if (!isPending) switchLocale();
+      }}
+      disabled={isPending}
+      className={`flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/5 active:bg-white/10 transition-all w-full text-zinc-300 hover:text-white ${isPending ? 'opacity-50' : ''} ${className || ''}`}
+    >
+      <Languages className={`h-5 w-5 shrink-0 ${locale === 'en' ? 'text-violet-400' : 'text-sky-400'}`} />
+      <span className="text-sm font-medium">{locale === 'en' ? 'Arabic' : 'English'}</span>
+    </button>
+  );
+}
+
+export function LanguageToggleButton() {
+  const locale = useLocale();
+  const [isPending, startTransition] = useTransition();
+
+  const switchLocale = () => {
+    startTransition(async () => {
+      await setLocale(locale === 'en' ? 'ar' : 'en');
+    });
+  };
+
+  return (
+    <button
+      onClick={(e) => {
+        e.preventDefault();
+        if (!isPending) switchLocale();
+      }}
+      disabled={isPending}
+      className={`flex items-center gap-2 px-3 py-1.5 rounded-full border border-zinc-800 bg-zinc-900/50 backdrop-blur-md text-zinc-300 hover:text-white hover:bg-zinc-800 transition-all shadow-lg ${isPending ? 'opacity-50' : ''}`}
+    >
+      <Languages className={`h-4 w-4 ${locale === 'en' ? 'text-violet-400' : 'text-sky-400'}`} />
+      <span className="text-xs font-medium">{locale === 'en' ? 'Arabic' : 'English'}</span>
+    </button>
   );
 }

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getNotifications, deleteNotification, updateNotification, type Notification } from '@/app/actions/notifications';
+import { getNotifications, deleteNotification, updateNotification } from '@/app/actions/notifications';
+import type { Notification } from '@/types/notifications';
 import { Trash2, Edit2, Save, X, Loader2, MoreHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';

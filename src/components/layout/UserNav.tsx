@@ -10,6 +10,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { LogoutButton } from '@/components/auth/LogoutButton';
+import { LanguageDropdownItem } from '@/components/LanguageSwitcher';
 import { getTranslations } from 'next-intl/server';
 
 function getInitials(name: string): string {
@@ -140,6 +141,8 @@ export async function UserNav({
                 )}
 
                 <DropdownMenuSeparator className="bg-zinc-800" />
+
+                <LanguageDropdownItem />
 
                 <DropdownMenuItem className="focus:bg-zinc-800 focus:text-white p-0">
                     <LogoutButton />

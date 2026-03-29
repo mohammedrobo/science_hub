@@ -6,7 +6,6 @@ import { type SessionData } from '@/lib/auth/session-read';
 import { MobileMenu } from './MobileMenu';
 import { getHeaderStats } from '@/lib/gamification';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { getTranslations } from 'next-intl/server';
 
 interface HeaderProps {
@@ -86,9 +85,6 @@ export async function Header({ session }: HeaderProps) {
                 <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
                     <div className="shrink-0">
                         <SemesterToggle />
-                    </div>
-                    <div className="shrink-0 hidden sm:block">
-                        <LanguageSwitcher />
                     </div>
                     <div className="shrink-0">
                         <NotificationBell userRole={session?.role as 'super_admin' | 'admin' | 'leader' | 'student' | 'doctor'} />

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Sparkles, ArrowRight, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { LanguageToggleButton } from '@/components/LanguageSwitcher';
 
 const initialState = {
     error: '',
@@ -26,7 +26,7 @@ export default function LoginPage() {
 
             {/* Language Switcher */}
             <div className="absolute top-4 end-4 z-20">
-                <LanguageSwitcher />
+                <LanguageToggleButton />
             </div>
 
             <div className="w-full max-w-md p-8 relative z-10">
