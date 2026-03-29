@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { redirect } from 'next/navigation';
 import { EditNicknameDialog } from '@/components/guild/EditNicknameDialog';
 import { getTranslations } from 'next-intl/server';
-import { GuildTourMount } from './tour-mount';
 
 export default async function GuildPage() {
     const session = await readSession();
@@ -63,7 +62,6 @@ export default async function GuildPage() {
 
     return (
         <div className="min-h-screen bg-zinc-950 text-zinc-100 selection:bg-violet-900/30">
-            <GuildTourMount />
             {/* Header */}
             <header className="h-14 sm:h-[73px] border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-xl sticky top-0 z-50">
                 <div className="container mx-auto px-3 sm:px-4 h-full flex items-center justify-between">

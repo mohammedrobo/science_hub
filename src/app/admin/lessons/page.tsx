@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useTranslations } from 'next-intl';
-import { LeaderTour } from '@/components/leader/LeaderTour';
 
 interface Lesson {
     id: string;
@@ -134,7 +133,6 @@ export default function LessonsPage() {
 
     return (
         <div className="min-h-screen bg-zinc-950">
-            <LeaderTour page="lessons" />
             {/* Header - Simple back navigation */}
             <div className="sticky top-0 z-10 bg-zinc-950/95 backdrop-blur border-b border-zinc-800">
                 <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
