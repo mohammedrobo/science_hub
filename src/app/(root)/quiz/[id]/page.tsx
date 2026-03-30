@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { MathText } from '@/components/MathText';
 import { useTranslations } from 'next-intl';
 import { examModeValue } from '@/lib/exam-mode';
+import { toast } from 'sonner';
 
 const QUIZ_CACHE_TTL_MS = examModeValue(
     60 * 60 * 1000,
@@ -79,7 +80,7 @@ export default function QuizPage() {
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
     const [userAnswers, setUserAnswers] = useState<Record<number, string>>({}); // Index -> Answer Text
     const [isCompleted, setIsCompleted] = useState(false);
-    const [quizResult, setQuizResult] = useState<{ xpEarned: number, totalXp: number } | null>(null);
+    const [quizResult, setQuizResult] = useState<{ xpEarned: number, totalXp: number, quizXp?: number, lessonXp?: number } | null>(null);
 
     // Standard letter mapping for display
     const LETTERS = ['a', 'b', 'c', 'd'];
@@ -132,11 +133,17 @@ export default function QuizPage() {
                     if (result.success || result.xpEarned !== undefined) {
                         setQuizResult({
                             xpEarned: result.xpEarned || 0,
-                            totalXp: result.xpEarned || 0
+                            totalXp: result.xpEarned || 0,
+                            quizXp: result.quizXp || 0,
+                            lessonXp: result.lessonXp || 0
                         });
+                        if (result.message) {
+                            toast.success(result.message);
+                        }
                     }
                 } catch (e) {
                     console.error("Failed to submit quiz", e);
+                    toast.error(t('connectionFailed'));
                 }
             };
             calculateAndSubmit();
@@ -240,9 +247,28 @@ export default function QuizPage() {
                         <Trophy className={`w-16 h-16 mx-auto mb-4 ${percentage >= 80 ? 'text-yellow-400' : 'text-primary'}`} />
                         <h1 className="text-3xl font-bold mb-2">{t('missionComplete')}</h1>
                         <div className={`text-5xl font-black mb-4 ${color} tracking-wider font-mono`}>{grade} <span className="text-2xl opacity-50 block mt-1">{label}</span></div>
-                        <p className="text-zinc-400 text-lg mb-6">
+                        <p className="text-zinc-400 text-lg mb-4">
                             Score: <span className="text-white font-bold">{correctCount}</span> / {quiz.questions.length} ({percentage}%)
                         </p>
+
+                        {quizResult && (
+                            <div className="flex flex-col items-center justify-center gap-1 mb-6 text-sm bg-zinc-800/50 p-4 rounded-xl border border-zinc-700/50 max-w-sm mx-auto shadow-inner">
+                                <div className="text-zinc-300 w-full flex justify-between px-2">
+                                    <span>{t('quizReward') || 'Quiz Reward'}:</span>
+                                    <span className="text-yellow-400 font-bold">+{quizResult.quizXp} XP</span>
+                                </div>
+                                {quizResult.lessonXp !== undefined && quizResult.lessonXp > 0 && (
+                                    <div className="text-zinc-300 w-full flex justify-between px-2">
+                                        <span>{t('lectureReward') || 'Lecture Complete'}:</span>
+                                        <span className="text-emerald-400 font-bold">+{quizResult.lessonXp} XP</span>
+                                    </div>
+                                )}
+                                <div className="text-zinc-100 font-bold mt-2 pt-2 border-t border-zinc-700/50 w-full flex justify-between px-2">
+                                    <span>{t('totalGained') || 'Total Gained'}:</span>
+                                    <span className="text-violet-400 text-base">+{quizResult.totalXp} XP</span>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="flex flex-wrap gap-4 justify-center">
                             <Button onClick={handleRetry} variant="outline" className="h-10">

@@ -194,7 +194,7 @@ export async function submitQuizResult(quizId: string, percentage: number) {
         return { error: 'Failed to save result' };
     }
 
-    // Award XP
+    // Award XP for the quiz
     if (xpToAward > 0) {
         await supabase.rpc('award_xp', {
             p_username: session.username,
@@ -203,7 +203,31 @@ export async function submitQuizResult(quizId: string, percentage: number) {
         });
     }
 
+    let lessonXpEarned = 0;
+    // Auto-complete the associated lesson
+    const { data: lessonData } = await supabase
+        .from('lessons')
+        .select('id')
+        .eq('quiz_id', quizId)
+        .single();
+
+    if (lessonData?.id) {
+        const lessonResult = await markContentAsCompleted(lessonData.id, 'lesson', 50);
+        if (!lessonResult.error && lessonResult.xpEarned) {
+            lessonXpEarned = lessonResult.xpEarned;
+        }
+    }
+
     updateTag('course-progress');
 
-    return { success: true, xpEarned: xpToAward, message: `Quiz Complete! Grade: ${grade} (${label})` };
+    const totalXp = xpToAward + lessonXpEarned;
+    const extraMsg = lessonXpEarned > 0 ? ` + 50 XP for completing the Lecture!` : '';
+
+    return { 
+        success: true, 
+        xpEarned: totalXp, 
+        quizXp: xpToAward,
+        lessonXp: lessonXpEarned,
+        message: `Quiz Complete! Grade: ${grade} (${label})${extraMsg}` 
+    };
 }

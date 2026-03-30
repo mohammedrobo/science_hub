@@ -26,7 +26,6 @@ import { VideoPlayer } from '@/components/courses/VideoPlayer';
 import { VideoErrorBoundary } from '@/components/courses/VideoErrorBoundary';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { CompleteButton } from '@/components/courses/CompleteButton';
 import { useTranslations } from 'next-intl';
 
 interface CourseClientProps {
@@ -245,8 +244,6 @@ export default function CourseClient({ id, course, initialLessons, initialProgre
                         )}
 
                         <div className="flex flex-wrap gap-2 mt-2 sm:mt-0">
-                            <CompleteButton lessonId={lesson.id} />
-
                             {/* Multiple PDFs support */}
                             {lesson.pdf_parts && lesson.pdf_parts.length > 0 ? (
                                 <DropdownMenu>
