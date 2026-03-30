@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Megaphone, Send, Loader2, Trash2, Edit2, Save, X, Filter, ChevronDown, ChevronUp, BookOpen, Pin, BarChart3, AlertTriangle, Bell, Plus, Minus, Vote, Clock } from 'lucide-react';
-import { getNotifications, createAppNotification, deleteNotification, updateNotification, votePoll, removePollVote, togglePinNotification, markNotificationAsRead, getPollVoterDetails } from '@/app/actions/notifications';
+import { Megaphone, Send, Loader2, Trash2, Edit2, Save, X, Filter, ChevronDown, ChevronUp, BookOpen, Pin, BarChart3, AlertTriangle, Bell, Plus, Minus, Vote, Clock, Eye } from 'lucide-react';
+import { getNotifications, createAppNotification, deleteNotification, updateNotification, votePoll, removePollVote, togglePinNotification, markNotificationAsRead, getPollVoterDetails, getNotificationReads } from '@/app/actions/notifications';
+import { supabase } from '@/lib/supabase/client';
 import type { Notification, PollData } from '@/types/notifications';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
@@ -243,6 +244,11 @@ export default function AnnouncementsClient({ userRole, userSection, userGroup, 
     const [filterSection, setFilterSection] = useState<string>('all'); // 'all' | section like 'A1'
     const [filterType, setFilterType] = useState<string>('all'); // 'all' | type
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+    
+    // Read receipts state
+    const [showReadsFor, setShowReadsFor] = useState<string | null>(null);
+    const [readsDetails, setReadsDetails] = useState<Record<string, { username: string; fullName: string, section: string | null }[]>>({});
+    const [loadingReads, setLoadingReads] = useState<string | null>(null);
 
     // Compose state
     const canPost = userRole === 'super_admin' || userRole === 'admin' || userRole === 'leader' || userRole === 'doctor';
@@ -296,11 +302,15 @@ export default function AnnouncementsClient({ userRole, userSection, userGroup, 
             if (notification && !notification.is_read) {
                 // Optimistically mark as read locally
                 setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-                // Fire server action
-                try {
-                    await markNotificationAsRead(id);
-                } catch (err) {
-                    console.error("Failed to mark notification as read", err);
+                // Direct Supabase insert instead of server action bypasses Vercel edge functions
+                if (userName) {
+                    // @ts-ignore - notification_reads might not be in the generated types yet
+                    supabase.from('notification_reads').insert({ notification_id: id, username: userName }).then(({ error }) => {
+                        // Ignore unique constraint violations (already read)
+                        if (error && error.code !== '23505') {
+                            console.error("Failed to mark directly as read", error);
+                        }
+                    });
                 }
             }
         }
@@ -412,7 +422,10 @@ export default function AnnouncementsClient({ userRole, userSection, userGroup, 
         const parentNotification = notifications.find(n => n.poll?.id === pollId);
         if (parentNotification && !parentNotification.is_read) {
             setNotifications(prev => prev.map(x => x.id === parentNotification.id ? { ...x, is_read: true } : x));
-            try { await markNotificationAsRead(parentNotification.id); } catch {}
+            if (userName) {
+                // @ts-ignore - notification_reads might not be in the generated types yet
+                supabase.from('notification_reads').insert({ notification_id: parentNotification.id, username: userName }).then(() => {}).catch(() => {});
+            }
         }
         const result = await votePoll(pollId, optionIndex);
         if (result.success) {
@@ -1075,6 +1088,66 @@ export default function AnnouncementsClient({ userRole, userSection, userGroup, 
                                                 <><ChevronDown className="w-3.5 h-3.5" /> {t('readMore')}</>
                                             )}
                                         </button>
+                                    )}
+
+                                    {/* Admin View Reads Button */}
+                                    {isAdmin && (
+                                        <div className="mt-4 pt-3 border-t border-zinc-800/50 flex flex-col gap-2">
+                                            <div className="flex justify-end">
+                                                <button
+                                                    onClick={async () => {
+                                                        if (showReadsFor === n.id) {
+                                                            setShowReadsFor(null);
+                                                            return;
+                                                        }
+                                                        if (!readsDetails[n.id]) {
+                                                            setLoadingReads(n.id);
+                                                            const res = await getNotificationReads(n.id);
+                                                            if (res.success && res.readers) {
+                                                                setReadsDetails(prev => ({ ...prev, [n.id]: res.readers }));
+                                                            }
+                                                            setLoadingReads(null);
+                                                        }
+                                                        setShowReadsFor(n.id);
+                                                    }}
+                                                    className="text-[11px] font-medium text-blue-400/80 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/15 border border-blue-500/20 hover:border-blue-500/40 px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5"
+                                                >
+                                                    {loadingReads === n.id ? (
+                                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                                    ) : (
+                                                        <Eye className="w-3 h-3" />
+                                                    )}
+                                                    {showReadsFor === n.id ? 'Hide Viewers' : 'View Read Receipts'}
+                                                </button>
+                                            </div>
+                                            
+                                            {/* Admin Reads Panel */}
+                                            {showReadsFor === n.id && readsDetails[n.id] && (
+                                                <div className="bg-zinc-900/40 border border-zinc-800/60 rounded-xl p-3 mt-1 max-h-[300px] overflow-y-auto">
+                                                    <div className="text-xs font-semibold text-zinc-300 mb-2 flex justify-between items-center">
+                                                        <span>Seen by {readsDetails[n.id].length} people</span>
+                                                    </div>
+                                                    {readsDetails[n.id].length > 0 ? (
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            {readsDetails[n.id].map(reader => (
+                                                                <span
+                                                                    key={reader.username}
+                                                                    className="text-[10px] bg-zinc-800/80 text-zinc-300 border border-zinc-700/40 px-2.5 py-1 rounded-md flex items-center gap-1.5"
+                                                                    title={reader.username}
+                                                                >
+                                                                    {reader.fullName}
+                                                                    {reader.section && (
+                                                                        <span className="text-blue-400/80 border-l border-zinc-600 pl-1.5 ml-0.5">{reader.section}</span>
+                                                                    )}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-xs text-zinc-500">No one has read this yet.</p>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
                                     )}
 
                                     {/* Poll Widget */}

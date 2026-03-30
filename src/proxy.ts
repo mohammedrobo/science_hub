@@ -122,7 +122,7 @@ export async function proxy(request: NextRequest) {
         }
 
         // Leader Route Protection — admin, super_admin, and leader
-        if (pathname.startsWith('/leader') && !['super_admin', 'admin', 'leader'].includes(session.role)) {
+        if ((pathname === '/leader' || pathname.startsWith('/leader/')) && !['super_admin', 'admin', 'leader'].includes(session.role)) {
             const homeUrl = new URL('/', request.url);
             return NextResponse.redirect(homeUrl);
         }

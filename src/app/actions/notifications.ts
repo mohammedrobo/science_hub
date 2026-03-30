@@ -718,3 +718,36 @@ export async function getPollVoterDetails(pollId: string) {
 
     return { success: true, votersByOption };
 }
+
+// Get detailed read receipts for a notification (admin/super_admin/doctor only)
+export async function getNotificationReads(notificationId: string) {
+    const session = await readSession();
+    if (!session) return { error: "Unauthorized" };
+
+    if (session.role !== 'admin' && session.role !== 'super_admin' && session.role !== 'doctor') {
+        return { error: "Only admins can view read receipts." };
+    }
+
+    const supabase = await createServiceRoleClient();
+
+    // Get all reads for this notification with reader full names and sections
+    const { data: reads, error } = await supabase
+        .from('notification_reads')
+        .select('username, read_at, allowed_users!inner(full_name, original_section)')
+        .eq('notification_id', notificationId)
+        .order('read_at', { ascending: false });
+
+    if (error) {
+        console.error("Get Read Receipts Error:", error);
+        return { error: "Failed to fetch read receipts." };
+    }
+
+    const readers = (reads || []).map(r => ({
+        username: r.username,
+        fullName: (r.allowed_users as any)?.full_name || r.username,
+        section: (r.allowed_users as any)?.original_section || null,
+        readAt: r.read_at
+    }));
+
+    return { success: true, readers };
+}
